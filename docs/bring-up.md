@@ -67,7 +67,11 @@ The board pin table labels the LED signals with `#`, suggesting active-low contr
 
 The PIM documentation states that the expander address is changeable. Its address-strap circuit is in [Figure 3](docling/images/PIC32MX270F256D-Bluetooth-Audio-PIM/image_000003_e49099fffd484b4bfb1282e7ed87ff9ecf4bf0919d9c13f6277f650855be46c5.png). The MCP23008 component data sheet is not among the current reference PDFs. Confirm the strap population, seven-bit address and component register definitions before implementing the driver; do not assume address 0x20.
 
-The carrier offers I²C pull-up selection to 3.3V or 5V. Confirm the selected voltage and compatibility of every connected device before enabling I²C. For the first application, initialise only the required LED output, preload its verified OFF latch state before enabling output, and avoid whole-port writes that unintentionally change GP5–GP7. Preserve the reviewed reset/default behaviour of unused control lines.
+The carrier's **Figure A-5 (source PDF page 53)** shows **R10 and R11, each 3.30 kΩ**, pulling up the I²C1 SDA/SCL nets through **J5 (I2C1 PWR Conf)**. **J5 pins 1–2 select +3.3V_DIG; pins 2–3 select +5V_SW_DIG.** Both pull-ups use the common centre pin. J6 is the separate I²C2 selector. See the [high-resolution schematic crop](images/i2c1-pullups-detail.png), rendered from the original PDF to verify small schematic labels.
+
+The PIM Figure 2/3 schematics route SDA/SCL to the MCP23008 without showing dedicated bus pull-ups; the resistors around its address pins are address-selection circuitry. Use the carrier pull-ups and set **J5 to pins 1–2 (3.3 V)** for this bring-up. The carrier bill of materials lists J5/J6 shunts at +5V, so do not assume their as-shipped positions are suitable. The actual resistor population and jumper position are not yet physically verified. Do not add another pull-up pair unless the existing circuitry or measured rise time requires it.
+
+For the first application, initialise only the required LED output, preload its verified OFF latch state before enabling output, and avoid whole-port writes that unintentionally change GP5–GP7. Preserve the reviewed reset/default behaviour of unused control lines.
 
 ### Clock discrepancy
 

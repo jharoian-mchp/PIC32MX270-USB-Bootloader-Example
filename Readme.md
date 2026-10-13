@@ -95,14 +95,16 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 | Review MCC device-pack split and clock configuration | Screen review complete | Generator DFP 1.6.369 / build DFP 1.7.380 confirmed; screenshots show 12 MHz PRIPLL and 48 MHz SYSCLK/PBCLK. Generated code and hardware clocks not verified. |
 | Verify remaining hardware configuration and generator packages | In progress | Board/PIM revision, expander/electrical checks, other Harmony versions and generated build workflow needed. |
 | Review I²C1 configuration and pin assignment | Screen review complete | I²C1 master at 100 kHz; SDA1 RB9 and SCL1 RB8. Generated code and hardware transfers not verified. |
-| Generate, build and test standalone application | Configuration in progress | Clock and I²C screens reviewed; Timer2 timebase is next. No generated firmware or hardware test results yet. |
+| Review Timer2 timebase and I²C pull-up schematic | Screen/schematic review complete | TMR2 internal clock, 1:64, 10 ms, PR2 7,499 shown. Carrier R10/R11 are 3.3 kΩ pull-ups via J5; select pins 1–2 for 3.3 V. Timer interrupt and physical jumper position need confirmation. |
+| Generate, build and test standalone application | Configuration in progress | Clock, I²C and timer screens reviewed. No generated firmware or hardware test results yet. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Add TMR2 with internal PBCLK, 16-bit periodic mode, prescaler 1:64 and a 10 ms interrupt period. At 48 MHz PBCLK, expected PR2 is 7,499; 50 events give a 500 ms LED state-change interval. Review the timer configuration before generation.
+- Confirm TMR2 interrupt enable and the remaining configuration bits before generation. The timer screen shows 10 ms with PR2 7,499; 50 events give a 500 ms LED state-change interval.
+- Set carrier **J5 pins 1–2 (3.3 V)** for I²C1 pull-ups; check installed jumper position. See [the schematic detail](docs/images/i2c1-pullups-detail.png).
 - Retain generator DFP 1.6.369 and build DFP 1.7.380 and record other Harmony package versions. Follow the [MCC project handoff](docs/toolchain.md).
 - Record carrier-board/PIM revisions and complete the [hardware checks](docs/bring-up.md), including LED polarity, expander address/register definitions, I²C pull-ups and USB routing/power states.
 - Generate the initial I²C1/LED1 blink application in host MCC, retaining its generator configuration and shared project metadata.
@@ -119,3 +121,4 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 - **2026-10-13:** Installed Linux XC32 v6.00 and PIC32MX_DFP 1.7.380 outside the repository. Exact-device compile/link/HEX generation passed; added the reproducible `make toolchain-check` target and Windows/Linux setup notes.
 - **2026-10-13:** User confirmed MCC/Harmony generator DFP 1.6.369 and MPLAB X build DFP 1.7.380. Reviewed clock screenshots showing the planned 12 MHz PRIPLL path and 48 MHz SYSCLK/PBCLK; I²C1 configuration is next.
 - **2026-10-13:** Reviewed I²C1 master/100 kHz and SDA1 RB9/SCL1 RB8 pin screenshots. Proposed a Timer2 10 ms timebase, prescaler 1:64 and PR2 7,499, with application logic counting 50 events per LED transition. Firmware generation and hardware tests have not run.
+- **2026-10-13:** Reviewed the matching Timer2 screen. Verified carrier I²C1 R10/R11 3.30 kΩ pull-ups and J5 voltage-selection connections against original PDF page 53; recommend J5 pins 1–2 for 3.3 V. Added a readable schematic crop. Hardware population/jumper state and timer interrupt remain unverified.
