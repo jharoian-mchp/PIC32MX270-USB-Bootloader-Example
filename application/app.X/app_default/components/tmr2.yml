@@ -1,0 +1,251 @@
+configVersion: 1.0.0
+componentName: tmr2
+coreVersion: 5.9.0
+device: PIC32MX270F256D
+library: []
+dependency:
+- dependencyPackage: class com.microchip.mcc.harmony.HarmonyModule
+  name: tmr2
+  type: module
+  version: ''
+- dependencyPackage: ''
+  name: csp
+  type: package
+  version: v3.26.0
+customDataClassName: com.microchip.utils_mh3.utils.persistence.CustomModuleData
+data:
+  attachments: {}
+  elementPosition: {}
+  symbols:
+    CALLBACK_API_NAME:
+      attributes:
+        id: CALLBACK_API_NAME
+        label: CALLBACK_API_NAME
+      type: String
+    COUNTER_GET_API_NAME:
+      attributes:
+        id: COUNTER_GET_API_NAME
+        label: COUNTER_GET_API_NAME
+      type: String
+    DVRT_COMPONENT_ID:
+      attributes:
+        id: DVRT_COMPONENT_ID
+        label: dvrt Component id
+      type: String
+    FREQUENCY_GET_API_NAME:
+      attributes:
+        id: FREQUENCY_GET_API_NAME
+        label: FREQUENCY_GET_API_NAME
+      type: String
+    IRQ_ENUM_NAME:
+      attributes:
+        id: IRQ_ENUM_NAME
+        label: IRQ_ENUM_NAME
+      type: String
+    PERIOD_SET_API_NAME:
+      attributes:
+        id: PERIOD_SET_API_NAME
+        label: PERIOD_SET_API_NAME
+      type: String
+    SYS_TIME_COMPONENT_ID:
+      attributes:
+        id: SYS_TIME_COMPONENT_ID
+        label: Component id
+      type: String
+    TCON_REG_VALUE:
+      attributes:
+        id: TCON_REG_VALUE
+        label: TCON_REG_VALUE
+      children:
+      - children:
+        - attributes:
+            id: tmr2
+            value: '96'
+          type: Dynamic
+        type: Values
+      type: Hex
+    TIMER_32BIT_MODE_SEL:
+      attributes:
+        id: TIMER_32BIT_MODE_SEL
+        label: 32-Bit Timer Mode Select bit
+      children:
+      - children:
+        - attributes:
+            value: '1'
+          type: User
+        type: Values
+      type: KeyValueSet
+    TIMER_CLOCK_FREQ:
+      attributes:
+        id: TIMER_CLOCK_FREQ
+        label: Timer Clock Frequency
+      children:
+      - children:
+        - attributes:
+            id: tmr2
+            value: '750000'
+          type: Dynamic
+        type: Values
+      type: Integer
+    TIMER_EXT_CLOCK_FREQ:
+      attributes:
+        id: TIMER_EXT_CLOCK_FREQ
+        label: External Clock Frequency
+      type: Integer
+    TIMER_PERIOD:
+      attributes:
+        id: TIMER_PERIOD
+        label: Period Register
+      children:
+      - children:
+        - attributes:
+            id: max
+          children:
+          - type: Value
+            value: '65535'
+          type: Long
+        type: Attributes
+      - children:
+        - attributes:
+            id: tmr2
+            value: '7499'
+          type: Dynamic
+        type: Values
+      type: Long
+    TIMER_PERIOD_MAX:
+      attributes:
+        id: TIMER_PERIOD_MAX
+        label: TIMER_PERIOD_MAX
+      type: String
+    TIMER_PRE_SCALER:
+      attributes:
+        id: TIMER_PRE_SCALER
+        label: Select Prescaler
+      children:
+      - children:
+        - attributes:
+            value: '1'
+          type: User
+        type: Values
+      type: KeyValueSet
+    TIMER_SIDL:
+      attributes:
+        id: TIMER_SIDL
+        label: Stop in Idle Mode bit
+      type: KeyValueSet
+    TIMER_SRC_SEL:
+      attributes:
+        id: TIMER_SRC_SEL
+        label: Select Timer Clock Source
+      type: KeyValueSet
+    TIMER_START_API_NAME:
+      attributes:
+        id: TIMER_START_API_NAME
+        label: TIMER_START_API_NAME
+      type: String
+    TIMER_STOP_API_NAME:
+      attributes:
+        id: TIMER_STOP_API_NAME
+        label: TIMER_STOP_API_NAME
+      type: String
+    TIMER_TIME_PERIOD_MS:
+      attributes:
+        id: TIMER_TIME_PERIOD_MS
+        label: Time
+      children:
+      - children:
+        - attributes:
+            id: max
+          children:
+          - type: Value
+            value: '87.38267'
+          type: Float
+        type: Attributes
+      - children:
+        - attributes:
+            value: '10.0'
+          type: User
+        type: Values
+      type: Float
+    TIMER_UNIT:
+      attributes:
+        id: TIMER_UNIT
+        label: Timer Period Unit
+      type: Combo
+    TIMER_WIDTH:
+      attributes:
+        id: TIMER_WIDTH
+        label: TIMER_WIDTH
+      type: Integer
+    TMR_IEC_REG:
+      attributes:
+        id: TMR_IEC_REG
+        label: TMR_IEC_REG
+      children:
+      - children:
+        - attributes:
+            id: tmr2
+            value: IEC0
+          type: Dynamic
+        type: Values
+      type: String
+    TMR_IFS_REG:
+      attributes:
+        id: TMR_IFS_REG
+        label: TMR_IFS_REG
+      children:
+      - children:
+        - attributes:
+            id: tmr2
+            value: IFS0
+          type: Dynamic
+        type: Values
+      type: String
+    TMR_INSTANCE_NAME:
+      attributes:
+        id: TMR_INSTANCE_NAME
+        label: TMR_INSTANCE_NAME
+      type: String
+    TMR_INSTANCE_NUM:
+      attributes:
+        id: TMR_INSTANCE_NUM
+        label: TMR_INSTANCE_NUM
+      type: String
+    TMR_INTERRUPT_MODE:
+      attributes:
+        id: TMR_INTERRUPT_MODE
+        label: Enable Interrrupts ?
+      children:
+      - children:
+        - attributes:
+            id: visible
+          children:
+          - type: Value
+            value: 'true'
+          type: Boolean
+        type: Attributes
+      - children:
+        - attributes:
+            id: tmr2
+            value: 'true'
+          type: Dynamic
+        type: Values
+      type: Boolean
+    TMR_PRESCALER_VALUE:
+      attributes:
+        id: TMR_PRESCALER_VALUE
+        label: Prescaler Value
+      children:
+      - children:
+        - attributes:
+            id: tmr2
+            value: '64'
+          type: Dynamic
+        type: Values
+      type: Integer
+    TMR_SLAVE_INTERRUPT_MODE:
+      attributes:
+        id: TMR_SLAVE_INTERRUPT_MODE
+        label: Slave interrupt
+      type: Boolean
+  userData: {}

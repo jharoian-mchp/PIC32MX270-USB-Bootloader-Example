@@ -1,0 +1,60 @@
+configVersion: 1.0.0
+coreVersion: 5.9.0
+spaHostVersion: 1.3.0
+device: PIC32MX270F256D
+deviceLibrary: {}
+groupModules: []
+modules:
+- core
+- dfp
+- i2c1
+- tmr2
+generatedFileHashHistoryMap:
+- file: ..\src\config\default\definitions.h
+  hash: f371ce42668676c485873084e9d093fc0734a5c305e95b16c5bb7f814aab2793
+- file: ..\src\config\default\device.h
+  hash: 4d4341a6f9628cea0bf73f980b639f7cb81089e55a60ad7e434be2a71e477442
+- file: ..\src\config\default\exceptions.c
+  hash: df6a7db71f29db985de306abd7b848a24111cef6398ccfb9479449ae4fbc069d
+- file: ..\src\config\default\initialization.c
+  hash: 527315e1cf52be851d302769d8001c5dafe79ff0efbe1005f13d50e025bc7457
+- file: ..\src\config\default\interrupts.c
+  hash: 9bc8cf35557087bdacb2d5a58d6dfa2db93d60f6537761350c564f53bf91295f
+- file: ..\src\config\default\interrupts.h
+  hash: 5a43cd7304c2946660050d74dd79c21dc1c40b88fd08f98f5cf27ab95b61f9d6
+- file: ..\src\config\default\p32MX270F256D.ld
+  hash: 88cc5b012de3a1e057dbd33fa3b6785a520568a218e628d6d992f68b8ff66a81
+- file: ..\src\config\default\peripheral\clk\plib_clk.c
+  hash: 8feff269c15ccf588d19015943a490cd7f5ab9f28763a3e21272db8adb90b997
+- file: ..\src\config\default\peripheral\clk\plib_clk.h
+  hash: 35384f2e13e59b7190bf77f6996baf3ea2377ec42df94979a6f793326def5255
+- file: ..\src\config\default\peripheral\evic\plib_evic.c
+  hash: 3b4fbec542875bf34078694439513c48a91f1271540ec7edf9af23bb47dc61de
+- file: ..\src\config\default\peripheral\evic\plib_evic.h
+  hash: 65ddf691b7fbc1fcd57a07a93a4442732effb8c53fc7ceca4464dade923f80f8
+- file: ..\src\config\default\peripheral\gpio\plib_gpio.c
+  hash: 243576e7d23b9124730fbf6fd54c6f438fffdd4e06495593182d110391d29c68
+- file: ..\src\config\default\peripheral\gpio\plib_gpio.h
+  hash: b0bf7765274be1444c1bd41e84e29ada87abbbf6ef0f75a956cd950c9a17f049
+- file: ..\src\config\default\peripheral\i2c\master\plib_i2c1_master.c
+  hash: d8bb00af8eac19320cb574d12796cf81e9a67e9aca9de84fdaa9e2f0eacb37bb
+- file: ..\src\config\default\peripheral\i2c\master\plib_i2c1_master.h
+  hash: 47664df9ffb27e6fc030f11dbb1f86c428bc65302026de6f25264e0227acca6e
+- file: ..\src\config\default\peripheral\i2c\master\plib_i2c_master_common.h
+  hash: 1888013e2cef69a47c7a44bfef9a4de4b9580af719aa9896ac112551a64c9515
+- file: ..\src\config\default\peripheral\i2c\plib_i2c_smbus_common.c
+  hash: 026121a1d5fae1028604b3031f89253ed36f588d037beb3722351261ce514dd2
+- file: ..\src\config\default\peripheral\i2c\plib_i2c_smbus_common.h
+  hash: 585f8d40c9fcaa072abdf3039cbc4b26ee3fbcb902171dd7e79a682e3973f995
+- file: ..\src\config\default\peripheral\tmr\plib_tmr2.c
+  hash: e21c5af9b83ff559d6d24fc73ba77b60c6686e04fa1640f01b2006d3195ed62f
+- file: ..\src\config\default\peripheral\tmr\plib_tmr2.h
+  hash: 1956a5d2c31e9fd9c345b2c639336db3614afb6c51fc0d961e2f3f80527fc8c5
+- file: ..\src\config\default\peripheral\tmr\plib_tmr_common.h
+  hash: fe0f7e886eba99992a90f718b6aa9f2b438b8204094495f72a0d1e83418d3187
+- file: ..\src\config\default\stdio\xc32_monitor.c
+  hash: 858f8710d4287200a5ee7f3b3ad7c24f505aed9c05c16956ab0ff9f7bb162a6a
+- file: ..\src\config\default\toolchain_specifics.h
+  hash: f6f3282ecb4ad8b5ba3487b7d7b8f6cfa3f977240726af07eaab058caf904381
+- file: ..\src\main.c
+  hash: d3c233d419e6304bfacbafc18cc68c0f5c26e365f23b20ea40ccfac458f664c5
