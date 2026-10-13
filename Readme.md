@@ -96,14 +96,15 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 | Verify remaining hardware configuration and generator packages | In progress | Board/PIM revision, expander/electrical checks, other Harmony versions and generated build workflow needed. |
 | Review I²C1 configuration and pin assignment | Screen review complete | I²C1 master at 100 kHz; SDA1 RB9 and SCL1 RB8. Generated code and hardware transfers not verified. |
 | Review Timer2 timebase and I²C pull-up schematic | Screen/schematic review complete | TMR2 internal clock, 1:64, 10 ms, PR2 7,499 shown. Carrier R10/R11 are 3.3 kΩ pull-ups via J5; select pins 1–2 for 3.3 V. User confirmed Timer2 interrupt enable, J5 pins 1–2 (3.3 V) and PIM J1 pins 1–2 (seven-bit address 0x22). Runtime interrupts and bus communication not tested. |
-| Generate, build and test standalone application | Configuration in progress | Clock, I²C and timer screens reviewed. No generated firmware or hardware test results yet. |
+| Review reset and development configuration bits | User/screen review complete | PIM_MCLR confirmed; FWDTEN/JTAGEN/PWP/BWP/CP OFF shown. Verify full ICESEL value ICS_PGx4 in generated code. Debug/programming not tested. |
+| Generate, build and test standalone application | Configuration in progress | Clock, I²C, timer and development configuration screens reviewed. Generate/share the MCC skeleton next; no generated firmware or hardware test results yet. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Review watchdog/debugger and protection configuration before generation. Timer2 interrupt enable is confirmed; 50 × 10 ms events give a 500 ms LED state-change interval.
+- Confirm ICESEL is ICS_PGx4, save MCC configuration and generate the initial skeleton under `application/`. Share generated sources, generator configuration and public project metadata; report generator notifications/errors. Timer2 interrupt enable and PIM_MCLR are confirmed.
 - Use the confirmed carrier **J5 pins 1–2 (3.3 V)** and PIM **J1 pins 1–2, seven-bit address 0x22**. See [the pull-up schematic detail](docs/images/i2c1-pullups-detail.png).
 - Retain generator DFP 1.6.369 and build DFP 1.7.380 and record other Harmony package versions. Follow the [MCC project handoff](docs/toolchain.md).
 - Record carrier-board/PIM revisions and complete the [hardware checks](docs/bring-up.md), including LED polarity, expander register definitions, I²C bus measurements and USB routing/power states.
@@ -123,3 +124,4 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 - **2026-10-13:** Reviewed I²C1 master/100 kHz and SDA1 RB9/SCL1 RB8 pin screenshots. Proposed a Timer2 10 ms timebase, prescaler 1:64 and PR2 7,499, with application logic counting 50 events per LED transition. Firmware generation and hardware tests have not run.
 - **2026-10-13:** Reviewed the matching Timer2 screen. Verified carrier I²C1 R10/R11 3.30 kΩ pull-ups and J5 voltage-selection connections against original PDF page 53; recommend J5 pins 1–2 for 3.3 V. Added a readable schematic crop. Hardware population/jumper state and timer interrupt were unverified at that review.
 - **2026-10-13:** User confirmed carrier J5 pins 1–2 (3.3 V), PIM J1 pins 1–2 (MCP23008 seven-bit address 0x22), and Timer2 interrupt enable checked. Watchdog/debugger configuration review is next; no generated firmware or runtime tests yet.
+- **2026-10-13:** User confirmed PIM_MCLR reset selection. Configuration screenshot shows watchdog, JTAG and code/write protection disabled. ICESEL requires full-value verification in generated code; MCC skeleton generation/handoff is next.

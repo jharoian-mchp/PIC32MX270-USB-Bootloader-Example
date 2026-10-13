@@ -23,7 +23,7 @@ Sources:
 | Memory | 256 KB program Flash, 3 KB boot Flash, 64 KB RAM | Verify selected DFP and linker memory regions against the exact device. |
 | Flash geometry | 1,024-byte erase page; 128-byte program row | Use these device-specific sizes, not geometry copied from a larger PIC32MX example. |
 | Documented device ID | 0x0660A053; errata lists A1/A2 revision IDs 0x1/0x2 | Record the actual silicon revision; do not treat the device ID as the full unmasked DEVID register value. |
-| Reset selection | Guide requires PIM_MCLR when using a PIM | Identify the selector by its silkscreen. The guide uses inconsistent S1/S2 references. |
+| Reset selection | Guide requires PIM_MCLR when using a PIM | User confirmed selector set to PIM_MCLR on 2026-10-13; reset/debug operation not tested. |
 
 ### MCU-to-board pin mapping
 
@@ -162,6 +162,8 @@ Confirmed by the user on 2026-10-13:
 - Carrier J5 on pins 1–2, selecting 3.3 V I²C1 pull-ups.
 - PIM J1 on pins 1–2, selecting seven-bit MCP23008 address 0x22.
 - Timer2 interrupt enable checked in MCC. Runtime interrupts are not yet tested.
+- Reset selector set to PIM_MCLR.
+- Configuration screenshot shows FWDTEN OFF, JTAGEN OFF and PWP/BWP/CP OFF. ICESEL's full value needs confirmation in generated code; expected ICS_PGx4.
 
 Still needed:
 
