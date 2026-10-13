@@ -65,11 +65,11 @@ SW6 is not assigned to an MCU GPIO in the PIM information sheet's Table 1. Do no
 
 The board pin table labels the LED signals with `#`, suggesting active-low control. Confirm LED polarity in the push-button/LED schematic (Figure A-8) before choosing the initial latch value.
 
-The PIM documentation states that the expander address is changeable. Its address-strap circuit is in [Figure 3](docling/images/PIC32MX270F256D-Bluetooth-Audio-PIM/image_000003_e49099fffd484b4bfb1282e7ed87ff9ecf4bf0919d9c13f6277f650855be46c5.png). The MCP23008 component data sheet is not among the current reference PDFs. Confirm the strap population, seven-bit address and component register definitions before implementing the driver; do not assume address 0x20.
+The PIM documentation states that the expander address is changeable. Its address-strap circuit is in [Figure 3](docling/images/PIC32MX270F256D-Bluetooth-Audio-PIM/image_000003_e49099fffd484b4bfb1282e7ed87ff9ecf4bf0919d9c13f6277f650855be46c5.png). On 2026-10-13, the user confirmed **J1 pins 1–2, selecting seven-bit address 0x22**. Pass **0x22** to an I²C API that accepts seven-bit addresses; the corresponding on-wire address bytes are 0x44 for write and 0x45 for read. Do not shift the address twice. The MCP23008 component data sheet is not among the current reference PDFs; verify its register definitions before implementing the driver.
 
 The carrier's **Figure A-5 (source PDF page 53)** shows **R10 and R11, each 3.30 kΩ**, pulling up the I²C1 SDA/SCL nets through **J5 (I2C1 PWR Conf)**. **J5 pins 1–2 select +3.3V_DIG; pins 2–3 select +5V_SW_DIG.** Both pull-ups use the common centre pin. J6 is the separate I²C2 selector. See the [high-resolution schematic crop](images/i2c1-pullups-detail.png), rendered from the original PDF to verify small schematic labels.
 
-The PIM Figure 2/3 schematics route SDA/SCL to the MCP23008 without showing dedicated bus pull-ups; the resistors around its address pins are address-selection circuitry. Use the carrier pull-ups and set **J5 to pins 1–2 (3.3 V)** for this bring-up. The carrier bill of materials lists J5/J6 shunts at +5V, so do not assume their as-shipped positions are suitable. The actual resistor population and jumper position are not yet physically verified. Do not add another pull-up pair unless the existing circuitry or measured rise time requires it.
+The PIM Figure 2/3 schematics route SDA/SCL to the MCP23008 without showing dedicated bus pull-ups; the resistors around its address pins are address-selection circuitry. Use the carrier pull-ups and set **J5 to pins 1–2 (3.3 V)** for this bring-up. The carrier bill of materials lists J5/J6 shunts at +5V, so do not assume their as-shipped positions are suitable. On 2026-10-13, the user confirmed **J5 is fitted on pins 1–2 (3.3 V)**. Resistor population and bus idle voltage/rise time have not been measured. Do not add another pull-up pair unless the existing circuitry or measured rise time requires it.
 
 For the first application, initialise only the required LED output, preload its verified OFF latch state before enabling output, and avoid whole-port writes that unintentionally change GP5–GP7. Preserve the reviewed reset/default behaviour of unused control lines.
 
@@ -159,10 +159,13 @@ Confirmed by the user on 2026-10-13:
 - MPLAB X v6.35, also including MCC v5.7.0, for the host IDE.
 - PICkit 5 programmer/debugger.
 - Installed Y1 marked 12.00 MHz.
+- Carrier J5 on pins 1–2, selecting 3.3 V I²C1 pull-ups.
+- PIM J1 on pins 1–2, selecting seven-bit MCP23008 address 0x22.
+- Timer2 interrupt enable checked in MCC. Runtime interrupts are not yet tested.
 
 Still needed:
 
-- Carrier-board/PIM revisions and expander address-strap population, if visible.
+- Carrier-board/PIM revisions.
 - Other Harmony package versions and confirmation of the generated project/build workflow. Generator DFP 1.6.369 and MPLAB X build DFP 1.7.380 are confirmed; clock screenshots show 48 MHz SYSCLK/PBCLK, but generated code and hardware clocks are not yet checked.
 - MCP23008 component register definitions and the remaining LED/USB electrical checks.
 

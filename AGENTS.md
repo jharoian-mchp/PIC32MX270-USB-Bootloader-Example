@@ -8,6 +8,7 @@
 - MCC/Harmony generator DFP is 1.6.369; MPLAB X and Linux build DFP is 1.7.380, confirmed by the user. Record generator/build versions independently; do not ask to make them identical.
 - Installed Y1 is marked 12.00 MHz, confirmed by the user. Proposed 48 MHz PRIPLL clock: input ÷3, multiplier ×24, output ÷2; USB PLL input ÷3. Hardware clock validation is still required.
 - Linux tools: `/workspace/ChrisK/tools/xc32/v6.00` and `/workspace/ChrisK/tools/packs/Microchip/PIC32MX_DFP/1.7.380`. Use the pack root for `-mdfp`. `make toolchain-check` verifies compiler/linker/HEX only; never program its test image.
+- User confirmed carrier J5 pins 1–2 (3.3 V I²C1 pull-ups), PIM J1 pins 1–2 (MCP23008 seven-bit address 0x22), and Timer2 interrupt enable checked. Use 0x22 for seven-bit I²C APIs; hardware bus communication/runtime interrupts are not yet tested.
 - Start with a simple application before adding Bluetooth or audio functionality.
 
 ## Documentation
