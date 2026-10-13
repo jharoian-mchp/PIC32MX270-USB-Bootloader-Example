@@ -24,5 +24,8 @@
 **/*.X/*mc3.bak*
 **/*.X/*.bak*/
 
+# Root toolchain-check outputs
+/build/
+
 # Large Files
 *.zip

@@ -4,7 +4,9 @@
 
 - Target MCU: PIC32MX270F256D-50I/PT on the Bluetooth Audio PIM and PIC32 Bluetooth Audio Development Board.
 - Bootloader transport: USB device HID, connected to a PC.
-- Toolchain: XC32 compiler and standalone MCC with MPLAB Harmony 3.
+- Toolchain: XC32 v6.00 on Windows and Linux; MCC v5.7.0 generation on the Windows host with Harmony 3. MPLAB X v6.35 and PICkit 5 handle host programming/debugging. Record whether standalone or IDE-hosted MCC actually generated the project.
+- Installed Y1 is marked 12.00 MHz, confirmed by the user. Proposed 48 MHz PRIPLL clock: input ÷3, multiplier ×24, output ÷2; USB PLL input ÷3. Hardware clock validation is still required.
+- Linux tools: `/workspace/ChrisK/tools/xc32/v6.00` and `/workspace/ChrisK/tools/packs/Microchip/PIC32MX_DFP/1.7.380`. Use the pack root for `-mdfp`. `make toolchain-check` verifies compiler/linker/HEX only; never program its test image.
 - Start with a simple application before adding Bluetooth or audio functionality.
 
 ## Documentation

@@ -42,7 +42,7 @@ These are **44-pin MCU numbers** and **100-pin PIM connector numbers**; they are
 | USB D− | RB11 / D− | 9 | 56 | Dedicated USB data path; also shares PGEC2. |
 | Board VBUS sense | RA1 | 20 | 80 | Distinct from the dedicated VBUS pin. |
 | Dedicated VBUS | VBUS | 42 | 54 | PIM table labels this 3.3V/VBUS; verify the actual circuit before USB configuration. |
-| Primary oscillator | OSC1 / RA2 | 30 | 63 | External crystal input. |
+| Primary oscillator | OSC1 / RA2 | 30 | 63 | External crystal input; installed Y1 marked 12.00 MHz, confirmed by user. |
 | Primary oscillator | OSC2 / RA3 | 31 | 64 | External crystal output. |
 | Reset | MCLR | 18 | 13 | Selected PIM reset path. |
 | PIM programming data | RA10 / PGED, labelled PGD4 | 12 | 27 | Trace to the ICSP connector and confirm the DFP debugger setting. |
@@ -76,9 +76,9 @@ The carrier guide contains conflicting values:
 - Pin table, lines 1174–1175: **XTAL (8 MHz)** on OSC1/OSC2.
 - Bill of materials, line 1425: **Y1, 12 MHz**, TXC part `7A-12.000MAAJ-T`.
 
-Check the installed Y1 marking, board revision and clock routing. If necessary, confirm oscillator frequency on hardware using an appropriate method. Neither value is approved as the project's external-clock setting yet.
+On 2026-10-13, the user confirmed that installed **Y1 is marked 12.00 MHz**. Use 12 MHz as the primary-source design input for this board. Board revision and clock routing still need confirmation; the marking is not a measured oscillator frequency.
 
-A **proposed first-blink configuration** is FRCPLL at nominal **48 MHz SYSCLK**, with a ×24 PLL multiplier and ÷2 output divider. The family reference describes the FRCPLL input as nominal 8 MHz divided by 2: `8 / 2 × 24 / 2 = 48 MHz`. Verify the exact device's generated settings, flash wait states and peripheral clock before using this configuration. This avoids relying on the disputed crystal value while USB is disabled; it does not validate the USB clock path.
+The **proposed first-blink configuration** is primary oscillator with PLL (`PRIPLL`) at **48 MHz SYSCLK**: `12 / 3 × 24 / 2 = 48 MHz`. Verify MCC-generated configuration, flash wait states and peripheral clock before programming. USB remains disabled in the initial application. Nominal 48 MHz FRCPLL is a fallback for primary-clock fault isolation. See [the toolchain and clock plan](toolchain.md).
 
 For USB, the primary source must provide a suitable accurate clock and the USB PLL requires a **4 MHz input** to produce its internally divided **48 MHz USB clock**:
 
@@ -87,7 +87,7 @@ For USB, the primary source must provide a suitable accurate clock and the USB P
 | 8 MHz | ÷2 | 4 MHz |
 | 12 MHz | ÷3 | 4 MHz |
 
-These are calculations, not committed configuration values. Use the DFP/MCC symbolic USB-PLL-enable setting. The device data sheet states that the raw UPLLEN bit enables the PLL when **0**, while the family chapter's prose says to set it; do not hand-copy a raw bit value from the generic description.
+For the confirmed 12 MHz marking, select a **÷3 USB PLL input divider** in the proposed MCC configuration. This is a calculated setting, not a hardware-verified clock. Use the DFP/MCC symbolic USB-PLL-enable setting. The device data sheet states that the raw UPLLEN bit enables the PLL when **0**, while the family chapter's prose says to set it; do not hand-copy a raw bit value from the generic description.
 
 ### USB routing and power
 
@@ -114,7 +114,7 @@ For the 256 KB Flash / 64 KB RAM devices, the supplied errata marks both A1 and 
 
 The workspace runs Linux x86_64. On 2026-10-13, PATH checks did not find `xc32-gcc`, `xc32-bin2hex`, `mcc`, `java`, `pic32prog` or `ipecmd`; a limited search of `/opt`, `/usr/local` and the project directory found no XC32/MCC/Harmony installations. This does not inspect the user's development computer.
 
-No compiler, Java runtime or MCC packages were installed during this review. No MCC project file or generated firmware has been created.
+After the initial review, **XC32 v6.00 and PIC32MX_DFP 1.7.380 were installed** under `/workspace/ChrisK/tools/`. An exact-device compile/link/HEX smoke test passed; see [toolchain details](toolchain.md). Java and MCC are not installed here: generation will run on the user's Windows host with MCC v5.7.0. Host programming/debugging will use MPLAB X v6.35 and PICkit 5. No MCC project file or generated application firmware has been created.
 
 The current upstream `pic32mx_125_sk` HID example is **not this device**: its project XML selects PIC32MX570F512L, XC32 4.60 and PIC32MX_DFP 1.6.369. Those versions are reference metadata, not a verified toolchain for PIC32MX270F256D. Record the selected Harmony package versions and commit/tag once compatibility is checked.
 
@@ -126,7 +126,7 @@ Complete the tool and electrical checks before applying these proposed settings.
 
 1. Select **PIC32MX270F256D** and the confirmed PIC32MX device pack. Record standalone MCC, XC32 and Harmony package versions, plus the generated project/build format.
 2. Create the initial application under `application/`, using the normal device startup and linker layout, with no bootloader offset.
-3. Configure the reviewed clock source. The proposed first-stage clock is nominal FRCPLL 48 MHz; USB remains disabled. Record SYSCLK and PBCLK explicitly.
+3. Configure the reviewed clock source. With the confirmed 12 MHz Y1 marking, propose PRIPLL with input ÷3, multiplier ×24 and output ÷2 for 48 MHz SYSCLK; USB remains disabled. Record SYSCLK and PBCLK explicitly.
 4. Configure **I²C1 master**, initially targeting **100 kHz**; confirm the generated SDA/SCL mapping is RB9/RB8. Enable only the peripherals required for the first application.
 5. Add a timer or supported time service to request an LED state change every **500 ms**. Keep I²C transactions in the application state machine, not a timer ISR. This gives an approximately one-second complete blink cycle.
 6. Use the confirmed expander address and component register definitions. Initialise LED1 safely, retain the other control lines' reviewed states and handle I²C NACK/timeouts without an infinite blocking loop.
@@ -140,18 +140,26 @@ Complete the tool and electrical checks before applying these proposed settings.
 | Check | Expected result | Current result |
 |---|---|---|
 | Generated configuration | Correct device and recorded package/tool versions | Not generated. |
-| XC32 build | Successful build; warnings reviewed | Not compiled. |
+| XC32 build | Successful generated-application build; warnings reviewed | Compiler-only smoke test passed; MCC application not generated or compiled. |
 | Board reset/debug path | Programmer identifies the target PIM | Not tested. |
 | LED control | LED1 changes state about every 500 ms | Not tested. |
 | Unused expander signals | No unintended USB/control-line changes | Not tested. |
 | Reset recovery | Application restarts consistently | Not tested. |
 
-## Inputs needed before generation
+## Confirmed setup and remaining inputs
 
-- Development OS and whether generation/builds should run on the user's computer or in this workspace.
-- Installed XC32 and standalone MCC versions, if any.
-- Programmer/debugger model.
-- Carrier-board revision and installed Y1 crystal marking; a clear photo is useful.
-- PIM board identification/revision and expander address-strap population, if visible.
+Confirmed by the user on 2026-10-13:
 
-The immediate next step is toolchain setup and completing these hardware checks, then generating the first application.
+- Windows host; MCC generation on the host and XC32 builds also available in this Linux workspace.
+- XC32 v6.00 and standalone MCC v5.7.0.
+- MPLAB X v6.35, also including MCC v5.7.0, for the host IDE.
+- PICkit 5 programmer/debugger.
+- Installed Y1 marked 12.00 MHz.
+
+Still needed:
+
+- Carrier-board/PIM revisions and expander address-strap population, if visible.
+- Host PIC32MX DFP and Harmony package versions and confirmation of the actual standalone MCC project workflow.
+- MCP23008 component register definitions and the remaining LED/USB electrical checks.
+
+The next step is host project generation with the confirmed tools and completion of these hardware checks. The Linux compiler/device pack is ready for a generated-project build.

@@ -2,7 +2,7 @@
 
 This project will build a USB HID bootloader and a simple application for the **PIC32MX270F256D-50I/PT**, using its Bluetooth Audio PIM on the PIC32 Bluetooth Audio Development Board.
 
-The selected toolchain is the **XC32 compiler** and **standalone MPLAB Code Configurator (MCC)** with **MPLAB Harmony 3**. Exact tool and package versions, and their support for this device, still need verification. Firmware has not been generated, compiled or tested on hardware.
+Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. Host generator workflow and Harmony versions still need verification; application/bootloader firmware has not been generated or hardware-tested.
 
 Last updated: **2026-10-13**. Update this file when project decisions, setup requirements or verified progress change.
 
@@ -36,7 +36,7 @@ The application start address and bootloader reservation are **not chosen yet**.
 
 The [PIM information sheet](docs/docling/PIC32MX270F256D-Bluetooth-Audio-PIM.md) states that the PIM's **MCP23008 I²C expander controls the board LEDs and charge-management control lines**. A board-LED blink application therefore needs expander setup and the correct I²C mapping; it cannot assume a directly connected GPIO LED. Verify the expander address, LED polarity and safe control-line states against the schematics before coding.
 
-The first reference review is recorded in [Board review and first-application checklist](docs/bring-up.md). It identifies an unresolved **8 MHz versus 12 MHz crystal discrepancy** in the carrier guide and documents MCU/PIM pin mappings, flash geometry and applicable errata. Nominal **48 MHz FRCPLL with USB disabled** is proposed for the first blink application; external-crystal and USB settings await hardware confirmation.
+The [Board review and first-application checklist](docs/bring-up.md) records MCU/PIM pin mappings, flash geometry and applicable errata. The user confirmed installed **Y1 is marked 12.00 MHz**, resolving the guide's conflicting crystal values for this board. Proposed clock settings are **12 MHz PRIPLL, input ÷3, multiplier ×24, output ÷2 = 48 MHz SYSCLK**. USB also needs a **÷3 UPLL input divider**; keep the USB peripheral disabled in the first blink application. These settings await MCC generation and hardware verification.
 
 ## Documentation
 
@@ -57,12 +57,20 @@ All **27 source PDFs** have been converted to Markdown, with **650 separate imag
 
 The original PDFs in `docs/pdf/` are unchanged. Compare ambiguous OCR, register tables, pin assignments, schematics and other hardware-critical details against those originals. Automated conversion checks do not establish hardware correctness.
 
+## Toolchain check
+
+The Linux compiler and device pack live outside the repository under `/workspace/ChrisK/tools/`. Run **`make toolchain-check`** to compile/link a test for the exact MCU and generate HEX. This test is not MCC-generated and must not be programmed onto the board. See [Windows generation and Linux builds](docs/toolchain.md) for installation versions, hashes, clock settings and the host-project handoff.
+
 ## Repository layout
 
 ```text
 Readme.md              Approach, progress and next steps
 AGENTS.md              Instructions for work in this repository
+Makefile               Reproducible compiler-only smoke test
+tools/
+  toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
+  toolchain.md         Windows/Linux tools, clock plan and generation handoff
   bring-up.md          Board findings, open checks and first-application checklist
   pdf/                 Original reference PDFs, including FRM/
   docling/             Converted Markdown, index and manifest
@@ -82,7 +90,9 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 | Commit and push documentation | Complete | [Commit ce31f3e](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/commit/ce31f3ed782e55f3993fe9f26f9ff41e315b3ce8) on `main`. |
 | Establish GitHub push access | Complete | Repository-specific deploy key authenticated; SSH push verified over port 443. |
 | Record approach and progress | Complete | This file; maintenance instruction in `AGENTS.md`. |
-| Verify hardware configuration and tool versions | In progress | [Initial reference review](docs/bring-up.md) completed; clock discrepancy identified. Board revision, programmer, development OS and compatible package versions needed. |
+| Confirm host tools, programmer and crystal | Complete | Windows, XC32 v6.00, MCC v5.7.0, MPLAB X v6.35, PICkit 5; Y1 marked 12.00 MHz. |
+| Install and verify Linux compiler/device pack | Complete | XC32 v6.00 + PIC32MX_DFP 1.7.380; `make toolchain-check` passes compile, link and HEX generation. |
+| Verify remaining hardware configuration and generator packages | In progress | Board/PIM revision, expander/electrical checks, host DFP/Harmony versions and standalone generation workflow needed. |
 | Generate, build and test standalone application | Not started | No firmware or hardware test results yet. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
@@ -90,10 +100,10 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 
 ### Next steps
 
-- Choose the generation/build location and record the development OS, XC32 and standalone MCC versions. XC32, MCC and Java were not found in the workspace's initial tool checks.
-- Record the programmer/debugger model and carrier-board/PIM revisions; confirm the installed Y1 marking to resolve the 8 MHz/12 MHz discrepancy.
-- Complete the [hardware checks](docs/bring-up.md), including LED polarity, expander address/register definitions, I²C pull-ups and USB routing/power states.
-- Verify the standalone MCC/Harmony workflow for this exact device, then generate the initial I²C1/LED1 blink application.
+- Confirm the Windows host's PIC32MX DFP and Harmony versions and follow the [MCC project handoff](docs/toolchain.md). Prefer the matching PIC32MX_DFP 1.7.380 if available.
+- Record carrier-board/PIM revisions and complete the [hardware checks](docs/bring-up.md), including LED polarity, expander address/register definitions, I²C pull-ups and USB routing/power states.
+- Generate the initial I²C1/LED1 blink application in host MCC, retaining its generator configuration and shared project metadata.
+- Build the generated project with XC32 v6.00 on both platforms, then program and test with PICkit 5 on Windows.
 
 ### Progress log
 
@@ -102,3 +112,5 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 - **2026-10-13:** Committed and pushed the converted documentation and repository instructions. Verified repository-specific SSH access over port 443.
 - **2026-10-13:** Added this approach and progress record. Firmware generation and hardware testing have not started.
 - **2026-10-13:** Began hardware/toolchain review. Documented PIM pin mappings, LED-expander requirements, 1 KB flash pages/128-byte rows and relevant silicon errata. Identified conflicting carrier-crystal values and missing workspace development tools; prepared the first MCC application checklist.
+- **2026-10-13:** Confirmed Windows host generation with MCC v5.7.0, XC32 v6.00, MPLAB X v6.35 and PICkit 5. User read 12.00 MHz on installed Y1.
+- **2026-10-13:** Installed Linux XC32 v6.00 and PIC32MX_DFP 1.7.380 outside the repository. Exact-device compile/link/HEX generation passed; added the reproducible `make toolchain-check` target and Windows/Linux setup notes.
