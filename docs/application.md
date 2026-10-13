@@ -1,6 +1,6 @@
 # LED1 application: build and board test
 
-The MCC-generated application now includes user-owned MCP23008 LED1 logic. **Linux compilation and mocked application tests pass; the board has not been programmed or tested.**
+The MCC-generated application now includes user-owned MCP23008 LED1 logic. **Linux compilation and mocked tests pass. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blinking as expected on 2026-10-13.**
 
 Reviewed: **2026-10-13**. The generated baseline was pulled from the user's first-generation commit `5226a6d` through merge `c8bb0cb`. The user reported no MCC notifications and confirmed `ICS_PGx4`.
 
@@ -50,11 +50,11 @@ make application
 - `build/application/app.hex`
 - `build/application/app.map`
 
-The map places the normal reset entry at `0xBFC00000` and exception memory at the generated `0x9D03F000` region. This is an **ordinary application without a USB bootloader or bootloader offset**. Final `xc32-size` reports 9,648 bytes text and 104 bytes BSS; map-based region accounting and runtime stack use are separate checks.
+The map places the normal reset entry at `0xBFC00000` and exception memory at the generated `0x9D03F000` region. This is an **ordinary application without a USB bootloader or bootloader offset**. With all 12 project C sources and section garbage collection enabled, `xc32-size` reports 6,100 bytes text and 104 bytes BSS; map-based region accounting and runtime stack use are separate checks.
 
 `make test` compiles the application with mocked I²C/timer interfaces and `-Wall -Wextra -Werror`. Tests cover safe OFF-before-output initialisation, preservation of GP1–GP7 latch/direction, the 500 ms cadence, asynchronous buffer lifetime, NACK, collision, transfer timeout, rejected starts and retry behaviour. A separate AddressSanitizer/UndefinedBehaviorSanitizer run also passed. Mocks do not validate the generated PLIB or physical bus.
 
-The user-owned application also compiled separately with XC32 `-Wall -Wextra -Werror`. The complete build has two unused-parameter warnings: `data` in generated `SYS_Initialize` and `forcedWrite` in generated I²C transfer setup. Generated code was not patched.
+The user-owned application also compiled separately with XC32 `-Wall -Wextra -Werror`. The complete Linux build with `-Wall -Wextra` reports eight unused-parameter warnings: `data` in generated `SYS_Initialize`, `forcedWrite` in generated I²C transfer setup, and six parameters in the generated `read`/`write` console stubs. The earlier two-warning report omitted three support sources from the Linux build; the target now includes every C source listed in the Windows build. Generated code was not patched.
 
 ## Windows build and first board test
 
@@ -83,4 +83,10 @@ If TIMEOUT is reported, check pull-ups, address/jumpers, IRQ enable and SDA/SCL 
 
 Keep `app_led.c`/`.h` user-owned. After regeneration, verify the two calls in `main.c` and the source/header project entries remain present; MCC's saved file hashes still describe the original skeleton, so review any proposed overwrite. Do not accept overwrite blindly. Re-run Linux and Windows builds after configuration changes.
 
-The next milestone is a **passing Windows build and observed board blink/reset test**. USB bootloader generation follows that result.
+## Observed Windows/board result
+
+On 2026-10-13 the user supplied a clean Windows debug build log showing XC32 v6.00, DFP 1.7.380, `app_led.c`, `-D__DEBUG`, `-D__MPLAB_DEBUGGER_PK5=1`, successful linking/loading, and reported LED1 blinking as expected. The schematic identifies LED1 as **D5**. The provided commands did not enable `-Wall -Wextra`, explaining why those diagnostics were absent. The user intends to add these warning options.
+
+Host commit `48faaa9` selects `PK5Tool` in the shared project configuration and has been pulled here. The corrected Linux target includes generated `exceptions.c`, `stdio/xc32_monitor.c` and `plib_i2c_smbus_common.c`, and uses `-ffunction-sections -fdata-sections` plus `--gc-sections` like the Windows build. It remains a production build; Windows debug reservations/options differ, so binary identity is not claimed.
+
+**Still unverified:** standalone production operation after debugger disconnect, reset/cold-power recovery, measured blink period, target silicon revision and injected bus-fault behaviour. Next test Run/production programming and reset/cold-start recovery, then proceed to the USB HID bootloader.

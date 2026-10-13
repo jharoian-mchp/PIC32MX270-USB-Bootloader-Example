@@ -6,18 +6,22 @@ SMOKE_DIR := build/toolchain-smoke
 APP_DIR := build/application
 APP_SOURCES := application/src/main.c application/src/app_led.c \
  application/src/config/default/initialization.c application/src/config/default/interrupts.c \
+ application/src/config/default/exceptions.c application/src/config/default/stdio/xc32_monitor.c \
+ application/src/config/default/peripheral/i2c/plib_i2c_smbus_common.c \
  application/src/config/default/peripheral/clk/plib_clk.c \
  application/src/config/default/peripheral/evic/plib_evic.c \
  application/src/config/default/peripheral/gpio/plib_gpio.c \
  application/src/config/default/peripheral/i2c/master/plib_i2c1_master.c \
  application/src/config/default/peripheral/tmr/plib_tmr2.c
 HOST_CC ?= cc
+# Extra diagnostics beyond the default Windows MPLAB X build flags.
+APP_WARNINGS ?= -Wall -Wextra
 
 .PHONY: toolchain-check application test
 
 application:
 	@mkdir -p "$(APP_DIR)"
-	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O1 -fno-common -Wall -Wextra -Iapplication/src -Iapplication/src/config/default $(APP_SOURCES) -Wl,--script=application/src/config/default/p32MX270F256D.ld,--defsym=_min_heap_size=512,-Map="$(APP_DIR)/app.map" -o "$(APP_DIR)/app.elf"
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O1 -fno-common -ffunction-sections -fdata-sections $(APP_WARNINGS) -Iapplication/src -Iapplication/src/config/default $(APP_SOURCES) -Wl,--script=application/src/config/default/p32MX270F256D.ld,--defsym=_min_heap_size=512,--gc-sections,-Map="$(APP_DIR)/app.map" -o "$(APP_DIR)/app.elf"
 	"$(XC32_ROOT)/bin/xc32-bin2hex" "$(APP_DIR)/app.elf"
 	"$(XC32_ROOT)/bin/xc32-size" "$(APP_DIR)/app.elf"
 	@test -s "$(APP_DIR)/app.hex"

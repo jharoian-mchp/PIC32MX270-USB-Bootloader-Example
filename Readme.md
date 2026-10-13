@@ -2,7 +2,7 @@
 
 This project will build a USB HID bootloader and a simple application for the **PIC32MX270F256D-50I/PT**, using its Bluetooth Audio PIM on the PIC32 Bluetooth Audio Development Board.
 
-Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. The initial MCC application is generated; saved components record **CSP v3.26.0**. User-owned LED1 code now builds with XC32 here and passes mocked tests. The Windows build and hardware blink/reset test are next; the USB bootloader has not been generated.
+Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. The initial MCC application is generated; saved components record **CSP v3.26.0**. User-owned LED1 code now builds with XC32 here and passes mocked tests. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blinking. Production/reset/cold-start tests are still needed; the USB bootloader has not been generated.
 
 Last updated: **2026-10-13**. Update this file when project decisions, setup requirements or verified progress change.
 
@@ -63,7 +63,7 @@ The Linux compiler and device pack live outside the repository under `/workspace
 
 ## Application build and test
 
-Run **`make test`** for the mocked LED state-machine tests and **`make application`** for the XC32 firmware build. Open **`application/app.X`** on Windows, pull the changes and Clean/Build before programming with PICkit 5. Expected behaviour: **LED1 (D5) changes state about every 500 ms**. See [LED1 application: build and board test](docs/application.md) for safety, diagnostics, warnings and regeneration notes. Hardware behaviour has not been verified.
+Run **`make test`** for the mocked LED state-machine tests and **`make application`** for the XC32 firmware build. Open **`application/app.X`** on Windows, pull the changes and Clean/Build before programming with PICkit 5. Expected behaviour: **LED1 (D5) changes state about every 500 ms**. See [LED1 application: build and board test](docs/application.md) for safety, diagnostics, warnings and regeneration notes. LED1 blink was confirmed by the user in a Windows debug session; production/reset/cold-start behaviour has not been verified.
 
 ## Repository layout
 
@@ -107,16 +107,18 @@ The application project is present. A separate `bootloader/` directory will foll
 | Review Timer2 timebase and I²C pull-up schematic | Screen/schematic review complete | TMR2 internal clock, 1:64, 10 ms, PR2 7,499 shown. Carrier R10/R11 are 3.3 kΩ pull-ups via J5; select pins 1–2 for 3.3 V. User confirmed Timer2 interrupt enable, J5 pins 1–2 (3.3 V) and PIM J1 pins 1–2 (seven-bit address 0x22). Runtime interrupts and bus communication not tested. |
 | Review reset and development configuration bits | User/screen review complete | PIM_MCLR confirmed; FWDTEN/JTAGEN/PWP/BWP/CP OFF shown. User and generated code confirm ICS_PGx4. Debug/programming not tested. |
 | Generate MCC skeleton and add LED1 application | Complete | User generated with no notifications; `app_led.c` uses address 0x22 and preserves GP1–GP7. Generated PLIBs unchanged. |
-| Linux build and application logic tests | Passed | XC32 compile/link/HEX, strict user-code compile, mocked tests and sanitizer run passed. Two unused-parameter warnings in generated SYS_Initialize and I²C transfer setup. |
-| Windows build and board blink/reset test | Not tested | Pull/open application/app.X, Clean/Build and program with PICkit 5; record result before bootloader work. |
+| Linux build and application logic tests | Passed | XC32 compile/link/HEX, strict user-code compile, mocked tests and sanitizer run passed. Expanded Linux build includes all 12 project C sources; -Wall/-Wextra reports eight unused-parameter warnings in generated support code. |
+| Windows debug build/load and board blink | Passed, user-reported | Clean debug build/load with XC32 v6.00, DFP 1.7.380 and PICkit 5; LED1/D5 blinks as expected. Shared project selects PK5Tool (48faaa9). |
+| Production, reset and cold-start recovery | Not tested | Check standalone operation after debugger disconnect and after reset/power cycle. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Pull the added LED code, open `application/app.X` and Clean/Build in MPLAB X. No MCC regeneration is needed to build these changes.
-- Follow [the first board-test instructions](docs/application.md): program with PICkit 5, observe LED1 and check reset recovery. Report the build/programming output and result.
+- Add `-Wall -Wextra` to host compiler additional options as agreed; generated support code may report unused parameters. They are diagnostic differences, not a failed build.
+- Check production/Run operation after disconnecting the debugger, then reset and cold power-cycle recovery. Report whether LED1 resumes blinking.
+- Prepare the separate USB HID bootloader project after these checks; preserve the working application baseline.
 - If needed, inspect `app_led_diagnostics` for readiness, NACK/collision/timeout faults and transition count.
 - Record carrier-board/PIM revisions and remaining hardware measurements; review USB routing/power before bootloader generation.
 - Keep generator DFP 1.6.369 and build DFP 1.7.380 separate, and preserve the user-owned LED code during MCC regeneration.
@@ -137,3 +139,4 @@ The application project is present. A separate `bootloader/` directory will foll
 - **2026-10-13:** User confirmed PIM_MCLR reset selection. Configuration screenshot shows watchdog, JTAG and code/write protection disabled. ICESEL requires full-value verification in generated code; MCC skeleton generation/handoff is next.
 - **2026-10-13:** User confirmed ICS_PGx4, generated with no notifications and pushed the initial MCC project. Pulled and reviewed the generated settings; CSP v3.26.0 recorded.
 - **2026-10-13:** Added user-owned LED1 state-machine logic, bounded I²C retry/timeout handling and debugger diagnostics. Linux application build, strict user-code compile, mocked tests and sanitizer run passed; Windows/hardware tests await the user. Added and converted the MCP23008 data sheet; reference inventory is now 28 PDFs and 675 images.
+- **2026-10-13:** User confirmed LED1/D5 blinking and supplied a successful Windows PICkit 5 debug build/load log without extra warning flags. Pulled host PK5Tool configuration commit 48faaa9. Aligned the Linux source list with all 12 Windows project sources and added section garbage collection; full Linux build/tests pass. Production/reset/cold-start recovery is not yet reported.

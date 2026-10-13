@@ -1,6 +1,6 @@
 # Board review and first-application checklist
 
-The first firmware milestone is an MCC-generated application that blinks LED1 through the PIM's MCP23008 expander. USB stays disabled for this milestone. The MCC skeleton and user-owned LED code now build on Linux, with mocked logic tests passing. Windows programming and hardware tests have not run.
+The first firmware milestone is an MCC-generated application that blinks LED1 through the PIM's MCP23008 expander. USB stays disabled for this milestone. The MCC skeleton and user-owned LED code now build on Linux, with mocked logic tests passing. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blink; production/reset/cold-start tests have not been reported.
 
 Reviewed: **2026-10-13**. Pin mappings below are documented values, not measurements of the installed board. Confirm the board revision and inspect its schematics before programming.
 
@@ -63,7 +63,7 @@ SW6 is not assigned to an MCU GPIO in the PIM information sheet's Table 1. Do no
 | GP6 | 18 | 90 | USB_SEL/S. |
 | GP7 | 19 | 84 | GPIO_32. |
 
-The carrier's Figure A-8 (source PDF page 56) confirms the LED1/D5 active-low sink path, consistent with its `LED1#` label. User-owned code preloads GP0 high (OFF) before making it an output; runtime LED behaviour is not yet tested.
+The carrier's Figure A-8 (source PDF page 56) confirms the LED1/D5 active-low sink path, consistent with its `LED1#` label. User-owned code preloads GP0 high (OFF) before making it an output; the user confirmed LED1 blinking as expected on 2026-10-13.
 
 The PIM documentation states that the expander address is changeable. Its address-strap circuit is in [Figure 3](docling/images/PIC32MX270F256D-Bluetooth-Audio-PIM/image_000003_e49099fffd484b4bfb1282e7ed87ff9ecf4bf0919d9c13f6277f650855be46c5.png). On 2026-10-13, the user confirmed **J1 pins 1–2, selecting seven-bit address 0x22**. Pass **0x22** to an I²C API that accepts seven-bit addresses; the corresponding on-wire address bytes are 0x44 for write and 0x45 for read. Do not shift the address twice. The [MCP23008 component data sheet](docling/MCP23008-MCP23S08-Data-Sheet-DS21919E.md) is now included. Its register definitions confirm IODIR 0x00 (1=input, 0=output) and OLAT 0x0A (output latch). The application reads/preserves GP1–GP7 before changing GP0.
 
@@ -144,9 +144,9 @@ Complete the tool and electrical checks before applying these proposed settings.
 | Check | Expected result | Current result |
 |---|---|---|
 | Generated configuration | Correct device and recorded package/tool versions | Generated and reviewed; CSP v3.26.0, exact MCU and ICS_PGx4 confirmed. |
-| XC32 build | Successful generated-application build; warnings reviewed | Linux complete application passed; user code warning-free under -Werror. Two unused-parameter warnings in generated SYS_Initialize and I²C transfer setup. Windows build not yet tested. |
-| Board reset/debug path | Programmer identifies the target PIM | Not tested. |
-| LED control | LED1 changes state about every 500 ms | Not tested. |
+| XC32 build | Successful generated-application build; warnings reviewed | Linux complete application passed; user code warning-free under -Werror. Eight unused-parameter warnings with the full Linux source set and -Wall/-Wextra. Windows debug build/load passed without those extra warning flags. |
+| Board reset/debug path | Programmer loads the target PIM | PICkit 5 debug load succeeded; reset/cold-start tests not reported. |
+| LED control | LED1 changes state about every 500 ms | User reported blinking as expected; precise period not measured. |
 | Unused expander signals | No unintended USB/control-line changes | Not tested. |
 | Reset recovery | Application restarts consistently | Not tested. |
 
@@ -169,7 +169,7 @@ Confirmed by the user on 2026-10-13:
 Still needed:
 
 - Carrier-board/PIM revisions.
-- Windows build/programming result and board blink/reset test. Generator DFP 1.6.369, build DFP 1.7.380 and CSP v3.26.0 are recorded; generated clock configuration is reviewed, but hardware clocks are not measured.
+- Production operation after debugger disconnect and reset/cold-start tests. Windows debug build/load and LED1 blink are confirmed. Generator DFP 1.6.369, build DFP 1.7.380 and CSP v3.26.0 are recorded; generated clock configuration is reviewed, but hardware clocks are not measured.
 - Remaining bus/clock/USB electrical checks; expander register definitions and LED1 polarity have been reviewed.
 
-Follow [the application build and board-test instructions](application.md) next. Do not start the USB bootloader until the standalone board application passes.
+Follow [the application build and board-test instructions](application.md) next. Keep the observed working blink baseline; check standalone production/reset/cold-start operation before USB bootloader work.
