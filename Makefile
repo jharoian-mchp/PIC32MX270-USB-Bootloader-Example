@@ -1,9 +1,31 @@
-# Toolchain checks only; actual firmware build targets follow MCC generation.
+# Generated application builds and user-owned code checks.
 XC32_ROOT ?= /workspace/ChrisK/tools/xc32/v6.00
 PIC32MX_DFP_ROOT ?= /workspace/ChrisK/tools/packs/Microchip/PIC32MX_DFP/1.7.380
 SMOKE_DIR := build/toolchain-smoke
 
-.PHONY: toolchain-check
+APP_DIR := build/application
+APP_SOURCES := application/src/main.c application/src/app_led.c \
+ application/src/config/default/initialization.c application/src/config/default/interrupts.c \
+ application/src/config/default/peripheral/clk/plib_clk.c \
+ application/src/config/default/peripheral/evic/plib_evic.c \
+ application/src/config/default/peripheral/gpio/plib_gpio.c \
+ application/src/config/default/peripheral/i2c/master/plib_i2c1_master.c \
+ application/src/config/default/peripheral/tmr/plib_tmr2.c
+HOST_CC ?= cc
+
+.PHONY: toolchain-check application test
+
+application:
+	@mkdir -p "$(APP_DIR)"
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O1 -fno-common -Wall -Wextra -Iapplication/src -Iapplication/src/config/default $(APP_SOURCES) -Wl,--script=application/src/config/default/p32MX270F256D.ld,--defsym=_min_heap_size=512,-Map="$(APP_DIR)/app.map" -o "$(APP_DIR)/app.elf"
+	"$(XC32_ROOT)/bin/xc32-bin2hex" "$(APP_DIR)/app.elf"
+	"$(XC32_ROOT)/bin/xc32-size" "$(APP_DIR)/app.elf"
+	@test -s "$(APP_DIR)/app.hex"
+
+test:
+	@mkdir -p build/tests
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/mocks -Iapplication/src application/src/app_led.c tests/app_led_test.c -o build/tests/app_led_test
+	./build/tests/app_led_test
 
 toolchain-check:
 	@mkdir -p "$(SMOKE_DIR)"

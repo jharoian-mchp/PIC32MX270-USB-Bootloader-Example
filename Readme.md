@@ -2,7 +2,7 @@
 
 This project will build a USB HID bootloader and a simple application for the **PIC32MX270F256D-50I/PT**, using its Bluetooth Audio PIM on the PIC32 Bluetooth Audio Development Board.
 
-Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. Other Harmony package versions and the generated build workflow still need verification; application/bootloader firmware has not been generated or hardware-tested.
+Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. The initial MCC application is generated; saved components record **CSP v3.26.0**. User-owned LED1 code now builds with XC32 here and passes mocked tests. The Windows build and hardware blink/reset test are next; the USB bootloader has not been generated.
 
 Last updated: **2026-10-13**. Update this file when project decisions, setup requirements or verified progress change.
 
@@ -36,7 +36,7 @@ The application start address and bootloader reservation are **not chosen yet**.
 
 The [PIM information sheet](docs/docling/PIC32MX270F256D-Bluetooth-Audio-PIM.md) states that the PIM's **MCP23008 I²C expander controls the board LEDs and charge-management control lines**. A board-LED blink application therefore needs expander setup and the correct I²C mapping; it cannot assume a directly connected GPIO LED. Verify the expander address, LED polarity and safe control-line states against the schematics before coding.
 
-The [Board review and first-application checklist](docs/bring-up.md) records MCU/PIM pin mappings, flash geometry and applicable errata. The user confirmed installed **Y1 is marked 12.00 MHz**, resolving the guide's conflicting crystal values for this board. Proposed clock settings are **12 MHz PRIPLL, input ÷3, multiplier ×24, output ÷2 = 48 MHz SYSCLK**. USB also needs a **÷3 UPLL input divider**; keep the USB peripheral disabled in the first blink application. These settings await MCC generation and hardware verification.
+The [Board review and first-application checklist](docs/bring-up.md) records MCU/PIM pin mappings, flash geometry and applicable errata. The user confirmed installed **Y1 is marked 12.00 MHz**, resolving the guide's conflicting crystal values for this board. Proposed clock settings are **12 MHz PRIPLL, input ÷3, multiplier ×24, output ÷2 = 48 MHz SYSCLK**. USB also needs a **÷3 UPLL input divider**; keep the USB peripheral disabled in the first blink application. These settings are confirmed in generated code; hardware clock verification is still needed.
 
 ## Documentation
 
@@ -53,7 +53,7 @@ Use **`docs/docling/` first** for device, PIM and carrier-board references. Star
 | [Flash-programming family reference](docs/docling/FRM/FRM-05-Flash-Programming.md) | Flash erase/program operations. |
 | [Programming specification](docs/docling/PIC32-Flash-Programming-Specification-DS60001145.md) | Device programming details. |
 
-All **27 source PDFs** have been converted to Markdown, with **650 separate image files** under `docs/docling/images/`. The Markdown preserves the `FRM/` structure and uses relative image links; no image data is embedded. The [conversion manifest](docs/docling/manifest.json) records source SHA-256 hashes, output paths and counts.
+All **28 reference PDFs**, including the added [MCP23008 component data sheet](docs/docling/MCP23008-MCP23S08-Data-Sheet-DS21919E.md), have been converted to Markdown, with **675 separate image files** under `docs/docling/images/`. The Markdown preserves the `FRM/` structure and uses relative image links; no image data is embedded. The [conversion manifest](docs/docling/manifest.json) records source SHA-256 hashes, output paths and counts.
 
 The original PDFs in `docs/pdf/` are unchanged. Compare ambiguous OCR, register tables, pin assignments, schematics and other hardware-critical details against those originals. Automated conversion checks do not establish hardware correctness.
 
@@ -61,15 +61,24 @@ The original PDFs in `docs/pdf/` are unchanged. Compare ambiguous OCR, register 
 
 The Linux compiler and device pack live outside the repository under `/workspace/ChrisK/tools/`. Run **`make toolchain-check`** to compile/link a test for the exact MCU and generate HEX. This test is not MCC-generated and must not be programmed onto the board. See [Windows generation and Linux builds](docs/toolchain.md) for installation versions, hashes, clock settings and the host-project handoff.
 
+## Application build and test
+
+Run **`make test`** for the mocked LED state-machine tests and **`make application`** for the XC32 firmware build. Open **`application/app.X`** on Windows, pull the changes and Clean/Build before programming with PICkit 5. Expected behaviour: **LED1 (D5) changes state about every 500 ms**. See [LED1 application: build and board test](docs/application.md) for safety, diagnostics, warnings and regeneration notes. Hardware behaviour has not been verified.
+
 ## Repository layout
 
 ```text
 Readme.md              Approach, progress and next steps
 AGENTS.md              Instructions for work in this repository
-Makefile               Reproducible compiler-only smoke test
+Makefile               XC32 application build, mocked tests and compiler smoke test
+application/
+  app.X/               MPLAB X project and saved MCC configuration
+  src/                 Generated PLIBs, main and user-owned LED application
+tests/                 Mocked application tests
 tools/
   toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
+  application.md       LED logic, build instructions and first hardware test
   toolchain.md         Windows/Linux tools, clock plan and generation handoff
   bring-up.md          Board findings, open checks and first-application checklist
   pdf/                 Original reference PDFs, including FRM/
@@ -78,7 +87,7 @@ docs/
     images/            Separate figures grouped by document
 ```
 
-Separate `bootloader/` and `application/` directories are planned once we confirm the MCC project workflow. They do not exist yet.
+The application project is present. A separate `bootloader/` directory will follow the first passing board test.
 
 ## Progress
 
@@ -86,30 +95,31 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 |---|---|---|
 | Confirm MCU and update transport | Complete | PIC32MX270F256D-50I/PT; PC-to-board USB HID agreed. |
 | Clone repository into the ChrisK workspace | Complete | Working copy: `/workspace/ChrisK/PIC32MX270-USB-Bootloader-Example`. |
-| Convert and validate reference documents | Complete | 27 documents, 650 verified image links, no embedded images; source hashes checked. |
+| Convert and validate reference documents | Complete | 28 documents and 675 referenced images after adding the MCP23008 data sheet; source hashes and links checked. |
 | Commit and push documentation | Complete | [Commit ce31f3e](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/commit/ce31f3ed782e55f3993fe9f26f9ff41e315b3ce8) on `main`. |
 | Establish GitHub push access | Complete | Repository-specific deploy key authenticated; SSH push verified over port 443. |
 | Record approach and progress | Complete | This file; maintenance instruction in `AGENTS.md`. |
 | Confirm host tools, programmer and crystal | Complete | Windows, XC32 v6.00, MCC v5.7.0, MPLAB X v6.35, PICkit 5; Y1 marked 12.00 MHz. |
 | Install and verify Linux compiler/device pack | Complete | XC32 v6.00 + PIC32MX_DFP 1.7.380; `make toolchain-check` passes compile, link and HEX generation. |
-| Review MCC device-pack split and clock configuration | Screen review complete | Generator DFP 1.6.369 / build DFP 1.7.380 confirmed; screenshots show 12 MHz PRIPLL and 48 MHz SYSCLK/PBCLK. Generated code and hardware clocks not verified. |
-| Verify remaining hardware configuration and generator packages | In progress | Board/PIM revision, expander/electrical checks, other Harmony versions and generated build workflow needed. |
+| Review MCC device-pack split and clock configuration | Generated-code review complete | Generator DFP 1.6.369 / build DFP 1.7.380; CSP v3.26.0; generated PRIPLL/48 MHz settings confirmed. Hardware clocks not measured. |
+| Verify remaining hardware configuration | In progress | Board/PIM revision and bus/clock measurements still needed; expander register definitions and LED active-low schematic reviewed. |
 | Review I²C1 configuration and pin assignment | Screen review complete | I²C1 master at 100 kHz; SDA1 RB9 and SCL1 RB8. Generated code and hardware transfers not verified. |
 | Review Timer2 timebase and I²C pull-up schematic | Screen/schematic review complete | TMR2 internal clock, 1:64, 10 ms, PR2 7,499 shown. Carrier R10/R11 are 3.3 kΩ pull-ups via J5; select pins 1–2 for 3.3 V. User confirmed Timer2 interrupt enable, J5 pins 1–2 (3.3 V) and PIM J1 pins 1–2 (seven-bit address 0x22). Runtime interrupts and bus communication not tested. |
-| Review reset and development configuration bits | User/screen review complete | PIM_MCLR confirmed; FWDTEN/JTAGEN/PWP/BWP/CP OFF shown. Verify full ICESEL value ICS_PGx4 in generated code. Debug/programming not tested. |
-| Generate, build and test standalone application | Configuration in progress | Clock, I²C, timer and development configuration screens reviewed. Generate/share the MCC skeleton next; no generated firmware or hardware test results yet. |
+| Review reset and development configuration bits | User/screen review complete | PIM_MCLR confirmed; FWDTEN/JTAGEN/PWP/BWP/CP OFF shown. User and generated code confirm ICS_PGx4. Debug/programming not tested. |
+| Generate MCC skeleton and add LED1 application | Complete | User generated with no notifications; `app_led.c` uses address 0x22 and preserves GP1–GP7. Generated PLIBs unchanged. |
+| Linux build and application logic tests | Passed | XC32 compile/link/HEX, strict user-code compile, mocked tests and sanitizer run passed. Two unused-parameter warnings in generated SYS_Initialize and I²C transfer setup. |
+| Windows build and board blink/reset test | Not tested | Pull/open application/app.X, Clean/Build and program with PICkit 5; record result before bootloader work. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Confirm ICESEL is ICS_PGx4, save MCC configuration and generate the initial skeleton under `application/`. Share generated sources, generator configuration and public project metadata; report generator notifications/errors. Timer2 interrupt enable and PIM_MCLR are confirmed.
-- Use the confirmed carrier **J5 pins 1–2 (3.3 V)** and PIM **J1 pins 1–2, seven-bit address 0x22**. See [the pull-up schematic detail](docs/images/i2c1-pullups-detail.png).
-- Retain generator DFP 1.6.369 and build DFP 1.7.380 and record other Harmony package versions. Follow the [MCC project handoff](docs/toolchain.md).
-- Record carrier-board/PIM revisions and complete the [hardware checks](docs/bring-up.md), including LED polarity, expander register definitions, I²C bus measurements and USB routing/power states.
-- Generate the initial I²C1/LED1 blink application in host MCC, retaining its generator configuration and shared project metadata.
-- Build the generated project with XC32 v6.00 on both platforms, then program and test with PICkit 5 on Windows.
+- Pull the added LED code, open `application/app.X` and Clean/Build in MPLAB X. No MCC regeneration is needed to build these changes.
+- Follow [the first board-test instructions](docs/application.md): program with PICkit 5, observe LED1 and check reset recovery. Report the build/programming output and result.
+- If needed, inspect `app_led_diagnostics` for readiness, NACK/collision/timeout faults and transition count.
+- Record carrier-board/PIM revisions and remaining hardware measurements; review USB routing/power before bootloader generation.
+- Keep generator DFP 1.6.369 and build DFP 1.7.380 separate, and preserve the user-owned LED code during MCC regeneration.
 
 ### Progress log
 
@@ -125,3 +135,5 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 - **2026-10-13:** Reviewed the matching Timer2 screen. Verified carrier I²C1 R10/R11 3.30 kΩ pull-ups and J5 voltage-selection connections against original PDF page 53; recommend J5 pins 1–2 for 3.3 V. Added a readable schematic crop. Hardware population/jumper state and timer interrupt were unverified at that review.
 - **2026-10-13:** User confirmed carrier J5 pins 1–2 (3.3 V), PIM J1 pins 1–2 (MCP23008 seven-bit address 0x22), and Timer2 interrupt enable checked. Watchdog/debugger configuration review is next; no generated firmware or runtime tests yet.
 - **2026-10-13:** User confirmed PIM_MCLR reset selection. Configuration screenshot shows watchdog, JTAG and code/write protection disabled. ICESEL requires full-value verification in generated code; MCC skeleton generation/handoff is next.
+- **2026-10-13:** User confirmed ICS_PGx4, generated with no notifications and pushed the initial MCC project. Pulled and reviewed the generated settings; CSP v3.26.0 recorded.
+- **2026-10-13:** Added user-owned LED1 state-machine logic, bounded I²C retry/timeout handling and debugger diagnostics. Linux application build, strict user-code compile, mocked tests and sanitizer run passed; Windows/hardware tests await the user. Added and converted the MCP23008 data sheet; reference inventory is now 28 PDFs and 675 images.

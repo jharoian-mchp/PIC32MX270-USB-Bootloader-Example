@@ -1,6 +1,6 @@
 # Board review and first-application checklist
 
-The first firmware milestone is an MCC-generated application that blinks LED1 through the PIM's MCP23008 expander. USB stays disabled for this milestone. Hardware testing and firmware generation have not started.
+The first firmware milestone is an MCC-generated application that blinks LED1 through the PIM's MCP23008 expander. USB stays disabled for this milestone. The MCC skeleton and user-owned LED code now build on Linux, with mocked logic tests passing. Windows programming and hardware tests have not run.
 
 Reviewed: **2026-10-13**. Pin mappings below are documented values, not measurements of the installed board. Confirm the board revision and inspect its schematics before programming.
 
@@ -63,9 +63,9 @@ SW6 is not assigned to an MCU GPIO in the PIM information sheet's Table 1. Do no
 | GP6 | 18 | 90 | USB_SEL/S. |
 | GP7 | 19 | 84 | GPIO_32. |
 
-The board pin table labels the LED signals with `#`, suggesting active-low control. Confirm LED polarity in the push-button/LED schematic (Figure A-8) before choosing the initial latch value.
+The carrier's Figure A-8 (source PDF page 56) confirms the LED1/D5 active-low sink path, consistent with its `LED1#` label. User-owned code preloads GP0 high (OFF) before making it an output; runtime LED behaviour is not yet tested.
 
-The PIM documentation states that the expander address is changeable. Its address-strap circuit is in [Figure 3](docling/images/PIC32MX270F256D-Bluetooth-Audio-PIM/image_000003_e49099fffd484b4bfb1282e7ed87ff9ecf4bf0919d9c13f6277f650855be46c5.png). On 2026-10-13, the user confirmed **J1 pins 1–2, selecting seven-bit address 0x22**. Pass **0x22** to an I²C API that accepts seven-bit addresses; the corresponding on-wire address bytes are 0x44 for write and 0x45 for read. Do not shift the address twice. The MCP23008 component data sheet is not among the current reference PDFs; verify its register definitions before implementing the driver.
+The PIM documentation states that the expander address is changeable. Its address-strap circuit is in [Figure 3](docling/images/PIC32MX270F256D-Bluetooth-Audio-PIM/image_000003_e49099fffd484b4bfb1282e7ed87ff9ecf4bf0919d9c13f6277f650855be46c5.png). On 2026-10-13, the user confirmed **J1 pins 1–2, selecting seven-bit address 0x22**. Pass **0x22** to an I²C API that accepts seven-bit addresses; the corresponding on-wire address bytes are 0x44 for write and 0x45 for read. Do not shift the address twice. The [MCP23008 component data sheet](docling/MCP23008-MCP23S08-Data-Sheet-DS21919E.md) is now included. Its register definitions confirm IODIR 0x00 (1=input, 0=output) and OLAT 0x0A (output latch). The application reads/preserves GP1–GP7 before changing GP0.
 
 The carrier's **Figure A-5 (source PDF page 53)** shows **R10 and R11, each 3.30 kΩ**, pulling up the I²C1 SDA/SCL nets through **J5 (I2C1 PWR Conf)**. **J5 pins 1–2 select +3.3V_DIG; pins 2–3 select +5V_SW_DIG.** Both pull-ups use the common centre pin. J6 is the separate I²C2 selector. See the [high-resolution schematic crop](images/i2c1-pullups-detail.png), rendered from the original PDF to verify small schematic labels.
 
@@ -118,7 +118,7 @@ For the 256 KB Flash / 64 KB RAM devices, the supplied errata marks both A1 and 
 
 The workspace runs Linux x86_64. On 2026-10-13, PATH checks did not find `xc32-gcc`, `xc32-bin2hex`, `mcc`, `java`, `pic32prog` or `ipecmd`; a limited search of `/opt`, `/usr/local` and the project directory found no XC32/MCC/Harmony installations. This does not inspect the user's development computer.
 
-After the initial review, **XC32 v6.00 and PIC32MX_DFP 1.7.380 were installed** under `/workspace/ChrisK/tools/`. An exact-device compile/link/HEX smoke test passed; see [toolchain details](toolchain.md). Java and MCC are not installed here: generation will run on the user's Windows host with MCC v5.7.0. Host programming/debugging will use MPLAB X v6.35 and PICkit 5. No MCC project file or generated application firmware has been created.
+After the initial review, **XC32 v6.00 and PIC32MX_DFP 1.7.380 were installed** under `/workspace/ChrisK/tools/`. An exact-device compile/link/HEX smoke test passed; see [toolchain details](toolchain.md). Java and MCC are not installed here: generation will run on the user's Windows host with MCC v5.7.0. Host programming/debugging will use MPLAB X v6.35 and PICkit 5. The saved MCC project and generated PLIBs are now present under `application/`; user-owned LED1 logic and the complete firmware build passed Linux checks. Component metadata records CSP v3.26.0. Hardware tests are next.
 
 The current upstream `pic32mx_125_sk` HID example is **not this device**: its project XML selects PIC32MX570F512L, XC32 4.60 and PIC32MX_DFP 1.6.369. Those versions are reference metadata, not a verified toolchain for PIC32MX270F256D. Record the selected Harmony package versions and commit/tag once compatibility is checked.
 
@@ -143,8 +143,8 @@ Complete the tool and electrical checks before applying these proposed settings.
 
 | Check | Expected result | Current result |
 |---|---|---|
-| Generated configuration | Correct device and recorded package/tool versions | Not generated. |
-| XC32 build | Successful generated-application build; warnings reviewed | Compiler-only smoke test passed; MCC application not generated or compiled. |
+| Generated configuration | Correct device and recorded package/tool versions | Generated and reviewed; CSP v3.26.0, exact MCU and ICS_PGx4 confirmed. |
+| XC32 build | Successful generated-application build; warnings reviewed | Linux complete application passed; user code warning-free under -Werror. Two unused-parameter warnings in generated SYS_Initialize and I²C transfer setup. Windows build not yet tested. |
 | Board reset/debug path | Programmer identifies the target PIM | Not tested. |
 | LED control | LED1 changes state about every 500 ms | Not tested. |
 | Unused expander signals | No unintended USB/control-line changes | Not tested. |
@@ -163,12 +163,13 @@ Confirmed by the user on 2026-10-13:
 - PIM J1 on pins 1–2, selecting seven-bit MCP23008 address 0x22.
 - Timer2 interrupt enable checked in MCC. Runtime interrupts are not yet tested.
 - Reset selector set to PIM_MCLR.
-- Configuration screenshot shows FWDTEN OFF, JTAGEN OFF and PWP/BWP/CP OFF. ICESEL's full value needs confirmation in generated code; expected ICS_PGx4.
+- Generated configuration confirms FWDTEN/JTAGEN/PWP/BWP/CP OFF and ICS_PGx4; user also confirmed ICESEL.
+- User generated with no MCC notifications and pushed the saved project. Linux build and mocked LED tests passed.
 
 Still needed:
 
 - Carrier-board/PIM revisions.
-- Other Harmony package versions and confirmation of the generated project/build workflow. Generator DFP 1.6.369 and MPLAB X build DFP 1.7.380 are confirmed; clock screenshots show 48 MHz SYSCLK/PBCLK, but generated code and hardware clocks are not yet checked.
-- MCP23008 component register definitions and the remaining LED/USB electrical checks.
+- Windows build/programming result and board blink/reset test. Generator DFP 1.6.369, build DFP 1.7.380 and CSP v3.26.0 are recorded; generated clock configuration is reviewed, but hardware clocks are not measured.
+- Remaining bus/clock/USB electrical checks; expander register definitions and LED1 polarity have been reviewed.
 
-The next step is host project generation with the confirmed tools and completion of these hardware checks. The Linux compiler/device pack is ready for a generated-project build.
+Follow [the application build and board-test instructions](application.md) next. Do not start the USB bootloader until the standalone board application passes.

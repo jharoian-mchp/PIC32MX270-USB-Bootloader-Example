@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-13T16:20:12.883Z",
+  "generated_at": "2026-10-13T23:32:15.588Z",
   "source": "../pdf",
   "format": "Markdown",
   "image_export_mode": "referenced",
@@ -275,12 +275,23 @@
       "image_references": 7,
       "markdown_bytes": 18036,
       "seconds": 0
+    },
+    {
+      "source": "MCP23008-MCP23S08-Data-Sheet-DS21919E.pdf",
+      "source_sha256": "573ae3991f57d1291ecddab81fcb249ba8f42e538d5a693d9958417525fea5ad",
+      "status": "success",
+      "markdown": "MCP23008-MCP23S08-Data-Sheet-DS21919E.md",
+      "images": 25,
+      "image_references": 25,
+      "markdown_bytes": 233274,
+      "source_url": "https://ww1.microchip.com/downloads/en/DeviceDoc/21919e.pdf",
+      "converted_at": "2026-10-13T23:32:15.588Z"
     }
   ],
   "summary": {
-    "pdfs": 27,
-    "converted": 27,
+    "pdfs": 28,
+    "converted": 28,
     "failed": 0,
-    "images": 650
+    "images": 675
   }
 }

@@ -1,6 +1,6 @@
 # Docling reference documents
 
-All 27 PDFs in `../pdf/` were converted to Markdown using Docling Serve with EasyOCR and accurate table extraction. The original PDFs are unchanged.
+All 28 PDFs in `../pdf/` were converted to Markdown using Docling Serve with EasyOCR and accurate table extraction. The original reference PDFs are unchanged; the MCP23008 component data sheet was added on 2026-10-13.
 
 Images are separate files under `images/`, grouped by document. Markdown uses relative image links; no image data is embedded. The `FRM/` directory structure is preserved.
 
@@ -32,10 +32,11 @@ Images are separate files under `images/`, grouped by document. Markdown uses re
 | [FRM/FRM-31-DMA.pdf](../pdf/FRM/FRM-31-DMA.pdf) | [Read](FRM/FRM-31-DMA.md) | 10 |
 | [FRM/FRM-33-Programming.pdf](../pdf/FRM/FRM-33-Programming.pdf) | [Read](FRM/FRM-33-Programming.md) | 11 |
 | [FRM/FRM-37-CTMU.pdf](../pdf/FRM/FRM-37-CTMU.pdf) | [Read](FRM/FRM-37-CTMU.md) | 7 |
+| [MCP23008-MCP23S08-Data-Sheet-DS21919E.pdf](../pdf/MCP23008-MCP23S08-Data-Sheet-DS21919E.pdf) | [Read](MCP23008-MCP23S08-Data-Sheet-DS21919E.md) | 25 |
 | [PIC32 Bluetooth Audio Dev Kit Reference Guide.pdf](../pdf/PIC32%20Bluetooth%20Audio%20Dev%20Kit%20Reference%20Guide.pdf) | [Read](PIC32%20Bluetooth%20Audio%20Dev%20Kit%20Reference%20Guide.md) | 37 |
 | [PIC32-Flash-Programming-Specification-DS60001145.pdf](../pdf/PIC32-Flash-Programming-Specification-DS60001145.pdf) | [Read](PIC32-Flash-Programming-Specification-DS60001145.md) | 158 |
 | [PIC32MX1XX-2XX-28-36-44-pin-Family-Silicon-Errata-DS80000531.pdf](../pdf/PIC32MX1XX-2XX-28-36-44-pin-Family-Silicon-Errata-DS80000531.pdf) | [Read](PIC32MX1XX-2XX-28-36-44-pin-Family-Silicon-Errata-DS80000531.md) | 1 |
 | [PIC32MX1XX2XX283644-PIN_Datasheet_DS60001168L.pdf](../pdf/PIC32MX1XX2XX283644-PIN_Datasheet_DS60001168L.pdf) | [Read](PIC32MX1XX2XX283644-PIN_Datasheet_DS60001168L.md) | 135 |
 | [PIC32MX270F256D-Bluetooth-Audio-PIM.pdf](../pdf/PIC32MX270F256D-Bluetooth-Audio-PIM.pdf) | [Read](PIC32MX270F256D-Bluetooth-Audio-PIM.md) | 7 |
 
-Total: 27 PDFs, 27 converted documents, 650 image files, 650 verified image references.
+Total: 28 PDFs, 28 converted documents, 675 image files, 675 verified image references.

@@ -9,6 +9,8 @@
 - Installed Y1 is marked 12.00 MHz, confirmed by the user. Proposed 48 MHz PRIPLL clock: input ÷3, multiplier ×24, output ÷2; USB PLL input ÷3. Hardware clock validation is still required.
 - Linux tools: `/workspace/ChrisK/tools/xc32/v6.00` and `/workspace/ChrisK/tools/packs/Microchip/PIC32MX_DFP/1.7.380`. Use the pack root for `-mdfp`. `make toolchain-check` verifies compiler/linker/HEX only; never program its test image.
 - User confirmed reset selector PIM_MCLR, carrier J5 pins 1–2 (3.3 V I²C1 pull-ups), PIM J1 pins 1–2 (MCP23008 seven-bit address 0x22), and Timer2 interrupt enable checked. Use 0x22 for seven-bit I²C APIs; hardware bus communication/runtime interrupts are not yet tested.
+- Initial MCC application is present at `application/app.X`; saved components record CSP v3.26.0. Generated code confirms ICS_PGx4. Linux `make application` and `make test` pass; Windows/hardware tests are not yet verified.
+- User-owned LED logic is `application/src/app_led.c`/`.h`, called from main.c. Preserve it and its public project entries during MCC regeneration; generated PLIBs remain unchanged. See `docs/application.md` for diagnostics and board tests.
 - Start with a simple application before adding Bluetooth or audio functionality.
 
 ## Documentation

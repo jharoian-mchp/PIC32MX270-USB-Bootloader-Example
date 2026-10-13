@@ -2,19 +2,19 @@
 
 Use **XC32 v6.00** on both Windows and Linux. Generate firmware with **MCC v5.7.0 on the Windows host**; use **MPLAB X v6.35 and PICkit 5** for host builds, programming and debugging.
 
-Recorded: **2026-10-13**. Standalone MCC v5.7.0 is the requested generator. MPLAB X's included MCC v5.7.0 is available if the standalone project workflow needs IDE integration; record the workflow actually used. No MCC firmware project has been generated yet.
+Recorded: **2026-10-13**. Standalone MCC v5.7.0 is the requested generator. MPLAB X's included MCC v5.7.0 is available if the standalone project workflow needs IDE integration; record the workflow actually used. The user generated and pushed the initial MCC application with no notifications. Saved components record CSP v3.26.0 and generator-internal coreVersion 5.9.0 / SPA host 1.3.0; these are distinct from the user-reported MCC application v5.7.0.
 
 ## Selected tools
 
 | Component | Windows host | Linux workspace | Verification |
 |---|---|---|---|
 | Compiler | XC32 v6.00, reported by the user | XC32 v6.00 installed | Linux exact-device compile, link and HEX generation passed. |
-| Generator | Standalone MCC v5.7.0; IDE also includes MCC v5.7.0 | No MCC installation needed for the current split | Host generation not tested. |
+| Generator | Standalone MCC v5.7.0; IDE also includes MCC v5.7.0 | No MCC installation needed for the current split | User reported successful generation with no notifications; saved project reviewed. |
 | IDE | MPLAB X v6.35 | No IDE installed | Host programmer/debugger connection not tested. |
 | Programmer/debugger | PICkit 5 | No hardware connection | Target identification and silicon revision not read yet. |
 | Generator device pack | MCC/Harmony uses PIC32MX_DFP 1.6.369, confirmed by the user | Not needed for compilation here | Record independently from the build device pack; do not force a version match. |
-| Build device pack | MPLAB X uses PIC32MX_DFP 1.7.380, confirmed by the user | PIC32MX_DFP 1.7.380 installed | Linux exact-device compiler check passed; host-generated application build not tested. |
-| Harmony packages | Versions to be selected and recorded in MCC | Match host-generated package versions as required | Device-specific generation not verified. |
+| Build device pack | MPLAB X uses PIC32MX_DFP 1.7.380, confirmed by the user | PIC32MX_DFP 1.7.380 installed | Linux generated-application build passed; Windows build/hardware tests await the user. |
+| Harmony packages | CSP v3.26.0 in saved components; coreVersion 5.9.0 and SPA host 1.3.0 in configuration | Generated PLIB sources built directly | Saved device-specific generation reviewed; no external Harmony checkout required for the current Linux build. |
 
 XC32 v6.00's MIPS release notes require MPLAB X v6.25 or later, with applicable update-centre patches. v6.35 satisfies the documented minimum version; the installed host setup still needs a real build and PICkit 5 connection check. The same release notes state that XC32 v6.00 removes licence checking for PRO optimisations and Code Coverage; no compiler activation was needed for the Linux `-O2` smoke test.
 
@@ -112,8 +112,12 @@ Next, add a **TMR2 Peripheral Library** timebase: internal PBCLK, 16-bit periodi
 
 Schematic review confirmed carrier I²C1 pull-ups R10/R11 (3.30 kΩ each), powered through J5. Set J5 pins 1–2 for 3.3 V; pins 2–3 select 5 V. The PIM does not show its own SDA/SCL pull-up pair. See [the board findings and schematic detail](bring-up.md). The user confirmed J5 pins 1–2 and PIM J1 pins 1–2 on 2026-10-13. Use seven-bit expander address **0x22** in the generated I²C API; do not substitute the on-wire 0x44/0x45 address bytes. Resistor population and bus voltage/timing have not been measured.
 
-The user confirmed the reset selector is in **PIM_MCLR** on 2026-10-13. The configuration screenshot shows **FWDTEN OFF**, **JTAGEN OFF**, and **PWP/BWP/CP OFF**, suitable for the initial development application. DEBUG OFF is normal for a production build; let MPLAB X/XC32 manage debug-mode configuration when using Debug Project. The ICESEL dropdown is not legible enough to certify its full value from the screenshot; confirm **ICS_PGx4** (PGEC4/PGED4) in the generated configuration before programming. PIM programming/debug operation is not yet tested.
+The user confirmed the reset selector is in **PIM_MCLR** on 2026-10-13. The configuration screenshot shows **FWDTEN OFF**, **JTAGEN OFF**, and **PWP/BWP/CP OFF**, suitable for the initial development application. DEBUG OFF is normal for a production build; let MPLAB X/XC32 manage debug-mode configuration when using Debug Project. The user and generated `initialization.c` confirm **ICS_PGx4** (PGEC4/PGED4). PIM programming/debug operation is not yet tested.
 
-Next save the MCC configuration and generate the initial skeleton under `application/`. Share the generator file, generated source/configuration and public MPLAB X project metadata through Git. Review notifications and report generation errors. The skeleton will need LED-expander application logic before it can blink; do not program the compiler-only smoke image.
+## Generated application build
 
-The remaining inputs are carrier/PIM revision, other Harmony package versions and the remaining expander/electrical checks. The MCP23008 component data sheet is also needed to verify register definitions before writing the LED-expander driver.
+The initial project is now at `application/app.X`. Linux **`make application`** compiles its generated sources plus user-owned LED logic, using XC32 v6.00, build DFP 1.7.380, the MCC-provided linker script and 512-byte minimum heap. Ignored NetBeans machine-generated makefiles were not in the Git handoff, so this root target builds directly. MPLAB X regenerates those makefiles on Windows; public project XML includes `app_led.c`/`.h`.
+
+Linux compilation/link/HEX and **`make test`** passed. The user-owned code also passed strict XC32 compilation; the full build emits two unused-parameter warnings: `data` in generated SYS_Initialize and `forcedWrite` in I²C transfer setup. Generated PLIB files were not patched. See [application implementation and board-test instructions](application.md).
+
+The [MCP23008 data sheet](docling/MCP23008-MCP23S08-Data-Sheet-DS21919E.md) is now included with referenced images. The remaining inputs are a Windows build/programming result, board blink/reset test, carrier/PIM revision and remaining bus/clock/USB electrical checks. Do not program the compiler-only smoke image.
