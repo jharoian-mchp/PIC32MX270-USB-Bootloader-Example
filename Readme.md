@@ -2,7 +2,7 @@
 
 This project will build a USB HID bootloader and a simple application for the **PIC32MX270F256D-50I/PT**, using its Bluetooth Audio PIM on the PIC32 Bluetooth Audio Development Board.
 
-The selected toolchain is the **XC32 compiler** and **standalone MPLAB Code Configurator (MCC)** with **MPLAB Harmony 3**. Exact tool and package versions, and their support for this device, still need verification. Firmware has not been generated, compiled or tested on hardware.
+Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. Other Harmony package versions and the generated build workflow still need verification; application/bootloader firmware has not been generated or hardware-tested.
 
 Last updated: **2026-10-13**. Update this file when project decisions, setup requirements or verified progress change.
 
@@ -36,6 +36,8 @@ The application start address and bootloader reservation are **not chosen yet**.
 
 The [PIM information sheet](docs/docling/PIC32MX270F256D-Bluetooth-Audio-PIM.md) states that the PIM's **MCP23008 I²C expander controls the board LEDs and charge-management control lines**. A board-LED blink application therefore needs expander setup and the correct I²C mapping; it cannot assume a directly connected GPIO LED. Verify the expander address, LED polarity and safe control-line states against the schematics before coding.
 
+The [Board review and first-application checklist](docs/bring-up.md) records MCU/PIM pin mappings, flash geometry and applicable errata. The user confirmed installed **Y1 is marked 12.00 MHz**, resolving the guide's conflicting crystal values for this board. Proposed clock settings are **12 MHz PRIPLL, input ÷3, multiplier ×24, output ÷2 = 48 MHz SYSCLK**. USB also needs a **÷3 UPLL input divider**; keep the USB peripheral disabled in the first blink application. These settings await MCC generation and hardware verification.
+
 ## Documentation
 
 Use **`docs/docling/` first** for device, PIM and carrier-board references. Start with its [document index](docs/docling/README.md).
@@ -55,12 +57,21 @@ All **27 source PDFs** have been converted to Markdown, with **650 separate imag
 
 The original PDFs in `docs/pdf/` are unchanged. Compare ambiguous OCR, register tables, pin assignments, schematics and other hardware-critical details against those originals. Automated conversion checks do not establish hardware correctness.
 
+## Toolchain check
+
+The Linux compiler and device pack live outside the repository under `/workspace/ChrisK/tools/`. Run **`make toolchain-check`** to compile/link a test for the exact MCU and generate HEX. This test is not MCC-generated and must not be programmed onto the board. See [Windows generation and Linux builds](docs/toolchain.md) for installation versions, hashes, clock settings and the host-project handoff.
+
 ## Repository layout
 
 ```text
 Readme.md              Approach, progress and next steps
 AGENTS.md              Instructions for work in this repository
+Makefile               Reproducible compiler-only smoke test
+tools/
+  toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
+  toolchain.md         Windows/Linux tools, clock plan and generation handoff
+  bring-up.md          Board findings, open checks and first-application checklist
   pdf/                 Original reference PDFs, including FRM/
   docling/             Converted Markdown, index and manifest
     FRM/               Converted family-reference chapters
@@ -79,18 +90,26 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 | Commit and push documentation | Complete | [Commit ce31f3e](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/commit/ce31f3ed782e55f3993fe9f26f9ff41e315b3ce8) on `main`. |
 | Establish GitHub push access | Complete | Repository-specific deploy key authenticated; SSH push verified over port 443. |
 | Record approach and progress | Complete | This file; maintenance instruction in `AGENTS.md`. |
-| Verify hardware configuration and tool versions | Not started | Board revision, programmer, development OS and compatible package versions needed. |
-| Generate, build and test standalone application | Not started | No firmware or hardware test results yet. |
+| Confirm host tools, programmer and crystal | Complete | Windows, XC32 v6.00, MCC v5.7.0, MPLAB X v6.35, PICkit 5; Y1 marked 12.00 MHz. |
+| Install and verify Linux compiler/device pack | Complete | XC32 v6.00 + PIC32MX_DFP 1.7.380; `make toolchain-check` passes compile, link and HEX generation. |
+| Review MCC device-pack split and clock configuration | Screen review complete | Generator DFP 1.6.369 / build DFP 1.7.380 confirmed; screenshots show 12 MHz PRIPLL and 48 MHz SYSCLK/PBCLK. Generated code and hardware clocks not verified. |
+| Verify remaining hardware configuration and generator packages | In progress | Board/PIM revision, expander/electrical checks, other Harmony versions and generated build workflow needed. |
+| Review I²C1 configuration and pin assignment | Screen review complete | I²C1 master at 100 kHz; SDA1 RB9 and SCL1 RB8. Generated code and hardware transfers not verified. |
+| Review Timer2 timebase and I²C pull-up schematic | Screen/schematic review complete | TMR2 internal clock, 1:64, 10 ms, PR2 7,499 shown. Carrier R10/R11 are 3.3 kΩ pull-ups via J5; select pins 1–2 for 3.3 V. User confirmed Timer2 interrupt enable, J5 pins 1–2 (3.3 V) and PIM J1 pins 1–2 (seven-bit address 0x22). Runtime interrupts and bus communication not tested. |
+| Review reset and development configuration bits | User/screen review complete | PIM_MCLR confirmed; FWDTEN/JTAGEN/PWP/BWP/CP OFF shown. Verify full ICESEL value ICS_PGx4 in generated code. Debug/programming not tested. |
+| Generate, build and test standalone application | Configuration in progress | Clock, I²C, timer and development configuration screens reviewed. Generate/share the MCC skeleton next; no generated firmware or hardware test results yet. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Record the development OS and installed XC32 and standalone MCC versions, or select versions if they are not installed.
-- Record the programmer/debugger model and the carrier-board/PIM part numbers and revisions.
-- Review the relevant converted references to prepare a checked pin, clock, USB-power and LED-expander configuration.
-- Verify the standalone MCC/Harmony workflow for this exact device, then generate the initial application.
+- Confirm ICESEL is ICS_PGx4, save MCC configuration and generate the initial skeleton under `application/`. Share generated sources, generator configuration and public project metadata; report generator notifications/errors. Timer2 interrupt enable and PIM_MCLR are confirmed.
+- Use the confirmed carrier **J5 pins 1–2 (3.3 V)** and PIM **J1 pins 1–2, seven-bit address 0x22**. See [the pull-up schematic detail](docs/images/i2c1-pullups-detail.png).
+- Retain generator DFP 1.6.369 and build DFP 1.7.380 and record other Harmony package versions. Follow the [MCC project handoff](docs/toolchain.md).
+- Record carrier-board/PIM revisions and complete the [hardware checks](docs/bring-up.md), including LED polarity, expander register definitions, I²C bus measurements and USB routing/power states.
+- Generate the initial I²C1/LED1 blink application in host MCC, retaining its generator configuration and shared project metadata.
+- Build the generated project with XC32 v6.00 on both platforms, then program and test with PICkit 5 on Windows.
 
 ### Progress log
 
@@ -98,3 +117,11 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 - **2026-10-13:** Cloned the reference repository, converted all 27 PDFs through Docling and verified source hashes and all 650 external image links.
 - **2026-10-13:** Committed and pushed the converted documentation and repository instructions. Verified repository-specific SSH access over port 443.
 - **2026-10-13:** Added this approach and progress record. Firmware generation and hardware testing have not started.
+- **2026-10-13:** Began hardware/toolchain review. Documented PIM pin mappings, LED-expander requirements, 1 KB flash pages/128-byte rows and relevant silicon errata. Identified conflicting carrier-crystal values and missing workspace development tools; prepared the first MCC application checklist.
+- **2026-10-13:** Confirmed Windows host generation with MCC v5.7.0, XC32 v6.00, MPLAB X v6.35 and PICkit 5. User read 12.00 MHz on installed Y1.
+- **2026-10-13:** Installed Linux XC32 v6.00 and PIC32MX_DFP 1.7.380 outside the repository. Exact-device compile/link/HEX generation passed; added the reproducible `make toolchain-check` target and Windows/Linux setup notes.
+- **2026-10-13:** User confirmed MCC/Harmony generator DFP 1.6.369 and MPLAB X build DFP 1.7.380. Reviewed clock screenshots showing the planned 12 MHz PRIPLL path and 48 MHz SYSCLK/PBCLK; I²C1 configuration is next.
+- **2026-10-13:** Reviewed I²C1 master/100 kHz and SDA1 RB9/SCL1 RB8 pin screenshots. Proposed a Timer2 10 ms timebase, prescaler 1:64 and PR2 7,499, with application logic counting 50 events per LED transition. Firmware generation and hardware tests have not run.
+- **2026-10-13:** Reviewed the matching Timer2 screen. Verified carrier I²C1 R10/R11 3.30 kΩ pull-ups and J5 voltage-selection connections against original PDF page 53; recommend J5 pins 1–2 for 3.3 V. Added a readable schematic crop. Hardware population/jumper state and timer interrupt were unverified at that review.
+- **2026-10-13:** User confirmed carrier J5 pins 1–2 (3.3 V), PIM J1 pins 1–2 (MCP23008 seven-bit address 0x22), and Timer2 interrupt enable checked. Watchdog/debugger configuration review is next; no generated firmware or runtime tests yet.
+- **2026-10-13:** User confirmed PIM_MCLR reset selection. Configuration screenshot shows watchdog, JTAG and code/write protection disabled. ICESEL requires full-value verification in generated code; MCC skeleton generation/handoff is next.
