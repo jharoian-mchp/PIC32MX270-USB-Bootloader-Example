@@ -18,6 +18,7 @@
 
 ## Work practices
 
+- Keep the root `Readme.md` updated when project decisions, setup requirements, verified milestones or next steps change. Update its last-updated date and progress log; distinguish completed work from planned or untested work.
 - Read the relevant documentation and existing files before changing code.
 - Test or verify changes before declaring them complete. State when hardware testing has not been performed.
 - Keep credentials, private SSH keys, transient conversion files and build outputs out of the repository.
