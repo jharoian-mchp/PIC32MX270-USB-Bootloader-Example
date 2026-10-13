@@ -1,0 +1,286 @@
+{
+  "generated_at": "2026-10-13T16:20:12.883Z",
+  "source": "../pdf",
+  "format": "Markdown",
+  "image_export_mode": "referenced",
+  "ocr_preset": "easyocr",
+  "table_mode": "accurate",
+  "documents": [
+    {
+      "source": "FRM/FRM-01-Intro.pdf",
+      "source_sha256": "308049cfe1a3f01e8ab508b8031783521a8f4671728dc8f6b9846ff76296c280",
+      "status": "success",
+      "markdown": "FRM/FRM-01-Intro.md",
+      "images": 3,
+      "image_references": 3,
+      "markdown_bytes": 23361,
+      "seconds": 5
+    },
+    {
+      "source": "FRM/FRM-02-CPU.pdf",
+      "source_sha256": "0ba9c2d27a6385157b0361c636606e69861723ce6a4f04020c59cb80799c3741",
+      "status": "success",
+      "markdown": "FRM/FRM-02-CPU.md",
+      "images": 15,
+      "image_references": 15,
+      "markdown_bytes": 188219,
+      "seconds": 30
+    },
+    {
+      "source": "FRM/FRM-05-Flash-Programming.pdf",
+      "source_sha256": "dbf8b66697bee6bbbe15648017d26232085b55a3015cc2ce52d083f0911662d3",
+      "status": "success",
+      "markdown": "FRM/FRM-05-Flash-Programming.md",
+      "images": 2,
+      "image_references": 2,
+      "markdown_bytes": 57179,
+      "seconds": 30
+    },
+    {
+      "source": "FRM/FRM-06-Oscillators.pdf",
+      "source_sha256": "f84faa0ff20fbcf29ebace62386c58242f4226e6f0381492a5f0ae6440b5291b",
+      "status": "success",
+      "markdown": "FRM/FRM-06-Oscillators.md",
+      "images": 10,
+      "image_references": 10,
+      "markdown_bytes": 97095,
+      "seconds": 10
+    },
+    {
+      "source": "FRM/FRM-09-Watchdog.pdf",
+      "source_sha256": "151caafd81be8944e33467a233f500cf6acd4a6a4df501b1e014038567e9300c",
+      "status": "success",
+      "markdown": "FRM/FRM-09-Watchdog.md",
+      "images": 7,
+      "image_references": 7,
+      "markdown_bytes": 76135,
+      "seconds": 15
+    },
+    {
+      "source": "FRM/FRM-10-Power-Saving-Modes.pdf",
+      "source_sha256": "4ee439789436337bc76c87f0599be84b4311d829684bc6ba62ac9334a2693cc4",
+      "status": "success",
+      "markdown": "FRM/FRM-10-Power-Saving-Modes.md",
+      "images": 3,
+      "image_references": 3,
+      "markdown_bytes": 35822,
+      "seconds": 15
+    },
+    {
+      "source": "FRM/FRM-12-GPIO.pdf",
+      "source_sha256": "fc092b7757a1b66727b28f8220bd14b2aac39bff6304bf6363eb198f471e3e87",
+      "status": "success",
+      "markdown": "FRM/FRM-12-GPIO.md",
+      "images": 7,
+      "image_references": 7,
+      "markdown_bytes": 62974,
+      "seconds": 10
+    },
+    {
+      "source": "FRM/FRM-13-PMP.pdf",
+      "source_sha256": "a556442e7cc49be291d5e04d0ff1567cca11e930f1c56b122c084d1f3c8cc8e1",
+      "status": "success",
+      "markdown": "FRM/FRM-13-PMP.md",
+      "images": 48,
+      "image_references": 48,
+      "markdown_bytes": 148890,
+      "seconds": 21
+    },
+    {
+      "source": "FRM/FRM-14-Timers.pdf",
+      "source_sha256": "1330682e67fa1ba466ebe952b529f4f2cd652c4856e35928ec59657c9149ae6d",
+      "status": "success",
+      "markdown": "FRM/FRM-14-Timers.md",
+      "images": 7,
+      "image_references": 7,
+      "markdown_bytes": 98322,
+      "seconds": 20
+    },
+    {
+      "source": "FRM/FRM-15-Input-Capture.pdf",
+      "source_sha256": "c09c3099ee33812e9a92bafe04f2a853d7bc374b472c76af7679f9495309b76c",
+      "status": "success",
+      "markdown": "FRM/FRM-15-Input-Capture.md",
+      "images": 10,
+      "image_references": 10,
+      "markdown_bytes": 51410,
+      "seconds": 10
+    },
+    {
+      "source": "FRM/FRM-16-Output-Compare.pdf",
+      "source_sha256": "00c4359b6dae9ffd92e38c9e8d827aef60c28515498a1bdf727f1f67bfa83720",
+      "status": "success",
+      "markdown": "FRM/FRM-16-Output-Compare.md",
+      "images": 23,
+      "image_references": 23,
+      "markdown_bytes": 85988,
+      "seconds": 15
+    },
+    {
+      "source": "FRM/FRM-17-ADC.pdf",
+      "source_sha256": "77fd8e8a11db9e4535d3d7418ba67df7f4dc77309764d2f2fe2ea86077229959",
+      "status": "success",
+      "markdown": "FRM/FRM-17-ADC.md",
+      "images": 24,
+      "image_references": 24,
+      "markdown_bytes": 133998,
+      "seconds": 35
+    },
+    {
+      "source": "FRM/FRM-19-Comparator.pdf",
+      "source_sha256": "1157156f8cab31568795debdf70eb8afe3d815643986067bd557e9dc75154faf",
+      "status": "success",
+      "markdown": "FRM/FRM-19-Comparator.md",
+      "images": 7,
+      "image_references": 7,
+      "markdown_bytes": 42239,
+      "seconds": 30
+    },
+    {
+      "source": "FRM/FRM-20-Comparator-Voltage-Ref.pdf",
+      "source_sha256": "97877af13ace201ee84000ed53469c1e8e2cb9b855cfa7181e0e798f493c4079",
+      "status": "success",
+      "markdown": "FRM/FRM-20-Comparator-Voltage-Ref.md",
+      "images": 6,
+      "image_references": 6,
+      "markdown_bytes": 25581,
+      "seconds": 5
+    },
+    {
+      "source": "FRM/FRM-21-UART.pdf",
+      "source_sha256": "28dc18d67bb89bb2164d821beeca54e623928aecd529de8a46acf14a3793b3de",
+      "status": "success",
+      "markdown": "FRM/FRM-21-UART.md",
+      "images": 23,
+      "image_references": 23,
+      "markdown_bytes": 128410,
+      "seconds": 15
+    },
+    {
+      "source": "FRM/FRM-23-SPI.pdf",
+      "source_sha256": "b15cb03db52e34e9df241e736f1b33b9ff129c3610b68361d870d31062cafa9a",
+      "status": "success",
+      "markdown": "FRM/FRM-23-SPI.md",
+      "images": 33,
+      "image_references": 33,
+      "markdown_bytes": 143134,
+      "seconds": 30
+    },
+    {
+      "source": "FRM/FRM-24-I2C.pdf",
+      "source_sha256": "e1f4430d6fff0bb0d36dd9f8cfdc753e0c9e795163222d7bcad6369fb6457e5a",
+      "status": "success",
+      "markdown": "FRM/FRM-24-I2C.md",
+      "images": 32,
+      "image_references": 32,
+      "markdown_bytes": 153134,
+      "seconds": 25
+    },
+    {
+      "source": "FRM/FRM-27-USB.pdf",
+      "source_sha256": "a6ecf6521c5e3a2f2400c62b8b2acee062b724ef09a7402191d53e3c396fcdd6",
+      "status": "success",
+      "markdown": "FRM/FRM-27-USB.md",
+      "images": 12,
+      "image_references": 12,
+      "markdown_bytes": 192765,
+      "seconds": 45
+    },
+    {
+      "source": "FRM/FRM-29-RTCC.pdf",
+      "source_sha256": "351eb2be8356002955798917a465203f3fd13b2ef45917a849a2704c8dff9a07",
+      "status": "success",
+      "markdown": "FRM/FRM-29-RTCC.md",
+      "images": 12,
+      "image_references": 12,
+      "markdown_bytes": 84210,
+      "seconds": 40
+    },
+    {
+      "source": "FRM/FRM-31-DMA.pdf",
+      "source_sha256": "78a6e61c0768ed775a54eec9f465df14988560216f2045d1ff73a8552adb9b26",
+      "status": "success",
+      "markdown": "FRM/FRM-31-DMA.md",
+      "images": 10,
+      "image_references": 10,
+      "markdown_bytes": 145749,
+      "seconds": 20
+    },
+    {
+      "source": "FRM/FRM-33-Programming.pdf",
+      "source_sha256": "856f599c517fbb00c612d3bfe11d92516816fd757c00efa6c8fba187ba97399e",
+      "status": "success",
+      "markdown": "FRM/FRM-33-Programming.md",
+      "images": 11,
+      "image_references": 11,
+      "markdown_bytes": 43444,
+      "seconds": 20
+    },
+    {
+      "source": "FRM/FRM-37-CTMU.pdf",
+      "source_sha256": "753c45a20ba04150d2712a8428c59a5db7eba03ac35101b03de25c8e5ba31564",
+      "status": "success",
+      "markdown": "FRM/FRM-37-CTMU.md",
+      "images": 7,
+      "image_references": 7,
+      "markdown_bytes": 53585,
+      "seconds": 10
+    },
+    {
+      "source": "PIC32 Bluetooth Audio Dev Kit Reference Guide.pdf",
+      "source_sha256": "f91ffc8fbc26a72a11a340ae5fbc1f45729671aa36349554a2ce1625ae085898",
+      "status": "success",
+      "markdown": "PIC32 Bluetooth Audio Dev Kit Reference Guide.md",
+      "images": 37,
+      "image_references": 37,
+      "markdown_bytes": 183722,
+      "seconds": 41
+    },
+    {
+      "source": "PIC32-Flash-Programming-Specification-DS60001145.pdf",
+      "source_sha256": "b8eeee42ff9aa54399cc4d5f5d6ee9ef599bb53473db2e5622893be85bc12470",
+      "status": "success",
+      "markdown": "PIC32-Flash-Programming-Specification-DS60001145.md",
+      "images": 158,
+      "image_references": 158,
+      "markdown_bytes": 503450,
+      "seconds": 75
+    },
+    {
+      "source": "PIC32MX1XX-2XX-28-36-44-pin-Family-Silicon-Errata-DS80000531.pdf",
+      "source_sha256": "b280450d000e7058a94102c231dca9cc0ebb197fc17f1f51ef0a709c41e7cbbf",
+      "status": "success",
+      "markdown": "PIC32MX1XX-2XX-28-36-44-pin-Family-Silicon-Errata-DS80000531.md",
+      "images": 1,
+      "image_references": 1,
+      "markdown_bytes": 129709,
+      "seconds": 65
+    },
+    {
+      "source": "PIC32MX1XX2XX283644-PIN_Datasheet_DS60001168L.pdf",
+      "source_sha256": "6f75ee8fe58045ff8e3e0b687bcf6097ed857258b8a1d595991b5ddc7ef678db",
+      "status": "success",
+      "markdown": "PIC32MX1XX2XX283644-PIN_Datasheet_DS60001168L.md",
+      "images": 135,
+      "image_references": 135,
+      "markdown_bytes": 1588604,
+      "seconds": 296
+    },
+    {
+      "source": "PIC32MX270F256D-Bluetooth-Audio-PIM.pdf",
+      "source_sha256": "413854b61ba370bb0e7b33e98b805505f2552e4f112eda44b9c74957e7d3b85a",
+      "status": "success",
+      "markdown": "PIC32MX270F256D-Bluetooth-Audio-PIM.md",
+      "images": 7,
+      "image_references": 7,
+      "markdown_bytes": 18036,
+      "seconds": 0
+    }
+  ],
+  "summary": {
+    "pdfs": 27,
+    "converted": 27,
+    "failed": 0,
+    "images": 650
+  }
+}
