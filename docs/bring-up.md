@@ -124,7 +124,7 @@ Reference inspected: [upstream project configuration](https://github.com/Microch
 
 Complete the tool and electrical checks before applying these proposed settings. Use the actual standalone MCC workflow; do not hand-author a configuration file and label it MCC-generated.
 
-1. Select **PIC32MX270F256D** and the confirmed PIC32MX device pack. Record standalone MCC, XC32 and Harmony package versions, plus the generated project/build format.
+1. Select **PIC32MX270F256D**. Keep generator DFP 1.6.369 and build DFP 1.7.380 as confirmed by the user; record the remaining Harmony package versions and generated project/build format.
 2. Create the initial application under `application/`, using the normal device startup and linker layout, with no bootloader offset.
 3. Configure the reviewed clock source. With the confirmed 12 MHz Y1 marking, propose PRIPLL with input ÷3, multiplier ×24 and output ÷2 for 48 MHz SYSCLK; USB remains disabled. Record SYSCLK and PBCLK explicitly.
 4. Configure **I²C1 master**, initially targeting **100 kHz**; confirm the generated SDA/SCL mapping is RB9/RB8. Enable only the peripherals required for the first application.
@@ -159,7 +159,7 @@ Confirmed by the user on 2026-10-13:
 Still needed:
 
 - Carrier-board/PIM revisions and expander address-strap population, if visible.
-- Host PIC32MX DFP and Harmony package versions and confirmation of the actual standalone MCC project workflow.
+- Other Harmony package versions and confirmation of the generated project/build workflow. Generator DFP 1.6.369 and MPLAB X build DFP 1.7.380 are confirmed; clock screenshots show 48 MHz SYSCLK/PBCLK, but generated code and hardware clocks are not yet checked.
 - MCP23008 component register definitions and the remaining LED/USB electrical checks.
 
 The next step is host project generation with the confirmed tools and completion of these hardware checks. The Linux compiler/device pack is ready for a generated-project build.

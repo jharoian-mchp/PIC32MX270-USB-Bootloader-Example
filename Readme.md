@@ -2,7 +2,7 @@
 
 This project will build a USB HID bootloader and a simple application for the **PIC32MX270F256D-50I/PT**, using its Bluetooth Audio PIM on the PIC32 Bluetooth Audio Development Board.
 
-Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. Host generator workflow and Harmony versions still need verification; application/bootloader firmware has not been generated or hardware-tested.
+Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. Other Harmony package versions and the generated build workflow still need verification; application/bootloader firmware has not been generated or hardware-tested.
 
 Last updated: **2026-10-13**. Update this file when project decisions, setup requirements or verified progress change.
 
@@ -92,7 +92,8 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 | Record approach and progress | Complete | This file; maintenance instruction in `AGENTS.md`. |
 | Confirm host tools, programmer and crystal | Complete | Windows, XC32 v6.00, MCC v5.7.0, MPLAB X v6.35, PICkit 5; Y1 marked 12.00 MHz. |
 | Install and verify Linux compiler/device pack | Complete | XC32 v6.00 + PIC32MX_DFP 1.7.380; `make toolchain-check` passes compile, link and HEX generation. |
-| Verify remaining hardware configuration and generator packages | In progress | Board/PIM revision, expander/electrical checks, host DFP/Harmony versions and standalone generation workflow needed. |
+| Review MCC device-pack split and clock configuration | Screen review complete | Generator DFP 1.6.369 / build DFP 1.7.380 confirmed; screenshots show 12 MHz PRIPLL and 48 MHz SYSCLK/PBCLK. Generated code and hardware clocks not verified. |
+| Verify remaining hardware configuration and generator packages | In progress | Board/PIM revision, expander/electrical checks, other Harmony versions and generated build workflow needed. |
 | Generate, build and test standalone application | Not started | No firmware or hardware test results yet. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
@@ -100,7 +101,7 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 
 ### Next steps
 
-- Confirm the Windows host's PIC32MX DFP and Harmony versions and follow the [MCC project handoff](docs/toolchain.md). Prefer the matching PIC32MX_DFP 1.7.380 if available.
+- Retain generator DFP 1.6.369 and build DFP 1.7.380. Add I²C1 master at 100 kHz next, verify SDA RB9/SCL RB8, and record other Harmony package versions. Follow the [MCC project handoff](docs/toolchain.md).
 - Record carrier-board/PIM revisions and complete the [hardware checks](docs/bring-up.md), including LED polarity, expander address/register definitions, I²C pull-ups and USB routing/power states.
 - Generate the initial I²C1/LED1 blink application in host MCC, retaining its generator configuration and shared project metadata.
 - Build the generated project with XC32 v6.00 on both platforms, then program and test with PICkit 5 on Windows.
@@ -114,3 +115,4 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 - **2026-10-13:** Began hardware/toolchain review. Documented PIM pin mappings, LED-expander requirements, 1 KB flash pages/128-byte rows and relevant silicon errata. Identified conflicting carrier-crystal values and missing workspace development tools; prepared the first MCC application checklist.
 - **2026-10-13:** Confirmed Windows host generation with MCC v5.7.0, XC32 v6.00, MPLAB X v6.35 and PICkit 5. User read 12.00 MHz on installed Y1.
 - **2026-10-13:** Installed Linux XC32 v6.00 and PIC32MX_DFP 1.7.380 outside the repository. Exact-device compile/link/HEX generation passed; added the reproducible `make toolchain-check` target and Windows/Linux setup notes.
+- **2026-10-13:** User confirmed MCC/Harmony generator DFP 1.6.369 and MPLAB X build DFP 1.7.380. Reviewed clock screenshots showing the planned 12 MHz PRIPLL path and 48 MHz SYSCLK/PBCLK; I²C1 configuration is next.

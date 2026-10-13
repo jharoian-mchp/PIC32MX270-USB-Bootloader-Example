@@ -12,7 +12,8 @@ Recorded: **2026-10-13**. Standalone MCC v5.7.0 is the requested generator. MPLA
 | Generator | Standalone MCC v5.7.0; IDE also includes MCC v5.7.0 | No MCC installation needed for the current split | Host generation not tested. |
 | IDE | MPLAB X v6.35 | No IDE installed | Host programmer/debugger connection not tested. |
 | Programmer/debugger | PICkit 5 | No hardware connection | Target identification and silicon revision not read yet. |
-| Device pack | Select PIC32MX_DFP 1.7.380 if supported/available | PIC32MX_DFP 1.7.380 installed | Exact MCU support compiled successfully here; host pack selection not confirmed. |
+| Generator device pack | MCC/Harmony uses PIC32MX_DFP 1.6.369, confirmed by the user | Not needed for compilation here | Record independently from the build device pack; do not force a version match. |
+| Build device pack | MPLAB X uses PIC32MX_DFP 1.7.380, confirmed by the user | PIC32MX_DFP 1.7.380 installed | Linux exact-device compiler check passed; host-generated application build not tested. |
 | Harmony packages | Versions to be selected and recorded in MCC | Match host-generated package versions as required | Device-specific generation not verified. |
 
 XC32 v6.00's MIPS release notes require MPLAB X v6.25 or later, with applicable update-centre patches. v6.35 satisfies the documented minimum version; the installed host setup still needs a real build and PICkit 5 connection check. The same release notes state that XC32 v6.00 removes licence checking for PRO optimisations and Code Coverage; no compiler activation was needed for the Linux `-O2` smoke test.
@@ -91,7 +92,7 @@ MCC must generate the configuration and appropriate flash wait-state/cache setti
 ## Windows first-project handoff
 
 1. Open MPLAB X v6.35 and confirm XC32 v6.00 appears as an available compiler. Apply relevant IDE updates and confirm PICkit 5 support.
-2. Confirm the **PIC32MX270F256D** target and PIC32MX device pack. Prefer matching 1.7.380; tell us the installed version if the host uses another pack.
+2. Confirm the **PIC32MX270F256D** target. Retain MCC/Harmony's generator DFP **1.6.369** and MPLAB X's build DFP **1.7.380**, as reported by the user. Record them separately; they do not need to match. Linux builds use build DFP 1.7.380.
 3. Open standalone MCC v5.7.0 and select its **Harmony 3** workflow for the exact device. Record the Harmony package versions. If that device/workflow is unavailable, stop and report the available choices; do not substitute a different MCU.
 4. Create the initial project under the host working copy's `application/` directory. Save the actual generator project/configuration and generate the supported build project. Use [the first-application checklist](bring-up.md) for I²C1, LED1, timebase and electrical checks.
 5. Send a screenshot or the available device/project workflow choices if the standalone wizard does not produce a project MPLAB X can open. Use IDE-hosted MCC only as an explicitly recorded workflow change.
@@ -99,4 +100,10 @@ MCC must generate the configuration and appropriate flash wait-state/cache setti
 7. Share the generated project through the repository. The assistant will check Linux portability and build it with the matching XC32/device pack. Any Harmony checkout paths or generated makefile tool paths need review; cross-platform builds are not verified yet.
 8. Program and debug on Windows with PICkit 5 after the board reset/debug routing, expander address, pull-up voltage and LED polarity are checked.
 
-The immediate remaining input is the installed carrier/PIM revision and the host device-pack/Harmony versions. The MCP23008 component data sheet is also needed to verify register definitions before writing the LED-expander driver.
+## MCC configuration review
+
+On 2026-10-13, the user confirmed generator DFP 1.6.369 and MPLAB X build DFP 1.7.380. Clock screenshots show a 12 MHz primary source, HS/PRIPLL, system PLL input ÷3, multiplier ×24 and output ÷2, with 48 MHz SYSCLK and PBCLK (bus divider ÷1). This is a screen review, not verification of generated code or hardware clocks.
+
+The initial USB PLL setting is OFF. It can stay OFF while USB is unused; set its input divider to ÷3 and enable the PLL when preparing the HID project. Add I²C1 master at 100 kHz next and verify SDA RB9 (MCU pin 1) and SCL RB8 (MCU pin 44). Do not disable unrelated peripheral clocks wholesale before the required timebase and generated dependencies are known.
+
+The remaining inputs are carrier/PIM revision, other Harmony package versions and the expander/electrical checks. The MCP23008 component data sheet is also needed to verify register definitions before writing the LED-expander driver.
