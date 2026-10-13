@@ -122,4 +122,6 @@ Linux compilation/link/HEX and **`make test`** passed. The user-owned code also 
 
 The [MCP23008 data sheet](docling/MCP23008-MCP23S08-Data-Sheet-DS21919E.md) is now included with referenced images. The user confirmed the Windows debug build/load and LED1 blink. The shared project selects PK5Tool in host commit 48faaa9. The corrected Linux source list includes all 12 Windows sources and matching section/garbage-collection flags, while debug versus production flags still differ. The supplied Windows compile commands omit -Wall/-Wextra; the user intends to enable them.
 
-Remaining checks are production/reset/cold-start behaviour, target silicon revision, carrier/PIM revision and bus/clock/USB electrical details. Do not program the compiler-only smoke image.
+The user subsequently pushed -Wall/-Wextra host compiler settings in **dd59a29** and confirmed a production build/programming with blinking after MCLR and power cycle. That exact commit is tagged **v0.1.0-led-blink**. Next follow the [USB HID bootloader setup](bootloader.md).
+
+Remaining hardware details are target silicon revision, carrier/PIM revision, measured timing and USB routing/power. Do not program the compiler-only smoke image.

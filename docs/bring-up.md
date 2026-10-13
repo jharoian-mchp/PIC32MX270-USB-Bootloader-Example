@@ -1,6 +1,6 @@
 # Board review and first-application checklist
 
-The first firmware milestone is an MCC-generated application that blinks LED1 through the PIM's MCP23008 expander. USB stays disabled for this milestone. The MCC skeleton and user-owned LED code now build on Linux, with mocked logic tests passing. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blink; production/reset/cold-start tests have not been reported.
+The first firmware milestone is an MCC-generated application that blinks LED1 through the PIM's MCP23008 expander. USB stays disabled for this milestone. The MCC skeleton and user-owned LED code now build on Linux, with mocked logic tests passing. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blink; production operation and recovery after MCLR/power cycle are also user-confirmed.
 
 Reviewed: **2026-10-13**. Pin mappings below are documented values, not measurements of the installed board. Confirm the board revision and inspect its schematics before programming.
 
@@ -145,10 +145,10 @@ Complete the tool and electrical checks before applying these proposed settings.
 |---|---|---|
 | Generated configuration | Correct device and recorded package/tool versions | Generated and reviewed; CSP v3.26.0, exact MCU and ICS_PGx4 confirmed. |
 | XC32 build | Successful generated-application build; warnings reviewed | Linux complete application passed; user code warning-free under -Werror. Eight unused-parameter warnings with the full Linux source set and -Wall/-Wextra. Windows debug build/load passed without those extra warning flags. |
-| Board reset/debug path | Programmer loads the target PIM | PICkit 5 debug load succeeded; reset/cold-start tests not reported. |
+| Board reset/debug path | Programmer loads the target PIM | PICkit 5 debug load succeeded; production programming and MCLR/power-cycle recovery confirmed by the user. |
 | LED control | LED1 changes state about every 500 ms | User reported blinking as expected; precise period not measured. |
 | Unused expander signals | No unintended USB/control-line changes | Not tested. |
-| Reset recovery | Application restarts consistently | Not tested. |
+| Reset recovery | Application restarts consistently | User confirmed blinking survives MCLR and power cycle in the production build. Tagged v0.1.0-led-blink at dd59a29. |
 
 ## Confirmed setup and remaining inputs
 
@@ -169,7 +169,7 @@ Confirmed by the user on 2026-10-13:
 Still needed:
 
 - Carrier-board/PIM revisions.
-- Production operation after debugger disconnect and reset/cold-start tests. Windows debug build/load and LED1 blink are confirmed. Generator DFP 1.6.369, build DFP 1.7.380 and CSP v3.26.0 are recorded; generated clock configuration is reviewed, but hardware clocks are not measured.
+- USB bootloader project configuration and hardware routing/power checks. Windows production programming and MCLR/power-cycle recovery are now confirmed; measured timing and injected fault recovery are not. Generator DFP 1.6.369, build DFP 1.7.380 and CSP v3.26.0 are recorded; generated clock configuration is reviewed, but hardware clocks are not measured.
 - Remaining bus/clock/USB electrical checks; expander register definitions and LED1 polarity have been reviewed.
 
-Follow [the application build and board-test instructions](application.md) next. Keep the observed working blink baseline; check standalone production/reset/cold-start operation before USB bootloader work.
+Follow [the application build and board-test instructions](application.md) next. Keep the production-tested baseline tagged v0.1.0-led-blink and follow the [separate bootloader setup](bootloader.md).

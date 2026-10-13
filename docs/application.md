@@ -1,6 +1,6 @@
 # LED1 application: build and board test
 
-The MCC-generated application now includes user-owned MCP23008 LED1 logic. **Linux compilation and mocked tests pass. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blinking as expected on 2026-10-13.**
+The MCC-generated application now includes user-owned MCP23008 LED1 logic. **Linux compilation and mocked tests pass. The user confirmed successful Windows PICkit 5 debug and production builds/programming, LED1 blinking, and recovery after MCLR and a power cycle on 2026-10-13.**
 
 Reviewed: **2026-10-13**. The generated baseline was pulled from the user's first-generation commit `5226a6d` through merge `c8bb0cb`. The user reported no MCC notifications and confirmed `ICS_PGx4`.
 
@@ -89,4 +89,8 @@ On 2026-10-13 the user supplied a clean Windows debug build log showing XC32 v6.
 
 Host commit `48faaa9` selects `PK5Tool` in the shared project configuration and has been pulled here. The corrected Linux target includes generated `exceptions.c`, `stdio/xc32_monitor.c` and `plib_i2c_smbus_common.c`, and uses `-ffunction-sections -fdata-sections` plus `--gc-sections` like the Windows build. It remains a production build; Windows debug reservations/options differ, so binary identity is not claimed.
 
-**Still unverified:** standalone production operation after debugger disconnect, reset/cold-power recovery, measured blink period, target silicon revision and injected bus-fault behaviour. Next test Run/production programming and reset/cold-start recovery, then proceed to the USB HID bootloader.
+## Production-tested milestone
+
+The user pushed host compiler -Wall/-Wextra settings in commit **dd59a291254b45d44fba65810b2085d9b6ea40df**, then confirmed that this version was production-built and programmed and that blinking survives both **MCLR** and a **power cycle**. Annotated tag **[v0.1.0-led-blink](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/tree/v0.1.0-led-blink)** marks that exact tested commit. The tag was pushed and checked against the remote.
+
+Measured blink period, target silicon revision and injected bus-fault recovery remain unverified. Next create the [separate USB HID bootloader project](bootloader.md), preserving this application baseline.
