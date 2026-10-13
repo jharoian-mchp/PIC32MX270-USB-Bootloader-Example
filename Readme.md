@@ -36,6 +36,8 @@ The application start address and bootloader reservation are **not chosen yet**.
 
 The [PIM information sheet](docs/docling/PIC32MX270F256D-Bluetooth-Audio-PIM.md) states that the PIM's **MCP23008 I²C expander controls the board LEDs and charge-management control lines**. A board-LED blink application therefore needs expander setup and the correct I²C mapping; it cannot assume a directly connected GPIO LED. Verify the expander address, LED polarity and safe control-line states against the schematics before coding.
 
+The first reference review is recorded in [Board review and first-application checklist](docs/bring-up.md). It identifies an unresolved **8 MHz versus 12 MHz crystal discrepancy** in the carrier guide and documents MCU/PIM pin mappings, flash geometry and applicable errata. Nominal **48 MHz FRCPLL with USB disabled** is proposed for the first blink application; external-crystal and USB settings await hardware confirmation.
+
 ## Documentation
 
 Use **`docs/docling/` first** for device, PIM and carrier-board references. Start with its [document index](docs/docling/README.md).
@@ -61,6 +63,7 @@ The original PDFs in `docs/pdf/` are unchanged. Compare ambiguous OCR, register 
 Readme.md              Approach, progress and next steps
 AGENTS.md              Instructions for work in this repository
 docs/
+  bring-up.md          Board findings, open checks and first-application checklist
   pdf/                 Original reference PDFs, including FRM/
   docling/             Converted Markdown, index and manifest
     FRM/               Converted family-reference chapters
@@ -79,7 +82,7 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 | Commit and push documentation | Complete | [Commit ce31f3e](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/commit/ce31f3ed782e55f3993fe9f26f9ff41e315b3ce8) on `main`. |
 | Establish GitHub push access | Complete | Repository-specific deploy key authenticated; SSH push verified over port 443. |
 | Record approach and progress | Complete | This file; maintenance instruction in `AGENTS.md`. |
-| Verify hardware configuration and tool versions | Not started | Board revision, programmer, development OS and compatible package versions needed. |
+| Verify hardware configuration and tool versions | In progress | [Initial reference review](docs/bring-up.md) completed; clock discrepancy identified. Board revision, programmer, development OS and compatible package versions needed. |
 | Generate, build and test standalone application | Not started | No firmware or hardware test results yet. |
 | Generate and enumerate HID bootloader | Not started | Device-specific configuration and USB hardware test needed. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
@@ -87,10 +90,10 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 
 ### Next steps
 
-- Record the development OS and installed XC32 and standalone MCC versions, or select versions if they are not installed.
-- Record the programmer/debugger model and the carrier-board/PIM part numbers and revisions.
-- Review the relevant converted references to prepare a checked pin, clock, USB-power and LED-expander configuration.
-- Verify the standalone MCC/Harmony workflow for this exact device, then generate the initial application.
+- Choose the generation/build location and record the development OS, XC32 and standalone MCC versions. XC32, MCC and Java were not found in the workspace's initial tool checks.
+- Record the programmer/debugger model and carrier-board/PIM revisions; confirm the installed Y1 marking to resolve the 8 MHz/12 MHz discrepancy.
+- Complete the [hardware checks](docs/bring-up.md), including LED polarity, expander address/register definitions, I²C pull-ups and USB routing/power states.
+- Verify the standalone MCC/Harmony workflow for this exact device, then generate the initial I²C1/LED1 blink application.
 
 ### Progress log
 
@@ -98,3 +101,4 @@ Separate `bootloader/` and `application/` directories are planned once we confir
 - **2026-10-13:** Cloned the reference repository, converted all 27 PDFs through Docling and verified source hashes and all 650 external image links.
 - **2026-10-13:** Committed and pushed the converted documentation and repository instructions. Verified repository-specific SSH access over port 443.
 - **2026-10-13:** Added this approach and progress record. Firmware generation and hardware testing have not started.
+- **2026-10-13:** Began hardware/toolchain review. Documented PIM pin mappings, LED-expander requirements, 1 KB flash pages/128-byte rows and relevant silicon errata. Identified conflicting carrier-crystal values and missing workspace development tools; prepared the first MCC application checklist.
