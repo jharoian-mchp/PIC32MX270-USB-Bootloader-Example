@@ -132,14 +132,16 @@ Do not enable host configuration-bit programming or live update for this first b
 
 ## Board USB checks before enumeration
 
-The [USB mini-B routing and VBUS review](usb-circuit.md) now traces the documented path: **J2 → EMI filter U3 → NCN1188 HDN/HDP → MCU D+/D−**. Mini-B selection requires **MCP23008 GP5=1, GP6=1**, preserving other bits. The carrier's default select pull-downs disconnect the mux.
+**Hold mux setup pending installed U2 identification:** the user reported board revision R7, **ten-pin U2 marked AG7**, and disconnected VBUS_SENSE 0 V. The supplied schematic specifies a **twelve-pin NCN1188**. The earlier GP5=GP6=1 setting applies only to that documented circuit and is not approved for the reported installed board. See [the observations and identification checklist](usb-circuit.md).
+
+The schematic-only path is **J2 → EMI filter U3 → NCN1188 HDN/HDP → MCU D+/D−**. Confirm the actual switch and matching routing before using its truth table. J2 connector VBUS itself has not yet been measured; VBUS_SENSE 0 V does not complete the back-feed check.
 
 **Important:** J2 cable VBUS is divided/clamped onto **RA1/PIM pin 80**, while the carrier feeds dedicated MCU VBUS/PIM pin 54 from **5V_SW_DIG**. The generated driver uses dedicated VBUS session status, so it must not be assumed to detect PC cable presence. Before coding/programming, confirm the installed revision/U2 part and measure disconnected J2 VBUS and RA1 sense safely; see the checklist and attached schematic crops in that review.
 
 Use the [converted PIM and carrier references](docling/README.md), verifying small schematic details against the original PDFs as necessary.
 
 - D+ is MCU pin 8 / PIM pin 57; D− is MCU pin 9 / PIM pin 56. Do not use their alternate PGED2/PGEC2 debug function.
-- NCN1188 truth-table and schematic review identifies **GP5/GP6 both high** for mini-B; R5/R6 20 kΩ pull-downs yield default disconnect. This is a reviewed masked-bit setting, not permission to overwrite an entire expander port. Confirm installed U2/revision before implementation.
+- NCN1188 schematic-only review identifies GP5/GP6 both high for mini-B; R5/R6 20 kΩ pull-downs yield default disconnect. **This setting is suspended for the reported ten-pin AG7-marked U2** until the actual component/pinout is confirmed.
 - Review VBUS sensing on RA1 and the dedicated VBUS pin's actual circuit. Do not enable host VBUS sourcing or allow back-feeding the PC.
 - Keep J5 pins 1–2 (3.3 V pull-ups), J1 pins 1–2 (seven-bit expander address 0x22), and reset selector PIM_MCLR.
 - Proposed force-bootloader input: **SW1/RB2, MCU pin 23/PIM pin 17**. Verify active level and make its analog-capable pin digital before use. Avoid SW5/USBID sharing for this first design.

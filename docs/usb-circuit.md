@@ -1,8 +1,23 @@
 # USB mini-B routing and VBUS verification
 
-The supplied carrier schematic routes **mini-B J2** through the EMI/ESD filter **U3** and the **NCN1188 U2 HDN/HDP channel** to the PIC32 USB data pins. Select that channel with **both MCP23008 GP5 and GP6 high**. The cable VBUS sense on **RA1** is separate from the MCU's dedicated VBUS pin, which the carrier pin table connects to its own **5V_SW_DIG** rail.
+**Installed U2 identification is unresolved. Do not apply the earlier GP5=GP6=1 mux setting to the installed board yet.** On 2026-10-14 the user reported board revision **R7**, a **10-pin U2 marked AG7**, and **VBUS_SENSE = 0 V** in the disconnected-check context. The supplied schematic's NCN1188 has **12 pins**; this discrepancy prevents treating its truth table as verified for the installed board.
 
-Reviewed: **2026-10-14**. This is a schematic/source review. Actual board revision, USB voltages, connector continuity and enumeration have not been verified. No bootloader code was changed or programmed during this review.
+The supplied carrier schematic routes **mini-B J2** through the EMI/ESD filter **U3** and the **NCN1188 U2 HDN/HDP channel** to the PIC32 USB data pins. For that documented part only, both mux controls high select HDN/HDP. The documented cable VBUS sense on **RA1** is separate from the MCU's dedicated VBUS pin, which the carrier pin table connects to its own **5V_SW_DIG** rail.
+
+Reviewed: **2026-10-14**. This is a schematic/source review with the user-reported observations below. Installed connector continuity and enumeration have not been verified. No bootloader code was changed or programmed during this review.
+
+## Installed-board observations and hold point
+
+| Item | User-reported result | Interpretation |
+|---|---|---|
+| Board revision | R7 | Recorded as reported; need the full PCB/assembly identification or photo to match a schematic revision. |
+| U2 | 10 pins, marking AG7 | Conflicts with documented 12-pin NCN1188. Marking alone has not established a part number. |
+| VBUS_SENSE | 0 V | Consistent with the disconnected state. Does not establish the voltage on J2 pin 1. |
+| J2 connector VBUS with no host | Not supplied | Still needed for the back-feed check before connecting the PC. |
+
+A candidate search found ten-pin USB switches with different enable/select interfaces, including FSUSB42, but its official marking diagram does not match AG7. No candidate part is confirmed and no alternative truth table is approved. In particular, a switch with an active-high disable/OE input could be **disconnected**, not enabled, by driving both controls high.
+
+Next obtain a clear close-up showing U2, all pins, pin-1 indicator/top marking, adjacent reference designators, and the full board identification. Confirm the pin count and whether R7 denotes the revision marking. Then identify the actual switch from a matching component marking/pinout or revision-specific schematic before configuring GP5/GP6. Keep the tagged LED firmware and mux-control pins unchanged in the meantime.
 
 ## Sources
 
@@ -41,9 +56,9 @@ The NCN1188 truth table uses **IN1/IN2**:
 | 1 | 0 | AUDN/AUDP |
 | 1 | 1 | HDN/HDP — mini-B J2 on this carrier |
 
-PIM **GP5 → connector pin 89 (USB_SEL1)** and **GP6 → pin 90 (USB_SEL0)** control the switch. The PIM calls these `USB_SEL/OE#` and `USB_SEL/S`; the carrier's fitted NCN1188 uses two encoded selection inputs, **not a separate active-low output-enable pin**. Do not apply a generic OE#/S switch truth table to this board.
+PIM **GP5 → connector pin 89 (USB_SEL1)** and **GP6 → pin 90 (USB_SEL0)** control the documented switch. The PIM calls these `USB_SEL/OE#` and `USB_SEL/S`; the carrier schematic's NCN1188 uses two encoded selection inputs. The reported ten-pin installed part may use a different interface; neither truth table is approved until identification is resolved.
 
-For J2 selection, both encoded controls must be high regardless of the ordering of their IN1/IN2 labels. Therefore:
+**The following is conditional on confirming an NCN1188-compatible circuit and is on hold for the reported installed board.** For that circuit's J2 selection, both encoded controls must be high. Therefore:
 
 - Set **OLAT bits 5 and 6 high** (mask **0x60**) while preserving other latch bits.
 - Enable only the required output directions, clearing **IODIR bits 5 and 6** while preserving the other directions.
@@ -99,9 +114,9 @@ Report board revision/U2 identity, disconnected J2 VBUS and VBUS_SENSE values fi
 
 ## Next implementation milestone
 
-After the physical checks match the supplied schematic:
+After the actual switch identification, revision-specific routing and physical power checks are established:
 
-- Implement user-owned MCP23008 route setup, preserving other pins, and verify it reaches the intended 11 state.
+- Implement user-owned MCP23008 route setup from the confirmed switch truth table, preserving other pins. The previously proposed 11 state remains on hold for the reported ten-pin AG7-marked U2.
 - Configure RA1 connection sensing/attach-detach coordination and SW1 force-entry without disrupting the preserved application.
 - Build/test the code and review nontrivial compiler diagnostics; only then approve a controlled enumeration test, with host erase/program commands unused.
 - Record actual VID/PID enumeration and cable disconnect behaviour before testing the update protocol or relocated application.

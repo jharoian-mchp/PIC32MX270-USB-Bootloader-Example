@@ -128,7 +128,7 @@ The application project is present. A separate `bootloader/` directory is the ne
 ### Next steps
 
 - PICkit 5 is now selected in the shared bootloader project; -Wall/-Wextra are retained. Keep the skeleton unprogrammed until USB routing/power and entry review.
-- Follow the [USB circuit physical checks](docs/usb-circuit.md): confirm board revision/NCN1188 and safely measure disconnected J2 VBUS and RA1 sense. Mini-B routes through HDN/HDP with GP5=GP6=1; dedicated MCU VBUS is board-powered, so cable detection must use the reviewed RA1 path.
+- **Identify installed U2 before mux configuration.** User reports revision R7 and ten-pin AG7-marked U2, conflicting with the schematic's twelve-pin NCN1188. Earlier GP5=GP6=1 guidance is on hold. Obtain a close-up/full board ID and actual switch pinout; see [USB circuit checks](docs/usb-circuit.md). VBUS_SENSE is reported 0 V disconnected; J2 VBUS itself still needs a safe back-feed measurement.
 - Implement/test board routing and attach-detach coordination plus physical entry after those checks. Review nontrivial compiler diagnostics before enumeration.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
@@ -166,4 +166,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Reviewed the user's full Windows bootloader build log: success, no errors and warning-category counts matching Linux (1,080 occurrences, mostly repeated unused-parameter diagnostics). Pulled fd97ec3 saving -Wall/-Wextra. Tool remains noID; IDE loading text does not verify hardware programming. USB routing/entry and nontrivial-warning review remain next.
 
 - **2026-10-14:** Pulled host PICkit 5 selection commit 0274bf9 through merge 9fdac62; verified PK5Tool, retained -Wall/-Wextra and valid XML. USB routing/VBUS and entry review are next; no bootloader hardware test yet.
-- **2026-10-14:** Traced mini-B J2 through U3 and NCN1188 HDN/HDP; component truth table selects this with GP5/GP6 high. Identified cable VBUS divider/clamp to RA1 versus dedicated VBUS fed from board 5V_SW_DIG. Added schematic crops and pre-PC voltage/revision checks; no hardware measurements or bootloader changes yet.
+- **2026-10-14:** Traced mini-B J2 through U3 and NCN1188 HDN/HDP; component truth table selects this with GP5/GP6 high. Identified cable VBUS divider/clamp to RA1 versus dedicated VBUS fed from board 5V_SW_DIG. Added schematic crops and pre-PC voltage/revision checks; no hardware measurements or bootloader changes yet at that review.
+- **2026-10-14:** User reported board revision R7, ten-pin U2 marked AG7 and disconnected VBUS_SENSE 0 V. The supplied NCN1188 schematic has twelve pins; suspended the earlier mux control setting pending actual part/revision identification. J2 connector VBUS reading remains outstanding.
