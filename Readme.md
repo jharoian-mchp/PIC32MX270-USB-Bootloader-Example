@@ -119,14 +119,14 @@ The application project is present. A separate `bootloader/` directory is the ne
 | Production, reset and cold-start recovery | Passed, user-reported | Production-built app blinks and recovers after MCLR and power cycle. Exact commit dd59a29 tagged v0.1.0-led-blink. |
 | Regenerate application after H3 content updates | Required follow-up | Adding the bootloader library updated host H3 content. After versions settle, regenerate the application, preserve user-owned LED code and repeat Linux/Windows builds plus production blink/MCLR/power-cycle tests. Not yet regenerated. |
 | Generate/build HID bootloader | Linux build passed | Core regeneration 556a4fa supplies missing files/tasks; make bootloader compiles 23 C sources at -O2 and generates HEX. Program sections end at 0x9D005DFC, within 32 KB reservation. Warnings reviewed preliminarily; USB routing/VBUS/entry still need work. |
-| Windows HID skeleton clean build | Passed | Supplied -O2/-Wall/-Wextra build log succeeds; 1,080 warning occurrences match Linux categories. Host fd97ec3 stores options; bootloader tool still noID, so programming not verified. |
+| Windows HID skeleton clean build | Passed | Supplied -O2/-Wall/-Wextra build log succeeds; 1,080 warning occurrences match Linux categories. Host fd97ec3 stores options; 0274bf9/9fdac62 now selects PK5Tool. Programming remains unverified. |
 | Enumerate HID bootloader | Not tested | Do not program current skeleton before board routing/power and entry review. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Set the bootloader project's tool to **PICkit 5** in MPLAB X; the Windows clean build with -Wall/-Wextra now passes, but shared tool selection remains noID. Do not program yet.
+- PICkit 5 is now selected in the shared bootloader project; -Wall/-Wextra are retained. Keep the skeleton unprogrammed until USB routing/power and entry review.
 - Review the USB mux/VBUS schematic and implement appropriate board-control initialisation plus physical bootloader entry before hardware enumeration. Review the nontrivial compiler diagnostics.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
@@ -162,3 +162,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** User confirmed Self Powered and physical application address 0x1D008000, generated and pushed skeleton 0e87595. Source review confirms the 0x9D008000 mapping, 32 KB linker region, USB clock fuses, 128-byte rows/1 KB erase pages and 04D8:003C self-powered HID descriptors. Build fails because Harmony common/configuration/task files are missing and SYS_Tasks remains empty. Requested MCC generation-switch correction; no bootloader hardware test yet.
 - **2026-10-14:** Pulled Core regeneration 556a4fa with no user-reported notifications. Verified generated SYS_Tasks and common files. Added make bootloader; all 23 sources compile/link at -O2 and produce valid HEX within 32 KB. Standalone tests/build still pass; USB board routing/VBUS, physical entry and update-safety review remain.
 - **2026-10-14:** Reviewed the user's full Windows bootloader build log: success, no errors and warning-category counts matching Linux (1,080 occurrences, mostly repeated unused-parameter diagnostics). Pulled fd97ec3 saving -Wall/-Wextra. Tool remains noID; IDE loading text does not verify hardware programming. USB routing/entry and nontrivial-warning review remain next.
+
+- **2026-10-14:** Pulled host PICkit 5 selection commit 0274bf9 through merge 9fdac62; verified PK5Tool, retained -Wall/-Wextra and valid XML. USB routing/VBUS and entry review are next; no bootloader hardware test yet.
