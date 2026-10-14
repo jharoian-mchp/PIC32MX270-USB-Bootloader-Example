@@ -34,7 +34,11 @@ Application regeneration checklist:
 6. Keep/add **I²C1 master at 100 kHz**, SDA RB9 and SCL RB8, for the PIM's MCP23008 board-control outputs. It may be needed to establish USB connector routing before enumeration; the existing LED module deliberately preserves GP5/GP6 and does not select a USB path.
 7. Send the **Project Graph and bootloader component settings** next, including its package version, bootloader reservation and proposed application address. Review these before generating or programming. If the component is unavailable for the exact device, send the available components/package versions and stop rather than selecting another MCU.
 
-The 2026-10-14 bootloader clock screenshot shows **48 MHz system/CPU/peripheral bus clocks**. Its USB Clock Configuration section is collapsed, so USB PLL enable/input divider and the 48 MHz USB clock have not yet been certified from that screen. Review the expanded USB section or Clock Configurator next.
+The 2026-10-14 Clock Configurator screenshot confirms **UPLLIDIV DIV_3, UPLLEN ON, UFRCEN OFF**, a **4 MHz USB PLL input** and **48 MHz USB clock**. The system PLL shows input ÷3, multiplier ×24 and output ÷2 for **48 MHz SYSCLK**; the earlier calculated-frequency screen shows **48 MHz PBCLK**. These are correct screen settings for the confirmed 12 MHz crystal; generated code, peripheral enable and USB hardware behaviour still need review/testing.
+
+The bootloader component screenshot shows USB Device HID Bootloader with an NVM dependency and firmware-trigger option. Leave firmware-triggered entry disabled for the initial physical-button design. Bootloader reservation/application start are not yet reviewed.
+
+The subsequent Project Graph shows NVM, USB Device HID Bootloader, USB Device Layer/HID Function Driver, USB Full Speed Driver and I²C1. It also includes FreeRTOS/Core Service; use a bare-metal/no-RTOS configuration for this initial bootloader if supported by the installed package, then review the resulting dependencies. No RTOS is required by the agreed design. The USB device screen shows endpoint-0 buffer size 64 and the bootloader Product ID selection; exact VID/PID and Self Powered/Remote Wakeup states still need verification. Self Powered must reflect the actual board power arrangement, not merely a default.
 
 The first build objective is successful **USB enumeration and a host connection**, not a firmware erase/write operation. Do not program a bootloader until generated code, memory bounds and board USB power/routing have been reviewed.
 

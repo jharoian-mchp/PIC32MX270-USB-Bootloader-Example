@@ -127,7 +127,7 @@ The application project is present. A separate `bootloader/` directory is the ne
 - Finish the bootloader-related H3 content updates and record the actual installed package versions from the saved configurations.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
-- Configure the reviewed 12 MHz/48 MHz clocks and enable USB PLL with input divider ÷3. Add USB Device HID Bootloader and its required dependencies.
+- Keep the reviewed bootloader clocks: USB PLL ON, input ÷3, UFRCEN OFF, 48 MHz USB clock; system PLL ÷3/×24/÷2 for 48 MHz SYSCLK/PBCLK. Finish USB Device HID Bootloader dependency connections.
 - Send the Project Graph, bootloader settings/package version and proposed memory values for review before generation/programming.
 - Resolve the carrier USB mux and VBUS/power path before connecting/attempting USB updates.
 - If needed, inspect `app_led_diagnostics` for readiness, NACK/collision/timeout faults and transition count.
@@ -153,3 +153,4 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-13:** User confirmed LED1/D5 blinking and supplied a successful Windows PICkit 5 debug build/load log without extra warning flags. Pulled host PK5Tool configuration commit 48faaa9. Aligned the Linux source list with all 12 Windows project sources and added section garbage collection; full Linux build/tests pass. Production/reset/cold-start recovery was not yet reported at that point.
 - **2026-10-13:** Pulled host compiler-option commit dd59a29. User confirmed production programming and blinking after both MCLR and power cycle. Re-ran Linux build/tests and pushed annotated tag v0.1.0-led-blink at that exact commit. Prepared separate USB HID bootloader configuration instructions.
 - **2026-10-14:** User reported that adding the bootloader library updated H3 content. Added a required application-regeneration and regression-test follow-up after package versions settle. No application regeneration or new hardware verification has occurred yet.
+- **2026-10-14:** Reviewed bootloader Clock Configurator: USB PLL input ÷3/4 MHz, UPLLEN ON, UFRCEN OFF and 48 MHz USB clock; system PLL ÷3/×24/÷2. USB HID bootloader/NVM component is visible; full dependency graph and memory settings remain to be reviewed.
