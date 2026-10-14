@@ -90,7 +90,11 @@ User screenshots 95/96 show:
 
 The ADC detector and pull-up detach/reattach behavior pass this observed cycle. Increased bus reset count is consistent with renewed host USB activity, not alone proof of completed configuration. The configured flag/Windows re-enumeration after this replug is not shown and still needs confirmation. The historical USB_OPEN flag remains as previously explained.
 
-Next confirm configured=true or the Windows VID/PID device after replug, then check MCLR and cold-start behavior with USB connected. Also check disconnected startup if not already done. Firmware updates remain inactive.
+### Observed MCLR/power-cycle recovery — 2026-10-14
+
+The user confirmed **USB removal and re-enumeration after MCLR**, and the same result after a **power cycle**. The initial enumeration-only milestone passes: connected ADC/mux/VID-PID, ADC-driven detach/reattach and host re-enumeration after reset/power cycle are observed. The earlier cable-replug screenshot did not expose configured, so it is not relabelled as a direct configured-state measurement.
+
+Repeatability over many cycles, disconnected startup, worst-case thresholds and injected fault recovery remain unverified. Next implement/test physical SW1 entry and update-path safety; firmware updates remain inactive.
 
 ## Regeneration and later stages
 
