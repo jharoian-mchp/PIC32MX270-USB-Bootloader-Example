@@ -1,6 +1,6 @@
 # Enumeration-only USB diagnostic test
 
-This build verifies **AN1 cable sensing, MCP23008 mini-B routing and USB enumeration**. It deliberately does **not** run firmware-update commands or hand off to an application. Linux builds and mocked tests pass; board ADC/routing/enumeration have not yet been tested.
+This build verifies **AN1 cable sensing, MCP23008 mini-B routing and USB enumeration**. It deliberately does **not** run firmware-update commands or hand off to an application. Linux builds and mocked tests pass. User screenshots on 2026-10-14 confirm connected-state ADC/mux diagnostics and Windows HID enumeration; unplug/replug and reset/cold-start behavior remain to be checked.
 
 ## What changed
 
@@ -62,6 +62,20 @@ Only program the diagnostic build described here; **do not program an older gene
 | last_fault | NONE=0, I2C=1, MUX_READBACK=2, ADC_TIMEOUT=3, USB_OPEN=4. Historical until reset; counters identify recurrence. |
 
 The board experiment must establish the raw ADC values and cable-state behavior before thresholds are considered accepted. No firmware update, flash protection, valid-image guarantee, SW1 entry or bootloader-to-application handoff is verified in this stage.
+
+## Observed first enumeration — 2026-10-14
+
+User screenshots (chat attachments 93/94) show:
+
+- ADC raw/max **0x026E = 622 counts**, consistent with the meter reading near 2.011 V at a 3.3 V reference.
+- **adc_timeouts=0, mux_errors=0, usb_errors=0**, cable_present=true and usb_open=true.
+- **mux_latch=0x60**: GP5/GP6 high. **mux_direction=0x9F**: those two bits are outputs.
+- **attach_count=1, detach_count=0, usb_resets=2** at capture.
+- Windows identifies **HID-compliant vendor-defined device**, hardware IDs **VID_04D8&PID_003C**, usage page FF00. This establishes the first connected-state enumeration milestone, not firmware-update compatibility.
+
+The screenshot also reports historical **last_fault=USB_OPEN (4)** even though usb_open=true. Source review explains the initial transient: USB_DEVICE_Open rejects an instance until USB_DEVICE_Tasks opens its underlying driver and marks SYS_STATUS_READY. The diagnostic first tries Open before running that task, so one startup attempt can fail and the next succeeds. last_fault is historical until reset; it is not a current connection failure when usb_open is true. No code change was made to hide that diagnostic.
+
+Next unplug/replug J2 while freely running, capture near-zero ADC/disconnected flags and incremented detach_count, then re-enumeration. Check reset/cold-start with and without the cable before accepting this stage. Firmware updates remain inactive.
 
 ## Regeneration and later stages
 

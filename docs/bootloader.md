@@ -2,7 +2,7 @@
 
 The standalone LED1 baseline is preserved at annotated tag **[v0.1.0-led-blink](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/tree/v0.1.0-led-blink)**, targeting commit **dd59a291254b45d44fba65810b2085d9b6ea40df**. The user confirmed production programming, expected blinking, and recovery after both MCLR and a power cycle on 2026-10-13.
 
-The next stage is a **separate USB device HID bootloader**, followed by a relocated version of the blink application. The initial skeleton was pulled at **0e87595**. Core regeneration at **556a4fa** supplied the missing common/configuration/task files; the complete Linux XC32 bootloader build now passes. USB hardware enumeration and update tests have not run. The current main now runs [enumeration-only diagnostics](usb-enumeration.md), with update tasks intentionally bypassed.
+The next stage is a **separate USB device HID bootloader**, followed by a relocated version of the blink application. The initial skeleton was pulled at **0e87595**. Core regeneration at **556a4fa** supplied the missing common/configuration/task files; the complete Linux XC32 bootloader build now passes. First USB HID enumeration is confirmed by user screenshots; disconnect/reconnect and update tests have not run. The current main now runs [enumeration-only diagnostics](usb-enumeration.md), with update tasks intentionally bypassed.
 
 ## Preserve the working application
 
@@ -103,13 +103,13 @@ Host commit **fd97ec3** stores -Wall and -Wextra. At the time of that log the bo
 
 The user confirmed 16 TAD acquisition and pushed **fce3569**. ADC_Initialize is called on the bootloader path; PMD1 enables the ADC. Generated AD1CON3=0x1017, AD1CON1=0x00E0 and AD1CHS=0x00010000 match 1 µs TAD/16 µs acquisition, software-started internal-counter conversion and AN1 input. The Linux complete **24-source** -O2 build/HEX passes. `xc32-size` reports 23,893 text, 224 data and 1,868 BSS; the build still fits the 32 KB program reservation.
 
-The API provides ADC_SamplingStart, ADC_ResultIsReady and ADC_ResultGet; the internal-counter configuration must not be driven by manually clearing SAMP. AD1CON2 and RA1 analog/input selection rely on reset defaults in the generated code; retain explicit safe configuration when implementing the detector. Hardware ADC readings and attach/detach logic are not tested. See [the ADC source review](usb-circuit.md).
+The API provides ADC_SamplingStart, ADC_ResultIsReady and ADC_ResultGet; the internal-counter configuration must not be driven by manually clearing SAMP. AD1CON2 and RA1 analog/input selection rely on reset defaults in the generated code; retain explicit safe configuration when implementing the detector. First connected-state ADC reading is now confirmed at 622 counts and Windows HID enumeration passed; detach/reconnect logic still needs its hardware test. See [the ADC source review](usb-circuit.md).
 
 ### Enumeration-only implementation — 2026-10-14
 
 `board_usb_diag.c` now initializes/checks MCP23008 GP5/GP6, samples AN1 with tentative hysteresis, controls USB attachment from cable sense and exposes diagnostics. Main deliberately bypasses generated SYS_Tasks/update tasks; an always-true strong bootloader_Trigger prevents startup from jumping into old app bytes. The linked production diagnostic ELF contains no bootloader command/parser or NVM erase/write routine. Linux build, strict user-code check, mocked tests and sanitizer run pass. Generated files remain unchanged; public project XML includes the new files.
 
-The next step is the [controlled diagnostic hardware test](usb-enumeration.md), not firmware updating. Capture raw ADC values and VID/PID enumeration/disconnect behavior first.
+The first [diagnostic connection](usb-enumeration.md) passed: Windows VID_04D8/PID_003C and connected ADC/mux diagnostics shown. Continue unplug/replug and reset/cold-start testing, not firmware updating.
 
 ### Further update-path issues to resolve
 
@@ -177,6 +177,6 @@ Record generated VID/PID, report sizes, host utility version and accepted firmwa
 | Review generated memory and clock configuration | Core regeneration 556a4fa resolves missing files/tasks; complete 23-source Linux -O2 build/HEX passes and fits 32 KB. Physical 0x1D008000 maps to 0x9D008000. Hardware not tested. |
 | Windows skeleton clean build | Passed in supplied log with -O2/-Wall/-Wextra; warning categories match Linux. PK5Tool now selected via 0274bf9/9fdac62; hardware programming not verified. |
 | Review/program USB connector routing and power | Documented mini-B HDN/HDP/GP5=GP6=1 path and RA1 cable-sense versus dedicated board VBUS reviewed. Physical voltage/revision checks and code implementation pending; see docs/usb-circuit.md. |
-| Enumerate as USB HID | Diagnostic-only code/build/mocks passed; hardware test next. Update host utility remains unused. |
+| Enumerate as USB HID | User screenshots confirm Windows VID_04D8/PID_003C and connected ADC 622/mux readback. Disconnect/reconnect/reset tests pending; update host utility unused. |
 | Relocate blink application and verify firmware update | Not started. |
 | Forced entry, missing/invalid image and interrupted-update recovery | Not tested. |
