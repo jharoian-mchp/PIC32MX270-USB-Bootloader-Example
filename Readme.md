@@ -4,7 +4,7 @@ This project will build a USB HID bootloader and a simple application for the **
 
 Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. The initial MCC application is generated; saved components record **CSP v3.26.0**. User-owned LED1 code now builds with XC32 here and passes mocked tests. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blinking. The user also confirmed production operation and blinking after MCLR and power-cycle resets. The exact tested commit is tagged **v0.1.0-led-blink**; USB bootloader configuration is next.
 
-Last updated: **2026-10-13**. Update this file when project decisions, setup requirements or verified progress change.
+Last updated: **2026-10-14**. Update this file when project decisions, setup requirements or verified progress change.
 
 ## Recommended approach
 
@@ -117,13 +117,16 @@ The application project is present. A separate `bootloader/` directory is the ne
 | Linux build and application logic tests | Passed | XC32 compile/link/HEX, strict user-code compile, mocked tests and sanitizer run passed. Expanded Linux build includes all 12 project C sources; -Wall/-Wextra reports eight unused-parameter warnings in generated support code. |
 | Windows debug build/load and board blink | Passed, user-reported | Clean debug build/load with XC32 v6.00, DFP 1.7.380 and PICkit 5; LED1/D5 blinks as expected. Shared project selects PK5Tool (48faaa9). |
 | Production, reset and cold-start recovery | Passed, user-reported | Production-built app blinks and recovers after MCLR and power cycle. Exact commit dd59a29 tagged v0.1.0-led-blink. |
-| Generate and enumerate HID bootloader | Planning/configuration next | Separate project; see docs/bootloader.md. Memory layout, USB mux/power and enumeration not verified. |
+| Regenerate application after H3 content updates | Required follow-up | Adding the bootloader library updated host H3 content. After versions settle, regenerate the application, preserve user-owned LED code and repeat Linux/Windows builds plus production blink/MCLR/power-cycle tests. Not yet regenerated. |
+| Generate and enumerate HID bootloader | Configuration in progress | Bootloader library added; host H3 content updates reported. See docs/bootloader.md. Memory layout, USB mux/power and enumeration not verified. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Create a separate bootloader MCC project for PIC32MX270F256D, preserving the tagged application.
+- Finish the bootloader-related H3 content updates and record the actual installed package versions from the saved configurations.
+- **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
+- Continue the separate bootloader MCC project for PIC32MX270F256D.
 - Configure the reviewed 12 MHz/48 MHz clocks and enable USB PLL with input divider ÷3. Add USB Device HID Bootloader and its required dependencies.
 - Send the Project Graph, bootloader settings/package version and proposed memory values for review before generation/programming.
 - Resolve the carrier USB mux and VBUS/power path before connecting/attempting USB updates.
@@ -149,3 +152,4 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-13:** Added user-owned LED1 state-machine logic, bounded I²C retry/timeout handling and debugger diagnostics. Linux application build, strict user-code compile, mocked tests and sanitizer run passed; Windows/hardware tests await the user. Added and converted the MCP23008 data sheet; reference inventory is now 28 PDFs and 675 images.
 - **2026-10-13:** User confirmed LED1/D5 blinking and supplied a successful Windows PICkit 5 debug build/load log without extra warning flags. Pulled host PK5Tool configuration commit 48faaa9. Aligned the Linux source list with all 12 Windows project sources and added section garbage collection; full Linux build/tests pass. Production/reset/cold-start recovery was not yet reported at that point.
 - **2026-10-13:** Pulled host compiler-option commit dd59a29. User confirmed production programming and blinking after both MCLR and power cycle. Re-ran Linux build/tests and pushed annotated tag v0.1.0-led-blink at that exact commit. Prepared separate USB HID bootloader configuration instructions.
+- **2026-10-14:** User reported that adding the bootloader library updated H3 content. Added a required application-regeneration and regression-test follow-up after package versions settle. No application regeneration or new hardware verification has occurred yet.

@@ -11,6 +11,19 @@ The next stage is a **separate USB device HID bootloader**, followed by a reloca
 - Do not overwrite or move the milestone tag. It marks the exact user-tested code and host compiler-option configuration, before later planning/documentation changes.
 - Recover through PICkit 5 using the tagged application if a bootloader build does not work. The current standalone application is not yet suitable for installation through the future bootloader: its startup/linker/configuration layout needs adaptation first.
 
+## H3 content update follow-up — 2026-10-14
+
+The user reported that adding the bootloader library caused updates to host Harmony content. **Regenerate the application too, after the package updates settle.** The package-selection screenshots are not proof of the final installed versions; record versions from the resulting saved configurations. The tagged baseline used CSP v3.26.0; do not silently relabel it with the new versions.
+
+Application regeneration checklist:
+
+1. Save/commit the current work before regeneration and leave **v0.1.0-led-blink** unchanged.
+2. Reopen the application's own MCC configuration and regenerate using the updated relevant H3 packages. Do not copy bootloader configuration into the standalone application or change its linker offset in this regeneration step.
+3. Review generated diffs and retain `app_led.c`/`.h`, `APP_LED_Initialize()`/`APP_LED_Tasks()` integration, project source entries, PK5Tool, XC32/DFP selections and -Wall/-Wextra options. Review any MCC overwrite prompt rather than accepting it blindly.
+4. Record package versions separately for application and bootloader. Check clock/I²C/timer configuration and generated API changes before adapting user-owned code.
+5. Run Linux `make test application`, Windows Clean/Build, then repeat production LED blink, MCLR and power-cycle tests. The old hardware pass does not verify regenerated firmware.
+6. Commit regenerated output and the new test results. This follow-up is **required and not yet performed**.
+
 ## Host MCC setup: next action
 
 1. Create a new standalone MCC/Harmony project for **PIC32MX270F256D** under `bootloader/`, using XC32 v6.00 and the existing host workflow. Record the selected bootloader and USB package versions; retain generator DFP 1.6.369 and build DFP 1.7.380 unless the installed package requires a documented change.
@@ -20,6 +33,8 @@ The next stage is a **separate USB device HID bootloader**, followed by a reloca
 5. Add the **USB Device HID Bootloader** component from the installed bootloader package. Let MCC connect its required **MEMORY/NVM** and **USB Device HID** dependencies. Do not substitute a USB host/MSD bootloader or an arbitrary HID demonstration protocol.
 6. Keep/add **I²C1 master at 100 kHz**, SDA RB9 and SCL RB8, for the PIM's MCP23008 board-control outputs. It may be needed to establish USB connector routing before enumeration; the existing LED module deliberately preserves GP5/GP6 and does not select a USB path.
 7. Send the **Project Graph and bootloader component settings** next, including its package version, bootloader reservation and proposed application address. Review these before generating or programming. If the component is unavailable for the exact device, send the available components/package versions and stop rather than selecting another MCU.
+
+The 2026-10-14 bootloader clock screenshot shows **48 MHz system/CPU/peripheral bus clocks**. Its USB Clock Configuration section is collapsed, so USB PLL enable/input divider and the 48 MHz USB clock have not yet been certified from that screen. Review the expanded USB section or Clock Configurator next.
 
 The first build objective is successful **USB enumeration and a host connection**, not a firmware erase/write operation. Do not program a bootloader until generated code, memory bounds and board USB power/routing have been reviewed.
 
@@ -70,7 +85,8 @@ Record generated VID/PID, report sizes, host utility version and accepted firmwa
 | Stage | Current result |
 |---|---|
 | Preserve production-tested standalone application | Tag v0.1.0-led-blink pushed and verified at dd59a29. |
-| Create bootloader MCC project and identify package versions | Next host action. |
+| Create bootloader MCC project and identify package versions | Bootloader library added; host content updates reported. Final installed versions not recorded in the repository yet. |
+| Regenerate/retest application after H3 updates | Required follow-up; not performed. Preserve the tagged baseline and user-owned LED code. |
 | Review generated memory and clock configuration | Not generated. |
 | Review/program USB connector routing and power | Not verified. |
 | Enumerate as USB HID and connect host utility | Not tested. |

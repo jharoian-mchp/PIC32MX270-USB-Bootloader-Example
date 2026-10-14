@@ -89,6 +89,10 @@ On 2026-10-13 the user supplied a clean Windows debug build log showing XC32 v6.
 
 Host commit `48faaa9` selects `PK5Tool` in the shared project configuration and has been pulled here. The corrected Linux target includes generated `exceptions.c`, `stdio/xc32_monitor.c` and `plib_i2c_smbus_common.c`, and uses `-ffunction-sections -fdata-sections` plus `--gc-sections` like the Windows build. It remains a production build; Windows debug reservations/options differ, so binary identity is not claimed.
 
+### Required regeneration after H3 updates
+
+On 2026-10-14 the user reported H3 content updates caused by adding the bootloader library. **After those updates settle, regenerate this application's own MCC configuration too.** Preserve the user-owned LED code, main calls, public project entries, PICkit 5 and compiler options; keep the standalone linker layout unchanged during this refresh. Record the actual new package versions, review API/configuration diffs, rebuild on Linux and Windows, and repeat production blink/MCLR/power-cycle tests. This regeneration is not yet performed; the existing hardware result applies to the tagged baseline only. See [the regeneration checklist](bootloader.md).
+
 ## Production-tested milestone
 
 The user pushed host compiler -Wall/-Wextra settings in commit **dd59a291254b45d44fba65810b2085d9b6ea40df**, then confirmed that this version was production-built and programmed and that blinking survives both **MCLR** and a **power cycle**. Annotated tag **[v0.1.0-led-blink](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/tree/v0.1.0-led-blink)** marks that exact tested commit. The tag was pushed and checked against the remote.
