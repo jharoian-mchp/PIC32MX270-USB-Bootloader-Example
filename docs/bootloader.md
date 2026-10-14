@@ -81,7 +81,23 @@ Run **`make bootloader`** from the repository root. It compiles all **23 project
 - The existing standalone application and mocked tests still pass. This does not satisfy the outstanding application-regeneration follow-up.
 - With -Wall/-Wextra there are many repeated unused-parameter diagnostics in generated USB template headers, plus enum/function-pointer conversions, intentional-looking fallthrough, old-style declarations, an initializer warning and six EVIC MMIO array-bounds diagnostics at -O2. These are not dismissed as universally harmless; review nontrivial diagnostics before hardware deployment. Generated sources were not patched or warning categories suppressed.
 
-The bootloader project still selects **noID** as its tool. Set **PICkit 5** in MPLAB X before a host build/debug session, and retain the agreed warning options. Building is now possible, but **do not program the skeleton yet**: the MCP23008 USB routing, VBUS circuit, physical entry and update safety are not implemented/verified.
+### Windows clean-build review — 2026-10-14
+
+The user supplied a complete Windows clean-build log (chat attachment 81). It reports **BUILD SUCCESSFUL**, XC32 v6.00, DFP 1.7.380, -O2, -Wall/-Wextra, all 23 source files and the generated `btl.ld`. Its **1,080 warning occurrences** match the Linux category counts exactly:
+
+| Diagnostic category | Occurrences |
+|---|---:|
+| Unused parameter | 1,058 |
+| Enum conversion | 8 |
+| EVIC MMIO array bounds | 6 |
+| Function-pointer cast | 3 |
+| Old-style declaration | 3 |
+| Missing field initializer | 1 |
+| Implicit fallthrough | 1 |
+
+There are **147 distinct warning lines**; repeated generated inline headers account for much of the volume. This comparison verifies matching diagnostic categories, not that every warning is safe or that debug/production binaries are identical.
+
+Host commit **fd97ec3** stores -Wall and -Wextra. The bootloader project still selects **noID** as its tool. The log has `-D__DEBUG` but no `-mdebugger`, PICkit 5 macro or debugger memory reservations. Its final IDE 'Loading code' message therefore does **not** establish programming/debugging on the board. Set **PICkit 5** in MPLAB X before a hardware session, and retain the agreed warning options. Building is now possible, but **do not program the skeleton yet**: the MCP23008 USB routing, VBUS circuit, physical entry and update safety are not implemented/verified.
 
 ### Further update-path issues to resolve
 
@@ -138,9 +154,10 @@ Record generated VID/PID, report sizes, host utility version and accepted firmwa
 | Stage | Current result |
 |---|---|
 | Preserve production-tested standalone application | Tag v0.1.0-led-blink pushed and verified at dd59a29. |
-| Create bootloader MCC project and identify package versions | Bootloader library added; host content updates reported. Final installed versions not recorded in the repository yet. |
+| Create bootloader MCC project and identify package versions | Generated; bootloader 3.9.0, USB 3.16.0, core 3.17.1 and CSP 3.26.1 recorded. |
 | Regenerate/retest application after H3 updates | Required follow-up; not performed. Preserve the tagged baseline and user-owned LED code. |
 | Review generated memory and clock configuration | Core regeneration 556a4fa resolves missing files/tasks; complete 23-source Linux -O2 build/HEX passes and fits 32 KB. Physical 0x1D008000 maps to 0x9D008000. Hardware not tested. |
+| Windows skeleton clean build | Passed in supplied log with -O2/-Wall/-Wextra; warning categories match Linux. Tool remains noID; hardware programming not verified. |
 | Review/program USB connector routing and power | Not verified. |
 | Enumerate as USB HID and connect host utility | Not tested. |
 | Relocate blink application and verify firmware update | Not started. |
