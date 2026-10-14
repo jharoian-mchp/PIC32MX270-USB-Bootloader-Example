@@ -1,0 +1,208 @@
+configVersion: 1.0.0
+componentName: usb_device_hid_bootloader
+coreVersion: 5.9.0
+device: PIC32MX270F256D
+library: []
+dependency:
+- dependencyPackage: class com.microchip.mcc.harmony.HarmonyModule
+  name: usb_device_hid_bootloader
+  type: module
+  version: ''
+- dependencyPackage: ''
+  name: bootloader
+  type: package
+  version: v3.9.0
+customDataClassName: com.microchip.utils_mh3.utils.persistence.CustomModuleData
+data:
+  attachments:
+    children:
+    - children:
+      - attributes:
+          id: btl_MEMORY_dependency
+        children:
+        - children:
+          - attributes:
+              id: targetComponentID
+            children:
+            - type: Value
+              value: nvm
+            type: String
+          - attributes:
+              id: targetAttachmentID
+            children:
+            - type: Value
+              value: NVM_MEMORY
+            type: String
+          type: Attributes
+        type: DirectDependency
+      - attributes:
+          id: btl_USB_DEVICE_HID_dependency
+        children:
+        - children:
+          - attributes:
+              id: targetComponentID
+            children:
+            - type: Value
+              value: usb_device_hid_0
+            type: String
+          - attributes:
+              id: targetAttachmentID
+            children:
+            - type: Value
+              value: USB Device
+            type: String
+          type: Attributes
+        type: DirectDependency
+      type: Attachments
+    type: usb_device_hid_bootloader
+  elementPosition: {}
+  symbols:
+    BTL_APP_JUMP_ADDRESS:
+      attributes:
+        id: BTL_APP_JUMP_ADDRESS
+        label: Application Jump Address
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_bootloader
+            value: 1d008000
+          type: Dynamic
+        type: Values
+      type: String
+    BTL_LIVE_UPDATE:
+      attributes:
+        id: BTL_LIVE_UPDATE
+        label: Use Dual Bank For Live Update
+      type: Boolean
+    BTL_LIVE_UPDATE_RESET:
+      attributes:
+        id: BTL_LIVE_UPDATE_RESET
+        label: Trigger Reset After Live Update
+      type: Boolean
+    BTL_LIVE_UPDATE_SIZE:
+      attributes:
+        id: BTL_LIVE_UPDATE_SIZE
+        label: Live Update Flash Bank Size (Bytes)
+      type: String
+    BTL_RAM_SIZE:
+      attributes:
+        id: BTL_RAM_SIZE
+        label: BTL_RAM_SIZE
+      type: String
+    BTL_RAM_START:
+      attributes:
+        id: BTL_RAM_START
+        label: BTL_RAM_START
+      type: String
+    BTL_RTOS_DELAY:
+      attributes:
+        id: BTL_RTOS_DELAY
+        label: Task Delay
+      type: Integer
+    BTL_RTOS_STACK_SIZE:
+      attributes:
+        id: BTL_RTOS_STACK_SIZE
+        label: Stack Size (in bytes)
+      type: Integer
+    BTL_RTOS_TASK_MSG_QTY:
+      attributes:
+        id: BTL_RTOS_TASK_MSG_QTY
+        label: Maximum Message Queue Size
+      type: Integer
+    BTL_RTOS_TASK_OPT_NONE:
+      attributes:
+        id: BTL_RTOS_TASK_OPT_NONE
+        label: Task Specific Options
+      type: Boolean
+    BTL_RTOS_TASK_OPT_NO_TLS:
+      attributes:
+        id: BTL_RTOS_TASK_OPT_NO_TLS
+        label: TLS (Thread Local Storage) support needed for the task
+      type: Boolean
+    BTL_RTOS_TASK_OPT_SAVE_FP:
+      attributes:
+        id: BTL_RTOS_TASK_OPT_SAVE_FP
+        label: Floating-point registers needs to be saved
+      type: Boolean
+    BTL_RTOS_TASK_OPT_STK_CHK:
+      attributes:
+        id: BTL_RTOS_TASK_OPT_STK_CHK
+        label: Stack checking is allowed for the task
+      type: Boolean
+    BTL_RTOS_TASK_OPT_STK_CLR:
+      attributes:
+        id: BTL_RTOS_TASK_OPT_STK_CLR
+        label: Stack needs to be cleared
+      type: Boolean
+    BTL_RTOS_TASK_PRIORITY:
+      attributes:
+        id: BTL_RTOS_TASK_PRIORITY
+        label: Task Priority
+      type: Integer
+    BTL_RTOS_TASK_TIME_QUANTA:
+      attributes:
+        id: BTL_RTOS_TASK_TIME_QUANTA
+        label: Task Time Quanta
+      type: Integer
+    BTL_RTOS_USE_DELAY:
+      attributes:
+        id: BTL_RTOS_USE_DELAY
+        label: Use Task Delay?
+      type: Boolean
+    BTL_SIZE:
+      attributes:
+        id: BTL_SIZE
+        label: Bootloader Size (Bytes)
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_bootloader
+            value: '32768'
+          type: Dynamic
+        type: Values
+      type: String
+    BTL_START:
+      attributes:
+        id: BTL_START
+        label: Bootloader Start Address
+      type: String
+    BTL_TRIGGER_ENABLE:
+      attributes:
+        id: BTL_TRIGGER_ENABLE
+        label: Enable Bootloader Trigger From Firmware
+      type: Boolean
+    BTL_TRIGGER_LEN:
+      attributes:
+        id: BTL_TRIGGER_LEN
+        label: Number Of Bytes To Reserve From Start Of RAM
+      type: String
+    BTL_TYPE:
+      attributes:
+        id: BTL_TYPE
+        label: Bootloader Type
+      type: String
+    MEM_USED:
+      attributes:
+        id: MEM_USED
+        label: Bootloader NVM Memory Used
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_bootloader
+            value: NVM
+          type: Dynamic
+        type: Values
+      type: String
+    USB_DEVICE_INDEX:
+      attributes:
+        id: USB_DEVICE_INDEX
+        label: Bootloader USB Device Index
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_bootloader
+            value: '0'
+          type: Dynamic
+        type: Values
+      type: Integer
+  userData: {}

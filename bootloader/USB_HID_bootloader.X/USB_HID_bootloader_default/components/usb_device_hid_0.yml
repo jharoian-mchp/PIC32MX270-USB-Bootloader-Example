@@ -1,0 +1,120 @@
+configVersion: 1.0.0
+componentName: usb_device_hid_0
+coreVersion: 5.9.0
+device: PIC32MX270F256D
+library: []
+dependency:
+- dependencyPackage: class com.microchip.mcc.harmony.HarmonyModule
+  name: usb_device_hid_0
+  type: module
+  version: ''
+- dependencyPackage: ''
+  name: usb
+  type: package
+  version: v3.16.0
+customDataClassName: com.microchip.utils_mh3.utils.persistence.CustomModuleData
+data:
+  attachments:
+    children:
+    - children:
+      - attributes:
+          id: USB Device
+        children:
+        - children:
+          - attributes:
+              id: targetComponentID
+            children:
+            - type: Value
+              value: usb_device_hid_bootloader
+            type: String
+          - attributes:
+              id: targetAttachmentID
+            children:
+            - type: Value
+              value: btl_USB_DEVICE_HID_dependency
+            type: String
+          type: Attributes
+        type: DirectCapability
+      type: Attachments
+    type: usb_device_hid_0
+  elementPosition: {}
+  symbols:
+    CONFIG_USB_DEVICE_FUNCTION_CONFIG_VALUE:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_CONFIG_VALUE
+        label: Configuration Value
+      type: Integer
+    CONFIG_USB_DEVICE_FUNCTION_INDEX:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_INDEX
+        label: CONFIG_USB_DEVICE_FUNCTION_INDEX
+      type: Integer
+    CONFIG_USB_DEVICE_FUNCTION_INTERFACE_NUMBER:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_INTERFACE_NUMBER
+        label: Start Interface Number
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_0
+            value: '0'
+          type: Dynamic
+        type: Values
+      type: Integer
+    CONFIG_USB_DEVICE_FUNCTION_INT_IN_ENDPOINT_NUMBER:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_INT_IN_ENDPOINT_NUMBER
+        label: Interrupt IN Endpoint Number
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_0
+            value: '1'
+          type: Dynamic
+        type: Values
+      type: Integer
+    CONFIG_USB_DEVICE_FUNCTION_INT_OUT_ENDPOINT_NUMBER:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_INT_OUT_ENDPOINT_NUMBER
+        label: Interrupt OUT Endpoint Number
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_0
+            value: '1'
+          type: Dynamic
+        type: Values
+      type: Integer
+    CONFIG_USB_DEVICE_FUNCTION_NUMBER_OF_INTERFACES:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_NUMBER_OF_INTERFACES
+        label: Number of Interfaces
+      type: Integer
+    CONFIG_USB_DEVICE_FUNCTION_READ_Q_SIZE:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_READ_Q_SIZE
+        label: HID Report Receive Queue Size
+      type: Integer
+    CONFIG_USB_DEVICE_FUNCTION_WRITE_Q_SIZE:
+      attributes:
+        id: CONFIG_USB_DEVICE_FUNCTION_WRITE_Q_SIZE
+        label: HID Report Send Queue Size
+      type: Integer
+    CONFIG_USB_DEVICE_HID_BUFFER_POOL:
+      attributes:
+        id: CONFIG_USB_DEVICE_HID_BUFFER_POOL
+        label: '**** Buffer Pool Update ****'
+      type: Boolean
+    CONFIG_USB_DEVICE_HID_REPORT_DESCRIPTOR_TYPE:
+      attributes:
+        id: CONFIG_USB_DEVICE_HID_REPORT_DESCRIPTOR_TYPE
+        label: Select Report Type
+      children:
+      - children:
+        - attributes:
+            id: usb_device_hid_bootloader
+            value: Custom
+          type: Dynamic
+        type: Values
+      type: Combo
+  userData: {}
