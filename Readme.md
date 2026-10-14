@@ -175,3 +175,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** User measured connected J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. Data-sheet review finds ordinary I/O VIH(min)=0.65×VDD, 2.145 V at nominal 3.3 V, so direct RA1 GPIO cable detection is not guaranteed. Record actual VDD and unplug return-to-zero; assess ADC-based AN1 sensing without changing board components.
 
 - **2026-10-14:** User confirmed MCU VDD 3.3 V, VBUS_SENSE returns near 0 V on unplug and the same measurement point. Proposed AN1 ADC setup: AVDD/AVSS references, 1 µs TAD, 16 µs acquisition and software-started sampling. Candidate 1.5 V/0.8 V hysteresis awaits ADC readings and tests; no firmware change yet.
+
+- **2026-10-14:** Initial ADC screenshot shows correct AN1/reference/result choices, but TAD 125 ns and software-cleared SAMP trigger. Requested TAD 1,000 ns, internal-counter conversion trigger and 16 TAD acquisition, retaining software sampling start/polled completion. Revised ADC settings not yet generated.
