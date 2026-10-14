@@ -85,13 +85,28 @@ The PIM maps **VBUS_SENSE → PIM pin 80 → MCU RA1, pin 20**. Ignoring the cla
 
 ### Digital-input margin and proposed analogue sensing
 
-The PIC32MX270 data sheet's I/O high-input limit (Table 30-8, DI20) is **VIH(min) = 0.65 × VDD** for ordinary I/O. RA1 is a Schmitt/CMOS input, not a USB receiver: do not use the USB-data VIH=2.0 V limit for this GPIO. At **VDD=3.3 V**, the required high level is **2.145 V**; **2.011 V is not guaranteed high**. Actual MCU VDD has not been supplied, so measure it rather than assuming an exact 3.3 V rail.
+The PIC32MX270 data sheet's I/O high-input limit (Table 30-8, DI20) is **VIH(min) = 0.65 × VDD** for ordinary I/O. RA1 is a Schmitt/CMOS input, not a USB receiver: do not use the USB-data VIH=2.0 V limit for this GPIO. At **VDD=3.3 V**, the required high level is **2.145 V**; **2.011 V is not guaranteed high**. The user subsequently confirmed **MCU VDD = 3.3 V**, so the lack of digital-high guarantee applies to this measured setup.
 
 At the reported voltages and schematic resistor values, R9 current is approximately **0.631 mA** and R7 current **0.201 mA**, leaving about **0.430 mA** for the clamp/other loads. Low-current zener behaviour or another load can lower the sense voltage; this calculation does not diagnose which is responsible. No resistor/diode replacement is proposed on this evidence.
 
-RA1 is also **AN1**. **ADC-based cable sensing with hysteresis** is a candidate way to distinguish the observed approximately 0 V disconnected and 2.011 V connected states without relying on GPIO thresholds. Verify ADC input/source-impedance and acquisition-time requirements, reference voltage, repeatable connected/disconnected readings and worst-case margin before choosing thresholds. No ADC thresholds, MCC configuration or detector code are implemented yet. A comparator/conditioned hardware input is another option if needed.
+RA1 is also **AN1**. **ADC-based cable sensing with hysteresis** is a candidate way to distinguish the observed approximately 0 V disconnected and 2.011 V connected states without relying on GPIO thresholds. On 2026-10-14 the user confirmed the **same measurement point**, **3.3 V VDD**, and **return to near 0 V after unplugging**. That supports ADC-based connection-presence detection for initial bring-up; it does not establish worst-case USB VBUS validity thresholds or ADC sample accuracy.
 
-Confirm VBUS_SENSE returns near 0 V on unplug after this measurement, and record MCU VDD and measurement point. Attach/detach logic must use a suitably verified detector rather than direct RA1 GPIO reads at the current voltage.
+Proposed bootloader MCC ADC setup:
+
+| Setting | Proposed value |
+|---|---|
+| Input | RA1/AN1, analog input; negative input AVSS |
+| Voltage reference | AVDD/AVSS; do not select external VREF− on shared RA1 |
+| Result | Unsigned integer, 10-bit |
+| Channels | Single AN1; no channel scan or alternate input mux |
+| ADC clock | PBCLK source, ADCS=23 at 48 MHz → TAD=1 µs |
+| Acquisition | SAMC=16 → 16 µs, with internal auto-convert trigger (SSRC=111) |
+| Sampling start | Software-started, not continuous auto-sampling; one result per request |
+| Completion | Poll conversion completion in main context; interrupt not required for this first setup |
+
+The device data sheet Table 30-35 AD17 recommends source impedance at most **5 kΩ**. The schematic divider's nominal Thevenin resistance is **4.99 kΩ || 10 kΩ ≈ 3.33 kΩ**, before clamp/loading effects. Table 30-36 specifies TAD at least 65 ns and sampling at least 132 ns; the proposed 1 µs/16 µs timing provides headroom and must be checked in generated code and on hardware. Software-triggered sampling with SSRC=111 uses SAMC; a fully software-cleared SAMP trigger would ignore SAMC.
+
+Initial candidate hysteresis is **connect above 1.5 V** and **disconnect below 0.8 V**, retaining state between thresholds. At AVDD=3.3 V this is approximately 465 and 248 counts on a 0–1023 display scale, versus approximately 624 for the measured 2.011 V. These are proposed bring-up thresholds, not worst-case-qualified limits. Read and record actual ADC values before accepting them; sample cadence/debounce and safe attach/detach integration still need implementation and tests. No ADC code or generated configuration has been added yet. A comparator/conditioned hardware input remains another option if needed.
 
 ### Dedicated MCU VBUS
 
@@ -120,7 +135,7 @@ Use the unmodified tagged LED firmware if firmware is needed while measuring. **
 5. After the disconnected check passes, use an appropriate protected USB connection/breakout to a host. Verify J2 VBUS is about 5 V and VBUS_SENSE is around 3.3 V, then falls near 0 V on unplug. If sense exceeds the device's permitted voltage or does not track cable VBUS, stop.
 6. Do resistance/continuity checks only with **all board power, USB and PICkit connections removed**. Switched IC paths cannot always be interpreted by a simple continuity beep; do not use a meter's resistance mode on a powered USB/MCU circuit.
 
-Disconnected J2 VBUS and VBUS_SENSE are both user-reported 0 V, and installed U2 identification is resolved. Host-attached voltages are now reported (J2 5.16 V, sense 2.011 V). Return-to-zero after this connection, MCU VDD, detector margin and actual routing still need confirmation. If safe access is unavailable, send the board photo and describe available measurement tools; do not improvise risky probing.
+Disconnected J2 VBUS and VBUS_SENSE are both user-reported 0 V, and installed U2 identification is resolved. Host-attached voltages are now reported (J2 5.16 V, sense 2.011 V). The user confirmed return-to-zero after unplug, VDD=3.3 V and the same measurement point. ADC readings/detector margin and actual USB routing still need confirmation. If safe access is unavailable, send the board photo and describe available measurement tools; do not improvise risky probing.
 
 ## Next implementation milestone
 

@@ -128,7 +128,7 @@ The application project is present. A separate `bootloader/` directory is the ne
 ### Next steps
 
 - PICkit 5 is now selected in the shared bootloader project; -Wall/-Wextra are retained. Keep the skeleton unprogrammed until USB routing/power and entry review.
-- U2 is identified as **12-pin NCN1188**, marking AG7; the user corrected the initial ten-pin count. Mini-B mux selection is **GP5=GP6=1**, preserving other bits. Disconnected readings are 0 V; connected readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. Confirm MCU VDD and return-to-zero on unplug. RA1 GPIO VIH requires 0.65×VDD (2.145 V at 3.3 V), so assess AN1 ADC sensing rather than assuming GPIO-high detection. See [USB circuit checks](docs/usb-circuit.md).
+- U2 is identified as **12-pin NCN1188**, marking AG7; the user corrected the initial ten-pin count. Mini-B mux selection is **GP5=GP6=1**, preserving other bits. Disconnected readings are 0 V; connected readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. User confirmed MCU VDD=3.3 V, same measurement point and return-to-zero on unplug. RA1 GPIO VIH requires 2.145 V, so add/review AN1 ADC sensing using AVDD/AVSS instead of GPIO-high detection; proposed setup is in docs/usb-circuit.md. See [USB circuit checks](docs/usb-circuit.md).
 - Implement/test board routing and attach-detach coordination plus physical entry after those checks. Review nontrivial compiler diagnostics before enumeration.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
@@ -173,3 +173,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 
 - **2026-10-14:** User corrected U2 pin count to 12 and provided NCN1188 marking/pinout excerpt; AG device code plus date character explains AG7. Cleared the identification hold and restored planned GP5=GP6=1 mini-B route. Connected-state VBUS_SENSE measurements and routing/attach logic remained next at that point; no bootloader programming yet.
 - **2026-10-14:** User measured connected J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. Data-sheet review finds ordinary I/O VIH(min)=0.65×VDD, 2.145 V at nominal 3.3 V, so direct RA1 GPIO cable detection is not guaranteed. Record actual VDD and unplug return-to-zero; assess ADC-based AN1 sensing without changing board components.
+
+- **2026-10-14:** User confirmed MCU VDD 3.3 V, VBUS_SENSE returns near 0 V on unplug and the same measurement point. Proposed AN1 ADC setup: AVDD/AVSS references, 1 µs TAD, 16 µs acquisition and software-started sampling. Candidate 1.5 V/0.8 V hysteresis awaits ADC readings and tests; no firmware change yet.
