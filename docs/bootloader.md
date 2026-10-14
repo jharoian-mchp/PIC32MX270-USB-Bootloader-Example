@@ -99,6 +99,12 @@ There are **147 distinct warning lines**; repeated generated inline headers acco
 
 Host commit **fd97ec3** stores -Wall and -Wextra. At the time of that log the bootloader project selected **noID** as its tool. The log has `-D__DEBUG` but no `-mdebugger`, PICkit 5 macro or debugger memory reservations. Its final IDE 'Loading code' message therefore does **not** establish programming/debugging on the board. Host commit **0274bf9**, merged at **9fdac62**, now selects **PK5Tool**; -Wall/-Wextra are retained and the project XML validates. This fixes shared tool selection but is not a hardware programming result. Building is now possible, but **do not program the skeleton yet**: the MCP23008 USB routing, VBUS circuit, physical entry and update safety are not implemented/verified.
 
+### Generated AN1 ADC review — 2026-10-14
+
+The user confirmed 16 TAD acquisition and pushed **fce3569**. ADC_Initialize is called on the bootloader path; PMD1 enables the ADC. Generated AD1CON3=0x1017, AD1CON1=0x00E0 and AD1CHS=0x00010000 match 1 µs TAD/16 µs acquisition, software-started internal-counter conversion and AN1 input. The Linux complete **24-source** -O2 build/HEX passes. `xc32-size` reports 23,893 text, 224 data and 1,868 BSS; the build still fits the 32 KB program reservation.
+
+The API provides ADC_SamplingStart, ADC_ResultIsReady and ADC_ResultGet; the internal-counter configuration must not be driven by manually clearing SAMP. AD1CON2 and RA1 analog/input selection rely on reset defaults in the generated code; retain explicit safe configuration when implementing the detector. Hardware ADC readings and attach/detach logic are not tested. See [the ADC source review](usb-circuit.md).
+
 ### Further update-path issues to resolve
 
 The weak bootloader trigger currently returns false, and startup accepts an application based only on a non-erased first word. Physical SW1 entry and stronger valid-image/recovery policy are not implemented yet. The generated HEX parser also uses `<= FLASH_END_ADDRESS` even though flash end is exclusive, and reads a claimed record length without first checking it fits the available buffer. These need targeted review/tests before enabling host erase/program commands. Treat successful enumeration as a separate milestone, not approval of flash updating.

@@ -179,3 +179,7 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Initial ADC screenshot shows correct AN1/reference/result choices, but TAD 125 ns and software-cleared SAMP trigger. Requested TAD 1,000 ns, internal-counter conversion trigger and 16 TAD acquisition, retaining software sampling start/polled completion. Revised ADC settings not yet generated.
 
 - **2026-10-14:** Updated ADC screenshots confirm 1,000 ns TAD, internal-counter conversion trigger and RA1/AN1 analog input with no pulls. SAMC=16 remains to be exposed/confirmed; ADC generation and hardware readings are not yet available.
+
+- **2026-10-14:** User confirmed Auto-Sample Time 16 TAD. ADC screen settings are ready for generation (1 µs TAD, 16 µs acquisition); generated code/build and hardware readings remain unverified.
+
+- **2026-10-14:** Pulled generated AN1 ADC commit fce3569. Verified ADCS=23/SAMC=16, internal-counter software-started sampling and AN1/VREFL selection; complete 24-source Linux bootloader rebuild/HEX passes. Hardware ADC readings and detector/mux integration remain next.
