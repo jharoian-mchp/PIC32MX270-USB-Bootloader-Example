@@ -5,6 +5,8 @@
 #include "board_usb_diag.h"
 
 uint32_t mock_count, ANSELASET, TRISASET, CNPUACLR, CNPDACLR, AD1CON2;
+uint32_t ANSELBCLR, TRISBSET, CNPUBCLR, CNPDBCLR;
+bool mock_button_high;
 struct SYSTEM_OBJECTS sysObj;
 static bool enabled = true, bus_busy, reject_bus, fail_open, adc_pending, adc_ready;
 static uint8_t registers[11], *pending_tx, *pending_rx, submitted[2];
@@ -50,15 +52,25 @@ int USB_DEVICE_HID_EventHandlerSet(int i, USB_DEVICE_HID_EVENT_HANDLER cb, uintp
 int USB_DEVICE_ControlStatus(USB_DEVICE_HANDLE h, int s) { assert(h==1 && s==0); return 0; }
 int USB_DEVICE_ControlSend(USB_DEVICE_HANDLE h, void *p, size_t n) { assert(h==1 && p && n==1); return 0; }
 
-static void Reset(uint8_t latch, uint8_t dir, uint32_t initial_count)
+static void ResetIdle(uint8_t latch, uint8_t dir, uint32_t initial_count, bool pressed)
 {
     mock_count=initial_count; bus_busy=reject_bus=fail_open=adc_pending=adc_ready=false;
     error=I2C_ERROR_NONE; aborts=submits=attaches=detaches=usb_tasks=adc_resets=0;
     usb_event=NULL; hid_event=NULL; memset(registers,0,sizeof(registers));
     registers[0x0A]=latch; registers[0]=dir;
+    mock_button_high=!pressed;
     BOARD_USB_DIAG_Initialize(); BOARD_USB_DIAG_Tasks();
     assert(ANSELASET==2 && TRISASET==2 && CNPUACLR==2 && CNPDACLR==2 && AD1CON2==0);
-    assert(usb_event && detaches==1 && attaches==0 && bootloader_Trigger());
+    assert(ANSELBCLR==4 && TRISBSET==4 && CNPUBCLR==4 && CNPDBCLR==4);
+    assert(!usb_event && !detaches && !attaches && bootloader_Trigger());
+}
+static void Reset(uint8_t latch, uint8_t dir, uint32_t initial_count)
+{
+    ResetIdle(latch,dir,initial_count,true);
+    for(unsigned i=0;i<4;i++) { mock_count+=5U*24000U; BOARD_USB_DIAG_Tasks(); }
+    assert(board_usb_diagnostics.startup_decided && board_usb_diagnostics.diagnostic_enabled);
+    assert(usb_event && detaches==1 && attaches==0);
+    mock_button_high=true; /* Startup request is latched; release must not exit. */
 }
 static void Complete(I2C_ERROR e)
 {
@@ -132,6 +144,29 @@ int main(void)
     reject_bus=true; Advance(1000); Advance(100);
     assert(board_usb_diagnostics.mux_errors==2 && aborts==2);
 
-    puts("PASS: mux disconnect/preload/readback, unrelated pins preserved, ADC cadence/hysteresis/timeout, CP0 wrap, no attach from dedicated VBUS, qualified attach/detach and no flash/update APIs.");
+    ResetIdle(0xA5,0xB7,0,false);
+    Advance(50);
+    assert(board_usb_diagnostics.startup_decided && !board_usb_diagnostics.diagnostic_enabled);
+    mock_button_high=false; Advance(100); /* A later press cannot enter this boot. */
+    assert(!submits && !usb_tasks && !attaches && !adc_pending);
+    assert(registers[0x0A]==0xA5 && registers[0]==0xB7);
+
+    ResetIdle(0,0xFF,0,true);
+    Advance(5); Advance(5); /* Only two low samples, then release. */
+    mock_button_high=true; Advance(5);
+    mock_button_high=false; Advance(5); Advance(5); Advance(5);
+    assert(!board_usb_diagnostics.diagnostic_enabled);
+    Advance(5); assert(board_usb_diagnostics.diagnostic_enabled); /* Four consecutive. */
+
+    ResetIdle(0,0xFF,0,false);
+    Advance(35); mock_button_high=false; Advance(5); Advance(5); Advance(5);
+    assert(board_usb_diagnostics.startup_decided && !board_usb_diagnostics.diagnostic_enabled);
+    assert(!usb_tasks && !submits); /* Too-late request at window boundary. */
+
+    ResetIdle(0,0xFF,UINT32_MAX-2U*24000U,true);
+    for(unsigned i=0;i<4;i++) Advance(5);
+    assert(board_usb_diagnostics.diagnostic_enabled); /* Startup debounce CP0 wrap. */
+
+    puts("PASS: SW1 startup debounce/latch/safe-idle, mux preservation/readback, ADC hysteresis/timeouts, CP0 wrap, qualified USB attach/detach and no flash/update APIs.");
     return 0;
 }

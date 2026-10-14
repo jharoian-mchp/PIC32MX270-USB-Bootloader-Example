@@ -8,7 +8,7 @@ User-owned `bootloader/src/board_usb_diag.c`/`.h` is added to the MPLAB X projec
 
 The diagnostic code:
 
-- Overrides the weak `bootloader_Trigger()` to **always stay in diagnostics**, even if old application bytes remain in flash. SW1 is not needed for this stage; physical entry is a later milestone.
+- The strong bootloader_Trigger still blocks application handoff. The current revision additionally **gates enumeration with held SW1 at startup**, otherwise staying safely idle. Historical results below cover the previous always-enumerating version. See [the SW1 entry test](usb-entry.md).
 - Explicitly retains RA1 as AN1 analog/input, disables its pull-ups/pull-downs and selects AD1CON2=0 (AVDD/AVSS reference and no scan). Generated ADC setup supplies ADCS=23/SAMC=16/SSRC=111.
 - Uses CP0 Count at SYSCLK/2 for a main-loop timebase, so no extra timer component is needed. Unsigned elapsed arithmetic handles counter wrap when serviced regularly.
 - Samples AN1 about every **10 ms** using ADC_SamplingStart and polled completion; no manually cleared SAMP trigger. Initial/recovery sampling waits 10 ms, exceeding ADC startup time.
@@ -39,7 +39,7 @@ Only program the diagnostic build described here; **do not program an older gene
 1. Pull/reopen **bootloader/USB_HID_bootloader.X** in MPLAB X. Confirm board_usb_diag.c is in the source list, XC32 v6.00, DFP 1.7.380, PICkit 5 and -Wall/-Wextra. Do not regenerate MCC just to build; if regeneration is necessary, preserve the diagnostic main integration/project entries.
 2. Clean/Build and send any errors/new diagnostics. Prefer a production/Run test first; use Debug Project when inspecting variables. Avoid stepping/breakpoints repeatedly through ADC/USB tasks: halting disturbs timing and can create timeouts/disconnects.
 3. Keep external board supply, PICkit target powering disabled, PIM_MCLR, J5 pins 1–2 (3.3 V), J1 pins 1–2 (0x22), and **Type-A unused**. The reviewed NCN1188 identification and no-host zero-voltage checks apply to this test.
-4. With the PC USB cable disconnected, program this diagnostic image through PICkit 5. It has no LED heartbeat; the earlier D5 blink is not expected unless a prior expander state remains. Inspect the diagnostics if needed: ADC should sample near zero, mux_ready should eventually become true, and attached/configured should be false.
+4. With the PC USB cable disconnected, program this diagnostic image through PICkit 5. **For the current revision hold SW1 across reset/startup** to enable enumeration diagnostics; no button yields safe idle. It has no LED heartbeat; the earlier D5 blink is not expected unless a prior expander state remains. Inspect the diagnostics if needed: ADC should sample near zero, mux_ready should eventually become true, and attached/configured should be false.
 5. Connect a data-capable cable from the PC to **mini-B J2**. Expect raw ADC near the estimate **623–624 counts** for the reported 2.011 V/3.3 V, cable_present true after qualification, mux_ready true, then attached/configured true. Actual measured ADC counts take precedence.
 6. In Windows Device Manager, check for the HID device with hardware IDs **VID_04D8&PID_003C**. No serial string is currently generated, so test one board at a time. Do not start an update utility yet.
 7. Unplug J2 and confirm raw ADC returns near zero, cable_present/attached/configured become false, and detach_count increments. Replug to confirm re-enumeration. Record MCLR and cold-start behavior both with and without the USB cable.

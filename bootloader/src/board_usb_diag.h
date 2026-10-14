@@ -33,6 +33,9 @@ typedef struct
     bool configured;
     bool suspended;
     bool usb_open;
+    bool boot_request_active;
+    bool startup_decided;
+    bool diagnostic_enabled;
     BOARD_USB_FAULT last_fault;
 } BOARD_USB_DIAGNOSTICS;
 

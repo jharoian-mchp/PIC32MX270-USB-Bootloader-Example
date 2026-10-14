@@ -84,6 +84,7 @@ tests/                 Mocked application tests
 tools/
   toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
+  usb-entry.md         SW1-held startup enumeration and safe-idle test
   usb-enumeration.md   Diagnostic-only ADC/mux/enumeration board test
   usb-circuit.md       Mini-B mux/VBUS schematic findings and physical checks
   bootloader.md        USB HID project setup and pre-programming checks
@@ -129,7 +130,7 @@ The application project is present. A separate `bootloader/` directory is the ne
 
 ### Next steps
 
-- Initial [diagnostic enumeration](docs/usb-enumeration.md) passes, including MCLR/power-cycle re-enumeration. SW1 pin screen shows RB2/BOOT_REQUEST GPIO; carrier R18 provides a 20 kΩ pull-up, so entry is **active-low**. Keep internal pulls disabled. Save/generate/push, preserving the diagnostic main/project entries, then verify generated digital/input settings. Keep update commands inactive.
+- Initial [diagnostic enumeration](docs/usb-enumeration.md) passes, including MCLR/power-cycle re-enumeration. Generated SW1/BOOT_REQUEST settings are verified. User-owned startup debounce now gates enumeration: hold SW1 across reset for diagnostic mode; no button yields safe idle, not application handoff. Follow [the SW1 board test](docs/usb-entry.md). Update commands remain inactive.
 - Review/test parser length/address bounds, flash errors and valid-image/interruption policy before enabling updates or relocating the application.
 - U2 is identified as **12-pin NCN1188**, marking AG7; the user corrected the initial ten-pin count. Mini-B mux selection is **GP5=GP6=1**, preserving other bits. Disconnected readings are 0 V; connected readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. User confirmed MCU VDD=3.3 V, same measurement point and return-to-zero on unplug. RA1 GPIO VIH requires 2.145 V, so add/review AN1 ADC sensing using AVDD/AVSS instead of GPIO-high detection; proposed setup is in docs/usb-circuit.md. See [USB circuit checks](docs/usb-circuit.md).
 - User-owned mux/ADC/attach diagnostic logic is implemented and software-tested. Capture hardware unplug/replug/reset results before proceeding. Physical SW1 entry and update-safety logic remain later work.
@@ -196,3 +197,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** User confirmed USB removal/re-enumeration after MCLR and power cycle. Initial enumeration-only milestone passes; physical SW1 entry and update-path safety tests are next without enabling host update commands.
 
 - **2026-10-14:** Reviewed SW1/RB2 BOOT_REQUEST pin screen and carrier Figure A-8; R18 is a 20 kΩ pull-up to 3.3 V, button shorts to ground, active-low. Internal pulls can stay off. Generated GPIO digital/input settings and entry behavior remain next; updates inactive.
+
+- **2026-10-14:** Pulled c4d27a6 SW1 generation, verified AN4 disabled and BOOT_REQUEST_Get. Added startup-button debounce: held SW1 enables enumeration, normal startup safe-idles without application handoff. Builds/mocks/sanitizers pass; SW1 hardware test next. Updates inactive.

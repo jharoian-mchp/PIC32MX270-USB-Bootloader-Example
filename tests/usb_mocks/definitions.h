@@ -7,6 +7,9 @@
 extern uint32_t mock_count;
 #define _CP0_GET_COUNT() mock_count
 extern uint32_t ANSELASET, TRISASET, CNPUACLR, CNPDACLR, AD1CON2;
+extern uint32_t ANSELBCLR, TRISBSET, CNPUBCLR, CNPDBCLR;
+extern bool mock_button_high;
+#define BOOT_REQUEST_Get() mock_button_high
 typedef enum { I2C_ERROR_NONE, I2C_ERROR_NACK, I2C_ERROR_BUS_COLLISION } I2C_ERROR;
 bool I2C1_IsBusy(void);
 I2C_ERROR I2C1_ErrorGet(void);

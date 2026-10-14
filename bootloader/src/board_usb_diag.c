@@ -13,6 +13,9 @@
 #define MUX_TIMEOUT_MS 100U
 #define RETRY_MS 1000U
 #define QUALIFY_SAMPLES 3U
+#define BUTTON_SAMPLE_MS 5U
+#define BUTTON_STABLE_SAMPLES 4U
+#define BUTTON_WINDOW_MS 50U
 #define COUNTS_PER_MS (CPU_CLOCK_FREQUENCY / 2U / 1000U)
 
 typedef enum
@@ -33,12 +36,14 @@ static MUX_STATE mux_state;
 static uint8_t tx[2], rx, saved_latch, saved_direction;
 static bool mux_pending, adc_pending;
 static uint32_t last_count, milliseconds, mux_since, adc_since, last_sample;
-static uint8_t connect_streak;
+static uint8_t connect_streak, button_low_streak;
+static uint32_t last_button_sample;
 static USB_DEVICE_HANDLE usb_handle;
 static uint8_t hid_idle;
 
 /* This build always stays in diagnostic boot mode, including with an old app
- * still in flash. Deliberately overrides the generated weak hook. */
+ * still in flash. SW1 later gates enumeration, NOT application handoff.
+ * Deliberately overrides the generated weak hook. */
 bool bootloader_Trigger(void)
 {
     return true;
@@ -266,6 +271,36 @@ static void SenseTasks(uint32_t now)
     }
 }
 
+static bool StartupRequestTasks(uint32_t now)
+{
+    if (board_usb_diagnostics.startup_decided)
+        return board_usb_diagnostics.diagnostic_enabled;
+
+    /* A button pressed later in the 50 ms window must not bypass qualification. */
+    if (now >= BUTTON_WINDOW_MS)
+    {
+        board_usb_diagnostics.startup_decided = true;
+        return false; /* Safe idle: no valid application/handoff policy yet. */
+    }
+    if ((uint32_t)(now - last_button_sample) >= BUTTON_SAMPLE_MS)
+    {
+        last_button_sample = now;
+        if (board_usb_diagnostics.boot_request_active)
+        {
+            if (button_low_streak < BUTTON_STABLE_SAMPLES) ++button_low_streak;
+            if (button_low_streak >= BUTTON_STABLE_SAMPLES)
+            {
+                board_usb_diagnostics.startup_decided = true;
+                board_usb_diagnostics.diagnostic_enabled = true;
+                last_sample = mux_since = now; /* Start subsystem deadlines at entry. */
+                return true;
+            }
+        }
+        else button_low_streak = 0;
+    }
+    return false;
+}
+
 void BOARD_USB_DIAG_Initialize(void)
 {
     board_usb_diagnostics = (BOARD_USB_DIAGNOSTICS){0};
@@ -274,7 +309,13 @@ void BOARD_USB_DIAG_Initialize(void)
     milliseconds = mux_since = last_sample = adc_since = 0;
     mux_state = MUX_READ_LATCH;
     mux_pending = adc_pending = false;
-    connect_streak = hid_idle = 0;
+    connect_streak = hid_idle = button_low_streak = 0;
+    last_button_sample = 0;
+    /* Explicit SW1 digital-input state; carrier R18 supplies the pull-up. */
+    ANSELBCLR = 1U << 2;
+    TRISBSET = 1U << 2;
+    CNPUBCLR = 1U << 2;
+    CNPDBCLR = 1U << 2;
     /* Explicit ADC reset reference/mux/pin assumptions; no external VREF- on RA1. */
     ANSELASET = 1U << 1;
     TRISASET = 1U << 1;
@@ -287,6 +328,9 @@ void BOARD_USB_DIAG_Initialize(void)
 void BOARD_USB_DIAG_Tasks(void)
 {
     uint32_t now = TimeGet();
+    board_usb_diagnostics.boot_request_active = !BOOT_REQUEST_Get();
+    if (!StartupRequestTasks(now))
+        return; /* No USB task/open/mux setup in normal safe-idle startup. */
     if (usb_handle == USB_DEVICE_HANDLE_INVALID)
     {
         usb_handle = USB_DEVICE_Open(USB_DEVICE_INDEX_0, DRV_IO_INTENT_READWRITE);
