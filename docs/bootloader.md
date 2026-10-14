@@ -134,7 +134,7 @@ Do not enable host configuration-bit programming or live update for this first b
 
 **U2 identification resolved:** the user corrected its pin count to **12** and supplied the NCN1188 marking/pinout excerpt. Official `AGM` marking defines AG as the device code and M as date code; observed AG7 is consistent. The earlier identification hold is cleared. The mini-B route uses **GP5=GP6=1**, preserving other pins. See [the updated circuit findings](usb-circuit.md).
 
-The schematic-only path is **J2 → EMI filter U3 → NCN1188 HDN/HDP → MCU D+/D−**. Component identity is now established; measured routing and host-attached VBUS_SENSE tracking remain to be checked. The user subsequently measured **J2 connector VBUS = 0 V** with no host, as well as **VBUS_SENSE = 0 V**. The initial disconnected voltage check passes; actual U2 identification and host-attached voltage tracking remain unresolved.
+The schematic-only path is **J2 → EMI filter U3 → NCN1188 HDN/HDP → MCU D+/D−**. Component identity is now established; measured routing remains to be checked. Host readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V; the latter is below the GPIO high guarantee at 3.3 V VDD, so ADC-based detection is under consideration. The user subsequently measured **J2 connector VBUS = 0 V** with no host, as well as **VBUS_SENSE = 0 V**. The initial disconnected voltage check passes; actual U2 identification and host-attached voltage tracking remain unresolved.
 
 **Important:** J2 cable VBUS is divided/clamped onto **RA1/PIM pin 80**, while the carrier feeds dedicated MCU VBUS/PIM pin 54 from **5V_SW_DIG**. The generated driver uses dedicated VBUS session status, so it must not be assumed to detect PC cable presence. Before coding/programming, confirm the installed revision/U2 part and measure disconnected J2 VBUS and RA1 sense safely; see the checklist and attached schematic crops in that review.
 
@@ -142,7 +142,7 @@ Use the [converted PIM and carrier references](docling/README.md), verifying sma
 
 - D+ is MCU pin 8 / PIM pin 57; D− is MCU pin 9 / PIM pin 56. Do not use their alternate PGED2/PGEC2 debug function.
 - NCN1188 schematic-only review identifies GP5/GP6 both high for mini-B; R5/R6 20 kΩ pull-downs yield default disconnect. **The identification hold was cleared** after the user confirmed the 12-pin NCN1188/AG7 marking. Routing code and hardware behavior remain unverified.
-- Review VBUS sensing on RA1 and the dedicated VBUS pin's actual circuit. Do not enable host VBUS sourcing or allow back-feeding the PC.
+- Host measurements: J2 VBUS 5.16 V, RA1 sense 2.011 V. Ordinary RA1 VIH(min)=0.65×VDD=2.145 V at nominal 3.3 V, so direct GPIO detection is not guaranteed. Confirm MCU VDD and unplugged sense, then assess RA1/AN1 ADC sensing. Do not enable host VBUS sourcing or allow back-feeding the PC.
 - Keep J5 pins 1–2 (3.3 V pull-ups), J1 pins 1–2 (seven-bit expander address 0x22), and reset selector PIM_MCLR.
 - Proposed force-bootloader input: **SW1/RB2, MCU pin 23/PIM pin 17**. Verify active level and make its analog-capable pin digital before use. Avoid SW5/USBID sharing for this first design.
 - Check the supplied USB UIDLE/suspend erratum against the selected USB driver. Record the actual MCU silicon revision when PICkit reports it.

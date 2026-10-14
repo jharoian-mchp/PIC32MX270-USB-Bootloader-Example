@@ -14,10 +14,12 @@ Reviewed: **2026-10-14**. This is a schematic/source review with the user-report
 | U2 | 12 pins, marking AG7; user corrected the earlier ten-pin count | NCN1188 identification consistent with UQFN12 pinout and AG device-code/date-code marking. Identification hold cleared. |
 | VBUS_SENSE | 0 V | Consistent with the disconnected state. Does not establish the voltage on J2 pin 1. |
 | J2 connector VBUS with no host | 0 V, confirmed by user on 2026-10-14 | Initial no-host voltage check passes. Does not prove all reverse-current/fault conditions are safe. |
+| J2 connector VBUS with host | 5.16 V, reported 2026-10-14 | Consistent with host USB supply. |
+| VBUS_SENSE with host | 2.011 V, reported 2026-10-14 | Lower than the unloaded divider estimate; below guaranteed RA1 digital-high threshold at 3.3 V VDD. |
 
 The earlier ten-pin report prompted a hold and alternative-part search. That report was corrected by the user; no alternative switch is substituted. The NCN1188 truth table now supports the planned mini-B setting **GP5=GP6=1**. This identifies the component; it does not establish measured connector continuity, successful routing, or enumeration.
 
-Next verify host-attached J2 VBUS and the RA1 sense voltage using the existing tagged LED application and unchanged mux controls, then implement/test user-owned route and attach/detach logic. Keep the current bootloader skeleton unprogrammed.
+Host-attached readings are now J2 VBUS **5.16 V** and VBUS_SENSE **2.011 V**. Reconfirm return to near 0 V on unplug and record MCU VDD at the same time. The plain RA1 GPIO-detector plan is on hold because this voltage lacks guaranteed digital-high margin at nominal VDD; assess ADC-based sensing before implementing route/attach logic. Keep the current bootloader skeleton unprogrammed.
 
 ## Sources
 
@@ -79,9 +81,17 @@ Mini-B **J2 pin 1** goes to:
 - **D4, 3.3 V zener**, clamping the node toward ground.
 - The filter U3 supply node, as shown in Figure A-7.
 
-The PIM maps **VBUS_SENSE → PIM pin 80 → MCU RA1, pin 20**. Ignoring the clamp and load, 5 V cable VBUS gives `5 × 10 / (4.99 + 10) ≈ 3.34 V` at the divider node; actual voltage depends on the clamp/current/components. Expect roughly a logic-level 3.3 V when attached and near ground when no host VBUS is present. **Do not connect raw 5 V directly to RA1.**
+The PIM maps **VBUS_SENSE → PIM pin 80 → MCU RA1, pin 20**. Ignoring the clamp and load, 5 V cable VBUS gives `5 × 10 / (4.99 + 10) ≈ 3.34 V` at the divider node; actual voltage depends on the clamp/current/components. The initial approximate 3.3 V expectation was an unloaded-divider estimate, not a guaranteed output of the low-current clamp circuit. The user measured **2.011 V** with **5.16 V** at J2; that takes precedence over the estimate. **Do not connect raw 5 V directly to RA1.**
 
-RA1 is analog-capable. A future GPIO-based connection detector must configure it appropriately, handle cable insert/remove, and coordinate the USB device layer's attach/detach state. We have not implemented or tested that detector yet.
+### Digital-input margin and proposed analogue sensing
+
+The PIC32MX270 data sheet's I/O high-input limit (Table 30-8, DI20) is **VIH(min) = 0.65 × VDD** for ordinary I/O. RA1 is a Schmitt/CMOS input, not a USB receiver: do not use the USB-data VIH=2.0 V limit for this GPIO. At **VDD=3.3 V**, the required high level is **2.145 V**; **2.011 V is not guaranteed high**. Actual MCU VDD has not been supplied, so measure it rather than assuming an exact 3.3 V rail.
+
+At the reported voltages and schematic resistor values, R9 current is approximately **0.631 mA** and R7 current **0.201 mA**, leaving about **0.430 mA** for the clamp/other loads. Low-current zener behaviour or another load can lower the sense voltage; this calculation does not diagnose which is responsible. No resistor/diode replacement is proposed on this evidence.
+
+RA1 is also **AN1**. **ADC-based cable sensing with hysteresis** is a candidate way to distinguish the observed approximately 0 V disconnected and 2.011 V connected states without relying on GPIO thresholds. Verify ADC input/source-impedance and acquisition-time requirements, reference voltage, repeatable connected/disconnected readings and worst-case margin before choosing thresholds. No ADC thresholds, MCC configuration or detector code are implemented yet. A comparator/conditioned hardware input is another option if needed.
+
+Confirm VBUS_SENSE returns near 0 V on unplug after this measurement, and record MCU VDD and measurement point. Attach/detach logic must use a suitably verified detector rather than direct RA1 GPIO reads at the current voltage.
 
 ### Dedicated MCU VBUS
 
@@ -110,13 +120,13 @@ Use the unmodified tagged LED firmware if firmware is needed while measuring. **
 5. After the disconnected check passes, use an appropriate protected USB connection/breakout to a host. Verify J2 VBUS is about 5 V and VBUS_SENSE is around 3.3 V, then falls near 0 V on unplug. If sense exceeds the device's permitted voltage or does not track cable VBUS, stop.
 6. Do resistance/continuity checks only with **all board power, USB and PICkit connections removed**. Switched IC paths cannot always be interpreted by a simple continuity beep; do not use a meter's resistance mode on a powered USB/MCU circuit.
 
-Disconnected J2 VBUS and VBUS_SENSE are both user-reported 0 V, and installed U2 identification is resolved. Host-attached sense tracking and actual routing have not been tested. If safe access is unavailable, send the board photo and describe available measurement tools; do not improvise risky probing.
+Disconnected J2 VBUS and VBUS_SENSE are both user-reported 0 V, and installed U2 identification is resolved. Host-attached voltages are now reported (J2 5.16 V, sense 2.011 V). Return-to-zero after this connection, MCU VDD, detector margin and actual routing still need confirmation. If safe access is unavailable, send the board photo and describe available measurement tools; do not improvise risky probing.
 
 ## Next implementation milestone
 
 After the actual switch identification, revision-specific routing and physical power checks are established:
 
 - Implement user-owned MCP23008 route setup from the confirmed NCN1188 truth table: GP5=GP6=1 for mini-B, preserving other pins. The identification hold is cleared; safe initialization, errors and routing behavior still require implementation/tests.
-- Configure RA1 connection sensing/attach-detach coordination and SW1 force-entry without disrupting the preserved application.
+- Assess RA1/AN1 ADC sensing because the measured 2.011 V is below guaranteed GPIO VIH at 3.3 V. Verify signal/reference/acquisition margins, then implement attach/detach coordination and SW1 force-entry without disrupting the preserved application.
 - Build/test the code and review nontrivial compiler diagnostics; only then approve a controlled enumeration test, with host erase/program commands unused.
 - Record actual VID/PID enumeration and cable disconnect behaviour before testing the update protocol or relocated application.
