@@ -84,6 +84,7 @@ tests/                 Mocked application tests
 tools/
   toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
+  update-storage.md    HEX row/session and flash backend contracts; not active in firmware
   update-protocol.md   Tested bounded framing/command validation; not active in firmware
   update-safety.md     Host-only generated-parser audit and hardening requirements
   usb-entry.md         SW1-held startup enumeration and safe-idle test
@@ -131,13 +132,14 @@ The application project is present. A separate `bootloader/` directory is the ne
 | SW1 diagnostic startup selection | Passed, user-reported | User confirmed 51a78c5 works as described: held-at-reset enumeration, latched entry, normal safe idle and no late entry. No application handoff. |
 | Generated update-path audit | Defects reproduced, host-only | 12 unsafe behaviors confirmed with mocked flash/datastream and sanitizers; generated code untouched. See docs/update-safety.md. |
 | Bounded framing/command validation | Software checks passed, not integrated | User-owned update_protocol handles split escapes, CRC, buffer limits, exact command lengths and safe READ_CRC spans. Strict host/XC32 tests and sanitizers pass. No command execution. |
-| Verify USB updates and recovery | Disabled/not tested | Requires hardened parser/flash/image policy, relocated application and compatible host utility. |
+| HEX rows and flash-operation adapter | Software checks passed, not integrated | Full-span/order/batch validation, row padding and mocked flash bounds/error/readback/timeout tests pass. No target backend binding or command execution. |
+| Verify USB updates and recovery | Disabled/not tested | Requires image/commit policy, asynchronous orchestration, target NVM binding, relocated application and compatible host utility. |
 
 ### Next steps
 
 - Initial [diagnostic enumeration](docs/usb-enumeration.md) passes, including MCLR/power-cycle re-enumeration. Generated SW1/BOOT_REQUEST settings are verified. User-owned startup debounce now gates enumeration: hold SW1 across reset for diagnostic mode; no button yields safe idle, not application handoff. The user confirmed [SW1 works as described](docs/usb-entry.md); physical-entry diagnostics pass. Update commands remain inactive.
 - The [host-only update audit](docs/update-safety.md) reproduces 12 unsafe behaviors in generated framing/HEX/flash handling. Run `make update-audit` to reproduce them safely with mocks; a passing audit is not update approval.
-- [Bounded framing and command validation](docs/update-protocol.md) now pass tests, but remain uncalled in firmware. Next implement a bounded HEX session/row writer and flash-error adapter, then image-completion/interruption policy before restoring update tasks or relocating the application.
+- [Bounded framing and command validation](docs/update-protocol.md) now pass tests, but remain uncalled in firmware. [HEX session/row and flash adapter](docs/update-storage.md) now pass strict tests too. Next define image/commit ownership and connect bounded asynchronous row/flash orchestration with failure/interrupt recovery before target NVM binding, updater activation or application relocation.
 - U2 is identified as **12-pin NCN1188**, marking AG7; the user corrected the initial ten-pin count. Mini-B mux selection is **GP5=GP6=1**, preserving other bits. Disconnected readings are 0 V; connected readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. User confirmed MCU VDD=3.3 V, same measurement point and return-to-zero on unplug. RA1 GPIO VIH requires 2.145 V, so add/review AN1 ADC sensing using AVDD/AVSS instead of GPIO-high detection; proposed setup is in docs/usb-circuit.md. See [USB circuit checks](docs/usb-circuit.md).
 - User-owned mux/ADC/attach diagnostic logic is implemented and software-tested. Capture hardware unplug/replug/reset results before proceeding. Physical SW1 diagnostic entry is now user-confirmed; update-safety logic remains next.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
@@ -211,3 +213,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Added host-only audit against unmodified generated update code. Reproduced 12 unsafe behaviors (eight non-crashing cases, four sanitizer failures) with mocked flash/datastream; valid baselines pass. Diagnostic/application builds and tests still pass, and update/erase/write code remains absent from diagnostic ELF. Next harden framing/command validation and HEX/flash/image contracts before enabling updates.
 
 - **2026-10-14:** Added user-owned bounded update framing/command validation, not connected to active firmware. Split-frame/CRC/size/resync, exact command lengths, HEX shape and application-span tests pass with sanitizers and strict XC32 compile. Generated audit still reproduces original defects; diagnostic firmware/update safety unchanged. Next HEX session/row writer and flash/image contracts.
+
+- **2026-10-14:** Added user-owned bounded HEX session/row layer and backend flash-operation adapter. Full batch preflight/range/order, padding/abort/failure, readback and timeout-buffer retention tests pass, including strict XC32 and sanitizers. Neither layer is bound to target NVM or connected to active firmware; diagnostic binary unchanged. Async orchestration and image commit/recovery remain next.

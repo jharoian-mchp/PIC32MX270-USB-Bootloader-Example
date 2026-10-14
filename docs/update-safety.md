@@ -50,7 +50,7 @@ Primary sources:
 
 User-owned **update_protocol.c/.h** now supplies bounded framing/CRC/encoding, command-length/HEX-shape checks and full application-span validation for READ_CRC. Safe-behavior host tests, deterministic randomized coverage, sanitizers and strict XC32 compilation pass; see [the implementation contract](update-protocol.md).
 
-The new layer is **not called by active firmware** and executes no commands. Generated code stays untouched, so this reproduction audit intentionally still shows its failures. HEX address/session state, flash operations and valid-image policy are not hardened yet. The active SW1 diagnostic image remains unchanged.
+The new layer is **not called by active firmware** and executes no commands. Generated code stays untouched, so this reproduction audit intentionally still shows its failures. User-owned HEX session/row validation and a backend-based flash-operation adapter now also pass [storage-layer tests](update-storage.md), including bounds/error/readback/timeout cases. They are not connected to each other asynchronously or bound to target NVM. Image validity/commit and interruption policy remain open. The active SW1 diagnostic image remains unchanged.
 
 ## Additional untested concerns
 

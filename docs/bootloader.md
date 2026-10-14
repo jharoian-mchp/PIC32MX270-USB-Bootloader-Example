@@ -119,7 +119,7 @@ The generated weak bootloader trigger returns false and its application-jump hel
 
 User-owned **update_protocol.c/.h** now handles split-frame escapes, CRC16, bounded receive/response encoding, exact command lengths, structural HEX checks and READ_CRC application-address spans. Host tests/sanitizers and strict XC32 cross-compilation pass. Public project metadata includes the source, but the diagnostic loop does not call it and linker garbage collection removes its routines. See [the layer contract and remaining checks](update-protocol.md).
 
-Next harden HEX address/session/row handling, flash-operation errors and image-completion/recovery. No update commands or application handoff are enabled.
+The [HEX session/row generator and flash-operation adapter](update-storage.md) now pass strict host/XC32, mocked range/error/readback/timeout and sanitizer tests. They remain inert in firmware: no asynchronous row orchestration, target backend or image-commit policy is installed yet. No update commands or application handoff are enabled.
 
 ## Memory contract to establish
 

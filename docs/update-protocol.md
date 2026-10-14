@@ -70,4 +70,4 @@ Existing `make test bootloader application` passes, and the linked diagnostic im
 
 ## Next layer
 
-Implement a user-owned bounded HEX session/row writer with full address validation and explicit error/reset lifecycle, then a flash adapter that checks bounds/alignment/operation status. Preserve generated code and the working diagnostic behavior. Define image completion/commit/recovery before restoring command execution or application handoff.
+The [user-owned HEX/flash layers](update-storage.md) now implement full address/order validation, row padding and mocked bounds/error/readback/timeout contracts. Next add explicit asynchronous row/flash orchestration and image-completion/commit policy before target binding. Preserve generated code and the working diagnostic behavior. Define image completion/commit/recovery before restoring command execution or application handoff.

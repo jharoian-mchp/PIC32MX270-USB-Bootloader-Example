@@ -5,6 +5,8 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>../src/update_protocol.h</itemPath>
+      <itemPath>../src/update_hex.h</itemPath>
+      <itemPath>../src/update_flash.h</itemPath>
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">
           <logicalFolder name="bootloader" displayName="bootloader" projectFiles="true">
@@ -252,6 +254,8 @@
                    displayName="Source Files"
                    projectFiles="true">
       <itemPath>../src/update_protocol.c</itemPath>
+      <itemPath>../src/update_hex.c</itemPath>
+      <itemPath>../src/update_flash.c</itemPath>
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">
           <logicalFolder name="bootloader" displayName="bootloader" projectFiles="true">
