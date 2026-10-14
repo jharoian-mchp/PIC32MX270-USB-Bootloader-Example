@@ -28,7 +28,7 @@ bootloader:
 	"$(XC32_ROOT)/bin/xc32-bin2hex" "$(BTL_DIR)/bootloader.elf"
 	"$(XC32_ROOT)/bin/xc32-size" "$(BTL_DIR)/bootloader.elf"
 	@test -s "$(BTL_DIR)/bootloader.hex"
-	@echo "Built skeleton only: USB routing, entry and update safety are not hardware verified. Do not program yet."
+	@echo "Built enumeration-only diagnostics: no firmware-update tasks. Hardware test instructions: docs/usb-enumeration.md."
 
 application:
 	@mkdir -p "$(APP_DIR)"
@@ -41,6 +41,8 @@ test:
 	@mkdir -p build/tests
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/mocks -Iapplication/src application/src/app_led.c tests/app_led_test.c -o build/tests/app_led_test
 	./build/tests/app_led_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/usb_mocks -Ibootloader/src bootloader/src/board_usb_diag.c tests/board_usb_diag_test.c -o build/tests/board_usb_diag_test
+	./build/tests/board_usb_diag_test
 
 toolchain-check:
 	@mkdir -p "$(SMOKE_DIR)"

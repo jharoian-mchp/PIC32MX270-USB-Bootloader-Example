@@ -26,6 +26,7 @@
 #include <stdbool.h>                    // Defines true
 #include <stdlib.h>                     // Defines EXIT_FAILURE
 #include "definitions.h"                // SYS function prototypes
+#include "board_usb_diag.h"
 
 
 // *****************************************************************************
@@ -38,11 +39,12 @@ int main ( void )
 {
     /* Initialize all modules */
     SYS_Initialize ( NULL );
+    BOARD_USB_DIAG_Initialize();
 
     while ( true )
     {
-        /* Maintain state machines of all polled MPLAB Harmony modules. */
-        SYS_Tasks ( );
+        /* Enumeration-only diagnostics: deliberately do not run update tasks. */
+        BOARD_USB_DIAG_Tasks();
     }
 
     /* Execution should not come here during normal operation */

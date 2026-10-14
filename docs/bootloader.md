@@ -2,7 +2,7 @@
 
 The standalone LED1 baseline is preserved at annotated tag **[v0.1.0-led-blink](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/tree/v0.1.0-led-blink)**, targeting commit **dd59a291254b45d44fba65810b2085d9b6ea40df**. The user confirmed production programming, expected blinking, and recovery after both MCLR and a power cycle on 2026-10-13.
 
-The next stage is a **separate USB device HID bootloader**, followed by a relocated version of the blink application. The initial skeleton was pulled at **0e87595**. Core regeneration at **556a4fa** supplied the missing common/configuration/task files; the complete Linux XC32 bootloader build now passes. USB hardware enumeration and update tests have not run.
+The next stage is a **separate USB device HID bootloader**, followed by a relocated version of the blink application. The initial skeleton was pulled at **0e87595**. Core regeneration at **556a4fa** supplied the missing common/configuration/task files; the complete Linux XC32 bootloader build now passes. USB hardware enumeration and update tests have not run. The current main now runs [enumeration-only diagnostics](usb-enumeration.md), with update tasks intentionally bypassed.
 
 ## Preserve the working application
 
@@ -97,7 +97,7 @@ The user supplied a complete Windows clean-build log (chat attachment 81). It re
 
 There are **147 distinct warning lines**; repeated generated inline headers account for much of the volume. This comparison verifies matching diagnostic categories, not that every warning is safe or that debug/production binaries are identical.
 
-Host commit **fd97ec3** stores -Wall and -Wextra. At the time of that log the bootloader project selected **noID** as its tool. The log has `-D__DEBUG` but no `-mdebugger`, PICkit 5 macro or debugger memory reservations. Its final IDE 'Loading code' message therefore does **not** establish programming/debugging on the board. Host commit **0274bf9**, merged at **9fdac62**, now selects **PK5Tool**; -Wall/-Wextra are retained and the project XML validates. This fixes shared tool selection but is not a hardware programming result. Building is now possible, but **do not program the skeleton yet**: the MCP23008 USB routing, VBUS circuit, physical entry and update safety are not implemented/verified.
+Host commit **fd97ec3** stores -Wall and -Wextra. At the time of that log the bootloader project selected **noID** as its tool. The log has `-D__DEBUG` but no `-mdebugger`, PICkit 5 macro or debugger memory reservations. Its final IDE 'Loading code' message therefore does **not** establish programming/debugging on the board. Host commit **0274bf9**, merged at **9fdac62**, now selects **PK5Tool**; -Wall/-Wextra are retained and the project XML validates. This fixes shared tool selection but is not a hardware programming result. Building is now possible, but **do not program the skeleton yet**: the earlier skeleton lacked board routing and valid physical-entry policy. User-owned enumeration-only diagnostics now implement/test mux/ADC attachment and force diagnostic mode, but hardware verification and full update safety remain open. Program only the diagnostic image under its controlled test instructions, not the older skeleton.
 
 ### Generated AN1 ADC review — 2026-10-14
 
@@ -105,9 +105,15 @@ The user confirmed 16 TAD acquisition and pushed **fce3569**. ADC_Initialize is 
 
 The API provides ADC_SamplingStart, ADC_ResultIsReady and ADC_ResultGet; the internal-counter configuration must not be driven by manually clearing SAMP. AD1CON2 and RA1 analog/input selection rely on reset defaults in the generated code; retain explicit safe configuration when implementing the detector. Hardware ADC readings and attach/detach logic are not tested. See [the ADC source review](usb-circuit.md).
 
+### Enumeration-only implementation — 2026-10-14
+
+`board_usb_diag.c` now initializes/checks MCP23008 GP5/GP6, samples AN1 with tentative hysteresis, controls USB attachment from cable sense and exposes diagnostics. Main deliberately bypasses generated SYS_Tasks/update tasks; an always-true strong bootloader_Trigger prevents startup from jumping into old app bytes. The linked production diagnostic ELF contains no bootloader command/parser or NVM erase/write routine. Linux build, strict user-code check, mocked tests and sanitizer run pass. Generated files remain unchanged; public project XML includes the new files.
+
+The next step is the [controlled diagnostic hardware test](usb-enumeration.md), not firmware updating. Capture raw ADC values and VID/PID enumeration/disconnect behavior first.
+
 ### Further update-path issues to resolve
 
-The weak bootloader trigger currently returns false, and startup accepts an application based only on a non-erased first word. Physical SW1 entry and stronger valid-image/recovery policy are not implemented yet. The generated HEX parser also uses `<= FLASH_END_ADDRESS` even though flash end is exclusive, and reads a claimed record length without first checking it fits the available buffer. These need targeted review/tests before enabling host erase/program commands. Treat successful enumeration as a separate milestone, not approval of flash updating.
+The generated weak bootloader trigger returns false and its application-jump helper accepts an application based only on a non-erased first word. The diagnostic strong override always returns true; the later functional bootloader still needs a physical/valid-image policy. Physical SW1 entry and stronger valid-image/recovery policy are not implemented yet. The generated HEX parser also uses `<= FLASH_END_ADDRESS` even though flash end is exclusive, and reads a claimed record length without first checking it fits the available buffer. These need targeted review/tests before enabling host erase/program commands. Treat successful enumeration as a separate milestone, not approval of flash updating.
 
 ## Memory contract to establish
 
@@ -171,6 +177,6 @@ Record generated VID/PID, report sizes, host utility version and accepted firmwa
 | Review generated memory and clock configuration | Core regeneration 556a4fa resolves missing files/tasks; complete 23-source Linux -O2 build/HEX passes and fits 32 KB. Physical 0x1D008000 maps to 0x9D008000. Hardware not tested. |
 | Windows skeleton clean build | Passed in supplied log with -O2/-Wall/-Wextra; warning categories match Linux. PK5Tool now selected via 0274bf9/9fdac62; hardware programming not verified. |
 | Review/program USB connector routing and power | Documented mini-B HDN/HDP/GP5=GP6=1 path and RA1 cable-sense versus dedicated board VBUS reviewed. Physical voltage/revision checks and code implementation pending; see docs/usb-circuit.md. |
-| Enumerate as USB HID and connect host utility | Not tested. |
+| Enumerate as USB HID | Diagnostic-only code/build/mocks passed; hardware test next. Update host utility remains unused. |
 | Relocate blink application and verify firmware update | Not started. |
 | Forced entry, missing/invalid image and interrupted-update recovery | Not tested. |
