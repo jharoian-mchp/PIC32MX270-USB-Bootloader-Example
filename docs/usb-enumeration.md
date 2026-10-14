@@ -75,7 +75,22 @@ User screenshots (chat attachments 93/94) show:
 
 The screenshot also reports historical **last_fault=USB_OPEN (4)** even though usb_open=true. Source review explains the initial transient: USB_DEVICE_Open rejects an instance until USB_DEVICE_Tasks opens its underlying driver and marks SYS_STATUS_READY. The diagnostic first tries Open before running that task, so one startup attempt can fail and the next succeeds. last_fault is historical until reset; it is not a current connection failure when usb_open is true. No code change was made to hide that diagnostic.
 
-Next unplug/replug J2 while freely running, capture near-zero ADC/disconnected flags and incremented detach_count, then re-enumeration. Check reset/cold-start with and without the cable before accepting this stage. Firmware updates remain inactive.
+### Observed unplug/replug — 2026-10-14
+
+User screenshots 95/96 show:
+
+| Field | Unplugged | Replugged |
+|---|---|---|
+| adc_raw | 0 | 0x026E = 622 |
+| cable_present / attached | false / false | true / true |
+| attach_count / detach_count | 1 / 1 | 2 / 1 |
+| mux_ready | true | true |
+| adc_timeouts / mux_errors / usb_errors | 0 / 0 / 0 | 0 / 0 / 0 |
+| usb_resets | 2 | 5 |
+
+The ADC detector and pull-up detach/reattach behavior pass this observed cycle. Increased bus reset count is consistent with renewed host USB activity, not alone proof of completed configuration. The configured flag/Windows re-enumeration after this replug is not shown and still needs confirmation. The historical USB_OPEN flag remains as previously explained.
+
+Next confirm configured=true or the Windows VID/PID device after replug, then check MCLR and cold-start behavior with USB connected. Also check disconnected startup if not already done. Firmware updates remain inactive.
 
 ## Regeneration and later stages
 
