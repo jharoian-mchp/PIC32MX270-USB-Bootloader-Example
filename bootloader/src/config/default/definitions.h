@@ -57,6 +57,7 @@
 #include "driver/usb/usbfs/drv_usbfs.h"
 #include "usb/usb_chapter_9.h"
 #include "usb/usb_device.h"
+#include "peripheral/adc/plib_adc.h"
 #include "bootloader/bootloader_usb_device_hid.h"
 #include "peripheral/nvm/plib_nvm.h"
 #include "system/int/sys_int.h"

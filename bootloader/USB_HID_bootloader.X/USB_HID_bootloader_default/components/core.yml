@@ -25,7 +25,7 @@ data:
       - children:
         - attributes:
             id: core
-            value: '0'
+            value: '48000000'
           type: Dynamic
         type: Values
       type: Integer
@@ -1351,6 +1351,41 @@ data:
           type: Dynamic
         type: Values
       type: Boolean
+    PMD1_REG_VALUE:
+      attributes:
+        id: PMD1_REG_VALUE
+        label: PMD1 Register Value
+      children:
+      - children:
+        - attributes:
+            id: core
+            value: '4352'
+          type: Dynamic
+        type: Values
+      type: Hex
+    ADC_CLOCK_ENABLE:
+      attributes:
+        id: ADC_CLOCK_ENABLE
+        label: ADC Clock Enable
+      children:
+      - children:
+        - attributes:
+            id: adc
+            value: 'true'
+          type: Dynamic
+        type: Values
+      type: Boolean
+    BSP_PIN_20_FUNCTION_TYPE:
+      attributes:
+        id: BSP_PIN_20_FUNCTION_TYPE
+        label: Type
+      children:
+      - children:
+        - attributes:
+            value: AN1
+          type: User
+        type: Values
+      type: String
   userData:
     children:
     - attributes:

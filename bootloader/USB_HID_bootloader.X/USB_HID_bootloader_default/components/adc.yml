@@ -1,0 +1,646 @@
+configVersion: 1.0.0
+componentName: adc
+coreVersion: 5.9.0
+device: PIC32MX270F256D
+library: []
+dependency:
+- dependencyPackage: class com.microchip.mcc.harmony.HarmonyModule
+  name: adc
+  type: module
+  version: ''
+- dependencyPackage: ''
+  name: csp
+  type: package
+  version: v3.26.1
+customDataClassName: com.microchip.utils_mh3.utils.persistence.CustomModuleData
+data:
+  attachments: {}
+  elementPosition:
+    attributes:
+      id: __ROOTVIEW
+    children:
+    - children:
+      - attributes:
+          id: adc
+          x: '5'
+          y: '330'
+        type: ElementPosition
+      type: ElementPositions
+    type: ComponentGraph
+  symbols:
+    AD1CHS__CH0NA:
+      attributes:
+        id: AD1CHS__CH0NA
+        label: Negative Input Select bit for Sample A Multiplexer Setting
+      type: KeyValueSet
+    AD1CHS__CH0NA_COUNT:
+      attributes:
+        id: AD1CHS__CH0NA_COUNT
+        label: AD1CHS__CH0NA_COUNT
+      type: Integer
+    AD1CHS__CH0NA_ENUM_NAME_0:
+      attributes:
+        id: AD1CHS__CH0NA_ENUM_NAME_0
+        label: AD1CHS__CH0NA_ENUM_NAME_0
+      type: String
+    AD1CHS__CH0NA_ENUM_NAME_1:
+      attributes:
+        id: AD1CHS__CH0NA_ENUM_NAME_1
+        label: AD1CHS__CH0NA_ENUM_NAME_1
+      type: String
+    AD1CHS__CH0NA_ENUM_VALUE_0:
+      attributes:
+        id: AD1CHS__CH0NA_ENUM_VALUE_0
+        label: AD1CHS__CH0NA_ENUM_VALUE_0
+      type: Integer
+    AD1CHS__CH0NB:
+      attributes:
+        id: AD1CHS__CH0NB
+        label: Negative Input Select bit for Sample B
+      type: KeyValueSet
+    AD1CHS__CH0SA:
+      attributes:
+        id: AD1CHS__CH0SA
+        label: Positive Input Select bits for Sample A Multiplexer Setting
+      children:
+      - children:
+        - attributes:
+            value: '1'
+          type: User
+        type: Values
+      type: KeyValueSet
+    AD1CHS__CH0SA_COUNT:
+      attributes:
+        id: AD1CHS__CH0SA_COUNT
+        label: AD1CHS__CH0SA_COUNT
+      type: Integer
+    AD1CHS__CH0SA_ENUM_NAME_0:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_0
+        label: AD1CHS__CH0SA_ENUM_NAME_0
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_1:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_1
+        label: AD1CHS__CH0SA_ENUM_NAME_1
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_10:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_10
+        label: AD1CHS__CH0SA_ENUM_NAME_10
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_11:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_11
+        label: AD1CHS__CH0SA_ENUM_NAME_11
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_12:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_12
+        label: AD1CHS__CH0SA_ENUM_NAME_12
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_13:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_13
+        label: AD1CHS__CH0SA_ENUM_NAME_13
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_14:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_14
+        label: AD1CHS__CH0SA_ENUM_NAME_14
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_15:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_15
+        label: AD1CHS__CH0SA_ENUM_NAME_15
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_2:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_2
+        label: AD1CHS__CH0SA_ENUM_NAME_2
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_3:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_3
+        label: AD1CHS__CH0SA_ENUM_NAME_3
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_4:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_4
+        label: AD1CHS__CH0SA_ENUM_NAME_4
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_5:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_5
+        label: AD1CHS__CH0SA_ENUM_NAME_5
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_6:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_6
+        label: AD1CHS__CH0SA_ENUM_NAME_6
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_7:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_7
+        label: AD1CHS__CH0SA_ENUM_NAME_7
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_8:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_8
+        label: AD1CHS__CH0SA_ENUM_NAME_8
+      type: String
+    AD1CHS__CH0SA_ENUM_NAME_9:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_NAME_9
+        label: AD1CHS__CH0SA_ENUM_NAME_9
+      type: String
+    AD1CHS__CH0SA_ENUM_VALUE_0:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_0
+        label: AD1CHS__CH0SA_ENUM_VALUE_0
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_1:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_1
+        label: AD1CHS__CH0SA_ENUM_VALUE_1
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_10:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_10
+        label: AD1CHS__CH0SA_ENUM_VALUE_10
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_11:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_11
+        label: AD1CHS__CH0SA_ENUM_VALUE_11
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_12:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_12
+        label: AD1CHS__CH0SA_ENUM_VALUE_12
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_13:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_13
+        label: AD1CHS__CH0SA_ENUM_VALUE_13
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_14:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_14
+        label: AD1CHS__CH0SA_ENUM_VALUE_14
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_2:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_2
+        label: AD1CHS__CH0SA_ENUM_VALUE_2
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_3:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_3
+        label: AD1CHS__CH0SA_ENUM_VALUE_3
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_4:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_4
+        label: AD1CHS__CH0SA_ENUM_VALUE_4
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_5:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_5
+        label: AD1CHS__CH0SA_ENUM_VALUE_5
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_6:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_6
+        label: AD1CHS__CH0SA_ENUM_VALUE_6
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_7:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_7
+        label: AD1CHS__CH0SA_ENUM_VALUE_7
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_8:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_8
+        label: AD1CHS__CH0SA_ENUM_VALUE_8
+      type: Integer
+    AD1CHS__CH0SA_ENUM_VALUE_9:
+      attributes:
+        id: AD1CHS__CH0SA_ENUM_VALUE_9
+        label: AD1CHS__CH0SA_ENUM_VALUE_9
+      type: Integer
+    AD1CHS__CH0SB:
+      attributes:
+        id: AD1CHS__CH0SB
+        label: Positive Input Select bits for Sample B
+      type: KeyValueSet
+    AD1CON1__ASAM:
+      attributes:
+        id: AD1CON1__ASAM
+        label: Enable Auto Sampling
+      type: Boolean
+    AD1CON1__CLRASAM:
+      attributes:
+        id: AD1CON1__CLRASAM
+        label: Stop Auto Sampling After First Conversion Sequence
+      type: Boolean
+    AD1CON1__FORM:
+      attributes:
+        id: AD1CON1__FORM
+        label: Data Output Format bits
+      type: KeyValueSet
+    AD1CON1__SIDL:
+      attributes:
+        id: AD1CON1__SIDL
+        label: Stop in Idle Mode bit
+      type: KeyValueSet
+    AD1CON1__SSRC:
+      attributes:
+        id: AD1CON1__SSRC
+        label: Conversion Trigger Source Select bits
+      children:
+      - children:
+        - attributes:
+            value: '4'
+          type: User
+        type: Values
+      type: KeyValueSet
+    AD1CON2__ALTS:
+      attributes:
+        id: AD1CON2__ALTS
+        label: Alternate Input Sample Mode Select bit
+      type: KeyValueSet
+    AD1CON2__BUFM:
+      attributes:
+        id: AD1CON2__BUFM
+        label: ADC Result Buffer Mode Select bit
+      type: KeyValueSet
+    AD1CON2__CSCNA:
+      attributes:
+        id: AD1CON2__CSCNA
+        label: Enable Input Scan on Mux A
+      type: Boolean
+    AD1CON2__SMPI:
+      attributes:
+        id: AD1CON2__SMPI
+        label: Sample/Convert Sequences Per Interrupt Selection bits
+      type: KeyValueSet
+    AD1CON2__VCFG:
+      attributes:
+        id: AD1CON2__VCFG
+        label: Voltage Reference Configuration bits
+      type: KeyValueSet
+    AD1CON3__ADCS:
+      attributes:
+        id: AD1CON3__ADCS
+        label: Select Clock Divider
+      children:
+      - children:
+        - attributes:
+            value: '23'
+          type: User
+        type: Values
+      type: Integer
+    AD1CON3__ADRC:
+      attributes:
+        id: AD1CON3__ADRC
+        label: ADC Conversion Clock Source bit
+      type: KeyValueSet
+    AD1CON3__SAMC:
+      attributes:
+        id: AD1CON3__SAMC
+        label: Auto Sample Time (nTAD)
+      children:
+      - children:
+        - attributes:
+            id: visible
+          children:
+          - type: Value
+            value: 'true'
+          type: Boolean
+        type: Attributes
+      - children:
+        - attributes:
+            value: '16'
+          type: User
+        type: Values
+      type: Integer
+    AD1CSSL__CSSL_0:
+      attributes:
+        id: AD1CSSL__CSSL_0
+        label: Select AN0 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_1:
+      attributes:
+        id: AD1CSSL__CSSL_1
+        label: Select AN1 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_10:
+      attributes:
+        id: AD1CSSL__CSSL_10
+        label: Select AN10 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_11:
+      attributes:
+        id: AD1CSSL__CSSL_11
+        label: Select AN11 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_12:
+      attributes:
+        id: AD1CSSL__CSSL_12
+        label: Select AN12 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_13:
+      attributes:
+        id: AD1CSSL__CSSL_13
+        label: Select CTMUI for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_14:
+      attributes:
+        id: AD1CSSL__CSSL_14
+        label: Select IVREF for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_15:
+      attributes:
+        id: AD1CSSL__CSSL_15
+        label: Select VSS for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_2:
+      attributes:
+        id: AD1CSSL__CSSL_2
+        label: Select AN2 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_3:
+      attributes:
+        id: AD1CSSL__CSSL_3
+        label: Select AN3 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_4:
+      attributes:
+        id: AD1CSSL__CSSL_4
+        label: Select AN4 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_5:
+      attributes:
+        id: AD1CSSL__CSSL_5
+        label: Select AN5 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_6:
+      attributes:
+        id: AD1CSSL__CSSL_6
+        label: Select AN6 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_7:
+      attributes:
+        id: AD1CSSL__CSSL_7
+        label: Select AN7 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_8:
+      attributes:
+        id: AD1CSSL__CSSL_8
+        label: Select AN8 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_9:
+      attributes:
+        id: AD1CSSL__CSSL_9
+        label: Select AN9 for Input Scan
+      type: Boolean
+    AD1CSSL__CSSL_COUNT:
+      attributes:
+        id: AD1CSSL__CSSL_COUNT
+        label: AD1CSSL__CSSL_COUNT
+      type: Integer
+    AD1CSSL__CSSL_ENUM_NAME_0:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_0
+        label: AD1CSSL__CSSL_ENUM_NAME_0
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_1:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_1
+        label: AD1CSSL__CSSL_ENUM_NAME_1
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_10:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_10
+        label: AD1CSSL__CSSL_ENUM_NAME_10
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_11:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_11
+        label: AD1CSSL__CSSL_ENUM_NAME_11
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_12:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_12
+        label: AD1CSSL__CSSL_ENUM_NAME_12
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_13:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_13
+        label: AD1CSSL__CSSL_ENUM_NAME_13
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_14:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_14
+        label: AD1CSSL__CSSL_ENUM_NAME_14
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_15:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_15
+        label: AD1CSSL__CSSL_ENUM_NAME_15
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_2:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_2
+        label: AD1CSSL__CSSL_ENUM_NAME_2
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_3:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_3
+        label: AD1CSSL__CSSL_ENUM_NAME_3
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_4:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_4
+        label: AD1CSSL__CSSL_ENUM_NAME_4
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_5:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_5
+        label: AD1CSSL__CSSL_ENUM_NAME_5
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_6:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_6
+        label: AD1CSSL__CSSL_ENUM_NAME_6
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_7:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_7
+        label: AD1CSSL__CSSL_ENUM_NAME_7
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_8:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_8
+        label: AD1CSSL__CSSL_ENUM_NAME_8
+      type: String
+    AD1CSSL__CSSL_ENUM_NAME_9:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_NAME_9
+        label: AD1CSSL__CSSL_ENUM_NAME_9
+      type: String
+    AD1CSSL__CSSL_ENUM_VALUE_0:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_0
+        label: AD1CSSL__CSSL_ENUM_VALUE_0
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_1:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_1
+        label: AD1CSSL__CSSL_ENUM_VALUE_1
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_10:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_10
+        label: AD1CSSL__CSSL_ENUM_VALUE_10
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_11:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_11
+        label: AD1CSSL__CSSL_ENUM_VALUE_11
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_12:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_12
+        label: AD1CSSL__CSSL_ENUM_VALUE_12
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_13:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_13
+        label: AD1CSSL__CSSL_ENUM_VALUE_13
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_14:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_14
+        label: AD1CSSL__CSSL_ENUM_VALUE_14
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_15:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_15
+        label: AD1CSSL__CSSL_ENUM_VALUE_15
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_2:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_2
+        label: AD1CSSL__CSSL_ENUM_VALUE_2
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_3:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_3
+        label: AD1CSSL__CSSL_ENUM_VALUE_3
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_4:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_4
+        label: AD1CSSL__CSSL_ENUM_VALUE_4
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_5:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_5
+        label: AD1CSSL__CSSL_ENUM_VALUE_5
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_6:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_6
+        label: AD1CSSL__CSSL_ENUM_VALUE_6
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_7:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_7
+        label: AD1CSSL__CSSL_ENUM_VALUE_7
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_8:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_8
+        label: AD1CSSL__CSSL_ENUM_VALUE_8
+      type: Hex
+    AD1CSSL__CSSL_ENUM_VALUE_9:
+      attributes:
+        id: AD1CSSL__CSSL_ENUM_VALUE_9
+        label: AD1CSSL__CSSL_ENUM_VALUE_9
+      type: Hex
+    ADC_AD1CHS:
+      attributes:
+        id: ADC_AD1CHS
+        label: AD1CHS Register
+      children:
+      - children:
+        - attributes:
+            id: adc
+            value: '65536'
+          type: Dynamic
+        type: Values
+      type: Hex
+    ADC_AD1CON1:
+      attributes:
+        id: ADC_AD1CON1
+        label: AD1CON1 register value
+      children:
+      - children:
+        - attributes:
+            id: adc
+            value: '224'
+          type: Dynamic
+        type: Values
+      type: Hex
+    ADC_AD1CON2:
+      attributes:
+        id: ADC_AD1CON2
+        label: AD1CON2 register value
+      type: Hex
+    ADC_AD1CON3:
+      attributes:
+        id: ADC_AD1CON3
+        label: AD1CON3 register value
+      children:
+      - children:
+        - attributes:
+            id: adc
+            value: '4119'
+          type: Dynamic
+        type: Values
+      type: Hex
+    ADC_AD1CSSL:
+      attributes:
+        id: ADC_AD1CSSL
+        label: AD1CSSL Register
+      type: Hex
+    ADC_IFS_REG_INDEX:
+      attributes:
+        id: ADC_IFS_REG_INDEX
+        label: IFS/IEC Register Index
+      type: String
+    ADC_INSTANCE_NAME:
+      attributes:
+        id: ADC_INSTANCE_NAME
+        label: ADC_INSTANCE_NAME
+      type: String
+    ADC_INTERRUPT:
+      attributes:
+        id: ADC_INTERRUPT
+        label: Interrupt Mode
+      type: Boolean
+    ADC_TCLK:
+      attributes:
+        id: ADC_TCLK
+        label: ADC Clock (TAD) (nano sec)
+      children:
+      - children:
+        - attributes:
+            id: adc
+            value: '1000.0'
+          type: Dynamic
+        type: Values
+      type: Float
+  userData: {}

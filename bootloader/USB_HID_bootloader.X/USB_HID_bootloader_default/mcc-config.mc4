@@ -6,6 +6,7 @@ deviceLibrary: {}
 groupModules: []
 modules:
 - HarmonyCore
+- adc
 - core
 - dfp
 - drv_usbfs_v1
@@ -41,7 +42,7 @@ generatedFileHashHistoryMap:
 - file: ..\src\config\default\configuration.h
   hash: 7fa44fe672f84d2ad5c4280b9d64058a7454ecd8c4318a0e7909f922a11224b7
 - file: ..\src\config\default\definitions.h
-  hash: cfead492ebee47f290639f0d657e5a5ed3583e70923868a7455b40fbeb2f4f0e
+  hash: 0e645441399135a9f82d164fdbaa2f8e77850b8e9d623ee69de53397b199d221
 - file: ..\src\config\default\device.h
   hash: 4d4341a6f9628cea0bf73f980b639f7cb81089e55a60ad7e434be2a71e477442
 - file: ..\src\config\default\driver\driver.h
@@ -291,7 +292,7 @@ generatedFileHashHistoryMap:
 - file: ..\src\config\default\exceptions.c
   hash: 277b822365dceb7e50cfb0b11c394adb81d0889dbda767550988817fee1cd9cd
 - file: ..\src\config\default\initialization.c
-  hash: 08ef5343c8067fc03384a53ed46843f7c2ba3b421c4c28846dfe18d2ffb843cc
+  hash: d9a0674d12c41a8d5f5832724867bb0e7bd970163cf6e7d5f0fcd001342d3f6d
 - file: ..\src\config\default\interrupts.c
   hash: 1a3112808734a81f17bb72f5165ce8b70f7aefabf79205474376951a8bb6f62f
 - file: ..\src\config\default\interrupts.h
@@ -302,8 +303,12 @@ generatedFileHashHistoryMap:
   hash: 5f0a2513a093b6d228e2b50646b204923a82047335a47f3d35a2938309ab6f37
 - file: ..\src\config\default\osal\osal_impl_basic.h
   hash: 158c4107f883f6d8c0244b73273361d1ca2ebd57c0934572b11a25c532fd22c5
+- file: ..\src\config\default\peripheral\adc\plib_adc.c
+  hash: 6f793cda7ed2a42a20ea0dde8be68e8a456a8fd7fa6a7d837d320fb2e567662c
+- file: ..\src\config\default\peripheral\adc\plib_adc.h
+  hash: 18878ad02f8bee93f06e541a0bd9d718f15f4606706cadab3811ec3dfa56bf74
 - file: ..\src\config\default\peripheral\clk\plib_clk.c
-  hash: 0d0507616e40b43f57ff6e0bb927052e112c9e1c3a71900efd553d0675c7c2dd
+  hash: 9aff8f36b48b0312737d9b885f114238bf586de1bd21965f95ca4b377cab0a81
 - file: ..\src\config\default\peripheral\clk\plib_clk.h
   hash: 35384f2e13e59b7190bf77f6996baf3ea2377ec42df94979a6f793326def5255
 - file: ..\src\config\default\peripheral\evic\plib_evic.c
