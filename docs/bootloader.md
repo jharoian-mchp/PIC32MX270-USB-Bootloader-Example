@@ -132,10 +132,14 @@ Do not enable host configuration-bit programming or live update for this first b
 
 ## Board USB checks before enumeration
 
+The [USB mini-B routing and VBUS review](usb-circuit.md) now traces the documented path: **J2 → EMI filter U3 → NCN1188 HDN/HDP → MCU D+/D−**. Mini-B selection requires **MCP23008 GP5=1, GP6=1**, preserving other bits. The carrier's default select pull-downs disconnect the mux.
+
+**Important:** J2 cable VBUS is divided/clamped onto **RA1/PIM pin 80**, while the carrier feeds dedicated MCU VBUS/PIM pin 54 from **5V_SW_DIG**. The generated driver uses dedicated VBUS session status, so it must not be assumed to detect PC cable presence. Before coding/programming, confirm the installed revision/U2 part and measure disconnected J2 VBUS and RA1 sense safely; see the checklist and attached schematic crops in that review.
+
 Use the [converted PIM and carrier references](docling/README.md), verifying small schematic details against the original PDFs as necessary.
 
 - D+ is MCU pin 8 / PIM pin 57; D− is MCU pin 9 / PIM pin 56. Do not use their alternate PGED2/PGEC2 debug function.
-- The carrier has a USB multiplexer/charge-management path. Resolve how **MCP23008 GP5 (PIM 89)** and **GP6 (PIM 90)** select the mini-B device connector and how their default states affect routing. The precise output byte/truth table is not yet approved.
+- NCN1188 truth-table and schematic review identifies **GP5/GP6 both high** for mini-B; R5/R6 20 kΩ pull-downs yield default disconnect. This is a reviewed masked-bit setting, not permission to overwrite an entire expander port. Confirm installed U2/revision before implementation.
 - Review VBUS sensing on RA1 and the dedicated VBUS pin's actual circuit. Do not enable host VBUS sourcing or allow back-feeding the PC.
 - Keep J5 pins 1–2 (3.3 V pull-ups), J1 pins 1–2 (seven-bit expander address 0x22), and reset selector PIM_MCLR.
 - Proposed force-bootloader input: **SW1/RB2, MCU pin 23/PIM pin 17**. Verify active level and make its analog-capable pin digital before use. Avoid SW5/USBID sharing for this first design.
@@ -158,7 +162,7 @@ Record generated VID/PID, report sizes, host utility version and accepted firmwa
 | Regenerate/retest application after H3 updates | Required follow-up; not performed. Preserve the tagged baseline and user-owned LED code. |
 | Review generated memory and clock configuration | Core regeneration 556a4fa resolves missing files/tasks; complete 23-source Linux -O2 build/HEX passes and fits 32 KB. Physical 0x1D008000 maps to 0x9D008000. Hardware not tested. |
 | Windows skeleton clean build | Passed in supplied log with -O2/-Wall/-Wextra; warning categories match Linux. PK5Tool now selected via 0274bf9/9fdac62; hardware programming not verified. |
-| Review/program USB connector routing and power | Not verified. |
+| Review/program USB connector routing and power | Documented mini-B HDN/HDP/GP5=GP6=1 path and RA1 cable-sense versus dedicated board VBUS reviewed. Physical voltage/revision checks and code implementation pending; see docs/usb-circuit.md. |
 | Enumerate as USB HID and connect host utility | Not tested. |
 | Relocate blink application and verify firmware update | Not started. |
 | Forced entry, missing/invalid image and interrupted-update recovery | Not tested. |

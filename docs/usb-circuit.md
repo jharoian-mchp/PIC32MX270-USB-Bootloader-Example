@@ -1,0 +1,107 @@
+# USB mini-B routing and VBUS verification
+
+The supplied carrier schematic routes **mini-B J2** through the EMI/ESD filter **U3** and the **NCN1188 U2 HDN/HDP channel** to the PIC32 USB data pins. Select that channel with **both MCP23008 GP5 and GP6 high**. The cable VBUS sense on **RA1** is separate from the MCU's dedicated VBUS pin, which the carrier pin table connects to its own **5V_SW_DIG** rail.
+
+Reviewed: **2026-10-14**. This is a schematic/source review. Actual board revision, USB voltages, connector continuity and enumeration have not been verified. No bootloader code was changed or programmed during this review.
+
+## Sources
+
+- [Carrier reference guide](docling/PIC32%20Bluetooth%20Audio%20Dev%20Kit%20Reference%20Guide.md), Figure A-7, source PDF page 55: USB routing, mux input controls and J2 VBUS sense circuit. Figure A-5/page 53 and pin table: carrier VBUS supply connection.
+- [PIM information sheet](docling/PIC32MX270F256D-Bluetooth-Audio-PIM.md), Table 1 and Figures 1–3: MCU/PIM USB pins, RA1 and expander controls.
+- [onsemi NCN1188 data sheet](https://www.onsemi.com/pdf/datasheet/ncn1188-d.pdf), July 2024 Rev. 5, page 2 truth table and page 3 pin definitions. The downloaded file's identity was checked before using its table.
+- Generated USB driver: `bootloader/src/config/default/driver/usb/usbfs/src/templates/usb_OTG_SessionValid_Default.h` and `drv_usbfs_device.c`, session-valid handling around lines 1880–1915.
+
+High-resolution crops were rendered from the original PDF to verify schematic text and connections, alongside the converted references:
+
+- [Mux and control detail](images/usb-mux-detail.png).
+- [Mini-B/filter/VBUS-sense detail](images/usb-minib-vbus-detail.png).
+
+## Data path
+
+| Stage | Negative data | Positive data |
+|---|---|---|
+| Mini-B connector J2 | Pin 2, J2_N | Pin 3, J2_P |
+| EMI/ESD filter U3 | OUT2 pin 2 → INT2 pin 7, U3_N | OUT1 pin 1 → INT1 pin 8, U3_P |
+| NCN1188 mux U2 | HDN pin 4 → common D− pin 8 | HDP pin 2 → common D+ pin 10 |
+| Carrier/PIM connector | PIM pin 56 | PIM pin 57 |
+| PIC32MX270F256D | MCU pin 9, D−/RB11 | MCU pin 8, D+/RB10 |
+
+The filter is passive in the data path; direction names do not mean it is a unidirectional digital buffer. The NCN1188 is a bidirectional analogue switch.
+
+The mux's DN/DP channel leads to the UCS1001 charging/Type-A path; AUDN/AUDP leads to an accessory path. **J2 mini-B uses HDN/HDP**, not the channel merely labelled DN/DP in the switch data sheet. This distinction matters when choosing mux controls.
+
+## Mux controls
+
+The NCN1188 truth table uses **IN1/IN2**:
+
+| IN1 | IN2 | Selected channel |
+|---:|---:|---|
+| 0 | 0 | High impedance/disconnected |
+| 0 | 1 | DN/DP |
+| 1 | 0 | AUDN/AUDP |
+| 1 | 1 | HDN/HDP — mini-B J2 on this carrier |
+
+PIM **GP5 → connector pin 89 (USB_SEL1)** and **GP6 → pin 90 (USB_SEL0)** control the switch. The PIM calls these `USB_SEL/OE#` and `USB_SEL/S`; the carrier's fitted NCN1188 uses two encoded selection inputs, **not a separate active-low output-enable pin**. Do not apply a generic OE#/S switch truth table to this board.
+
+For J2 selection, both encoded controls must be high regardless of the ordering of their IN1/IN2 labels. Therefore:
+
+- Set **OLAT bits 5 and 6 high** (mask **0x60**) while preserving other latch bits.
+- Enable only the required output directions, clearing **IODIR bits 5 and 6** while preserving the other directions.
+- When changing an already-driven mux, first establish a reviewed disconnected state (00), then preload/select 11. Do not briefly select a charging/accessory path by careless separate-bit updates.
+- Keep GP7/GPIO_32 and unrelated power/charging controls unchanged. Do not enable Type-A host power for the HID-device design.
+- Confirm on the actual hardware that the installed part is **NCN1188** and that the board revision matches the reviewed path before implementing this state.
+
+R5/R6, each **20 kΩ**, provide pull-downs on the carrier's select controls. With the MCP23008 reset directions as inputs, the documented mux defaults to 00/disconnected. The working LED application intentionally preserves GP5/GP6 and therefore does not establish a USB route.
+
+## VBUS circuit: two different signals
+
+### Cable presence signal
+
+Mini-B **J2 pin 1** goes to:
+
+- **R9, 4.99 kΩ**, then the **VBUS_SENSE** node.
+- **R7, 10 kΩ**, from that node to ground.
+- **D4, 3.3 V zener**, clamping the node toward ground.
+- The filter U3 supply node, as shown in Figure A-7.
+
+The PIM maps **VBUS_SENSE → PIM pin 80 → MCU RA1, pin 20**. Ignoring the clamp and load, 5 V cable VBUS gives `5 × 10 / (4.99 + 10) ≈ 3.34 V` at the divider node; actual voltage depends on the clamp/current/components. Expect roughly a logic-level 3.3 V when attached and near ground when no host VBUS is present. **Do not connect raw 5 V directly to RA1.**
+
+RA1 is analog-capable. A future GPIO-based connection detector must configure it appropriately, handle cable insert/remove, and coordinate the USB device layer's attach/detach state. We have not implemented or tested that detector yet.
+
+### Dedicated MCU VBUS
+
+The PIM maps **MCU VBUS pin 42 → PIM pin 54**. The carrier table and CPU schematic identify connector pin 54 as **5V_SW_DIG**, from the board's externally supplied rail. This differs from J2's cable-presence node.
+
+The generated USBFS driver presently checks **U1OTGSTAT.SESVD** via `PLIB_USB_OTG_SessionValid()` and generates session-valid/invalid events. The datastream then attaches/detaches on POWER_DETECTED/POWER_REMOVED. With dedicated VBUS supplied by the board, that hardware status cannot be assumed to reflect PC cable presence. The generic GPIO VBUS option is hidden/default-false for PIC32MX in the installed USB v3.16.0 generator; simply checking Self Powered does not redirect sensing to RA1.
+
+Before enumeration, choose and test a board-aware use of RA1 that is compatible with driver/device-layer attach behaviour. Do not blindly replace a generated driver or manually route J2 VBUS into the PIM VBUS pin. Do not treat the board's own 5 V rail as proof that a host is connected.
+
+## Power and back-feed assessment
+
+The reviewed schematic shows J2 VBUS feeding the resistor/clamp sense and filter supply, with **no depicted direct connection to the board 5V_SW_DIG rail or Type-A VBUS outputs**. That is consistent with an externally powered USB device, but it does not prove that the installed board has no assembly/revision changes or reverse-current path.
+
+USB **Self Powered remains checked**. This descriptor bit does not electrically isolate supplies or enable/disable VBUS sourcing. Keep the Type-A port unused during first HID bring-up.
+
+The UCS1001-4 controller is on the separate charging/Type-A path. Its full modes/reverse-current behaviour have not been verified from a component data sheet in this review; no charging-control changes are approved. An attempted legacy Microchip document-number lookup returned an unrelated MCP3903 data sheet, which was discarded rather than used as controller evidence.
+
+## Physical checks before connecting a PC
+
+Use the unmodified tagged LED firmware if firmware is needed while measuring. **Do not program the current bootloader skeleton yet.** Keep PICkit target powering disabled if the external supply powers the board; avoid two power sources fighting.
+
+1. **Identify the board revision and fitted U2.** Send a clear photo of the USB area/silkscreen if labels are hard to read. Keep J1 at address 0x22, J5 at 3.3 V, and reset selector PIM_MCLR.
+2. **Externally power the board with no USB host attached.** Using a suitable USB breakout/cable with safely accessible contacts, measure J2 VBUS (pin 1) to board ground. The schematic suggests no intentional board-source voltage here. If it is appreciably powered, stop and investigate before attaching the PC. Do not probe tiny connector contacts where an accidental short is likely.
+3. **Check VBUS_SENSE/RA1 with no host attached.** Measure at an accessible node such as the R9/R7 junction or PIM connector 80; expect near 0 V. Avoid probing the fine-pitch MCU pin directly.
+4. **Check dedicated VBUS separately**, if safely accessible: PIM connector 54 should follow the board's 5 V rail, illustrating why it differs from cable sense. A measurement is required before treating this as the installed circuit.
+5. After the disconnected check passes, use an appropriate protected USB connection/breakout to a host. Verify J2 VBUS is about 5 V and VBUS_SENSE is around 3.3 V, then falls near 0 V on unplug. If sense exceeds the device's permitted voltage or does not track cable VBUS, stop.
+6. Do resistance/continuity checks only with **all board power, USB and PICkit connections removed**. Switched IC paths cannot always be interpreted by a simple continuity beep; do not use a meter's resistance mode on a powered USB/MCU circuit.
+
+Report board revision/U2 identity, disconnected J2 VBUS and VBUS_SENSE values first. If safe access is unavailable, send the board photo and describe available measurement tools; do not improvise risky probing.
+
+## Next implementation milestone
+
+After the physical checks match the supplied schematic:
+
+- Implement user-owned MCP23008 route setup, preserving other pins, and verify it reaches the intended 11 state.
+- Configure RA1 connection sensing/attach-detach coordination and SW1 force-entry without disrupting the preserved application.
+- Build/test the code and review nontrivial compiler diagnostics; only then approve a controlled enumeration test, with host erase/program commands unused.
+- Record actual VID/PID enumeration and cable disconnect behaviour before testing the update protocol or relocated application.

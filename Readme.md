@@ -84,6 +84,7 @@ tests/                 Mocked application tests
 tools/
   toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
+  usb-circuit.md       Mini-B mux/VBUS schematic findings and physical checks
   bootloader.md        USB HID project setup and pre-programming checks
   application.md       LED logic, build instructions and first hardware test
   toolchain.md         Windows/Linux tools, clock plan and generation handoff
@@ -127,7 +128,8 @@ The application project is present. A separate `bootloader/` directory is the ne
 ### Next steps
 
 - PICkit 5 is now selected in the shared bootloader project; -Wall/-Wextra are retained. Keep the skeleton unprogrammed until USB routing/power and entry review.
-- Review the USB mux/VBUS schematic and implement appropriate board-control initialisation plus physical bootloader entry before hardware enumeration. Review the nontrivial compiler diagnostics.
+- Follow the [USB circuit physical checks](docs/usb-circuit.md): confirm board revision/NCN1188 and safely measure disconnected J2 VBUS and RA1 sense. Mini-B routes through HDN/HDP with GP5=GP6=1; dedicated MCU VBUS is board-powered, so cable detection must use the reviewed RA1 path.
+- Implement/test board routing and attach-detach coordination plus physical entry after those checks. Review nontrivial compiler diagnostics before enumeration.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
 - Keep the reviewed bootloader clocks: USB PLL ON, input ÷3, UFRCEN OFF, 48 MHz USB clock; system PLL ÷3/×24/÷2 for 48 MHz SYSCLK/PBCLK. Finish USB Device HID Bootloader dependency connections.
@@ -164,3 +166,4 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Reviewed the user's full Windows bootloader build log: success, no errors and warning-category counts matching Linux (1,080 occurrences, mostly repeated unused-parameter diagnostics). Pulled fd97ec3 saving -Wall/-Wextra. Tool remains noID; IDE loading text does not verify hardware programming. USB routing/entry and nontrivial-warning review remain next.
 
 - **2026-10-14:** Pulled host PICkit 5 selection commit 0274bf9 through merge 9fdac62; verified PK5Tool, retained -Wall/-Wextra and valid XML. USB routing/VBUS and entry review are next; no bootloader hardware test yet.
+- **2026-10-14:** Traced mini-B J2 through U3 and NCN1188 HDN/HDP; component truth table selects this with GP5/GP6 high. Identified cable VBUS divider/clamp to RA1 versus dedicated VBUS fed from board 5V_SW_DIG. Added schematic crops and pre-PC voltage/revision checks; no hardware measurements or bootloader changes yet.
