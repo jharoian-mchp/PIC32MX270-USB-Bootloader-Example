@@ -59,10 +59,10 @@
 #include "usb/usb_device.h"
 #include "peripheral/adc/plib_adc.h"
 #include "bootloader/bootloader_usb_device_hid.h"
-#include "peripheral/nvm/plib_nvm.h"
 #include "system/int/sys_int.h"
 #include "osal/osal.h"
 #include "system/debug/sys_debug.h"
+#include "peripheral/nvm/plib_nvm.h"
 #include "app.h"
 
 

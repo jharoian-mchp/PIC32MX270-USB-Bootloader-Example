@@ -44,8 +44,8 @@ data:
     - children:
       - attributes:
           id: nvm
-          x: '5'
-          y: '33'
+          x: '10'
+          y: '170'
         type: ElementPosition
       type: ElementPositions
     type: ComponentGraph

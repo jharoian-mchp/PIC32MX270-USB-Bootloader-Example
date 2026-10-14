@@ -62,6 +62,16 @@
 // *****************************************************************************
 
 
+/*** Macros for BOOT_REQUEST pin ***/
+#define BOOT_REQUEST_Set()               (LATBSET = (1<<2))
+#define BOOT_REQUEST_Clear()             (LATBCLR = (1<<2))
+#define BOOT_REQUEST_Toggle()            (LATBINV= (1<<2))
+#define BOOT_REQUEST_OutputEnable()      (TRISBCLR = (1<<2))
+#define BOOT_REQUEST_InputEnable()       (TRISBSET = (1<<2))
+#define BOOT_REQUEST_Get()               ((PORTB >> 2) & 0x1)
+#define BOOT_REQUEST_GetLatch()          ((LATB >> 2) & 0x1)
+#define BOOT_REQUEST_PIN                  GPIO_PIN_RB2
+
 
 // *****************************************************************************
 /* GPIO Port

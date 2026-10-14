@@ -1386,6 +1386,51 @@ data:
           type: User
         type: Values
       type: String
+    SYS_PORT_B_ANSEL:
+      attributes:
+        id: SYS_PORT_B_ANSEL
+        label: ANSELB Value
+      children:
+      - children:
+        - attributes:
+            id: core
+            value: '4'
+          type: Dynamic
+        type: Values
+      type: Hex
+    BSP_PIN_23_MODE:
+      attributes:
+        id: BSP_PIN_23_MODE
+        label: Mode
+      children:
+      - children:
+        - attributes:
+            value: DIGITAL
+          type: User
+        type: Values
+      type: String
+    BSP_PIN_23_FUNCTION_TYPE:
+      attributes:
+        id: BSP_PIN_23_FUNCTION_TYPE
+        label: Type
+      children:
+      - children:
+        - attributes:
+            value: GPIO
+          type: User
+        type: Values
+      type: String
+    BSP_PIN_23_FUNCTION_NAME:
+      attributes:
+        id: BSP_PIN_23_FUNCTION_NAME
+        label: Name
+      children:
+      - children:
+        - attributes:
+            value: BOOT_REQUEST
+          type: User
+        type: Values
+      type: String
   userData:
     children:
     - attributes:
