@@ -118,18 +118,20 @@ The application project is present. A separate `bootloader/` directory is the ne
 | Windows debug build/load and board blink | Passed, user-reported | Clean debug build/load with XC32 v6.00, DFP 1.7.380 and PICkit 5; LED1/D5 blinks as expected. Shared project selects PK5Tool (48faaa9). |
 | Production, reset and cold-start recovery | Passed, user-reported | Production-built app blinks and recovers after MCLR and power cycle. Exact commit dd59a29 tagged v0.1.0-led-blink. |
 | Regenerate application after H3 content updates | Required follow-up | Adding the bootloader library updated host H3 content. After versions settle, regenerate the application, preserve user-owned LED code and repeat Linux/Windows builds plus production blink/MCLR/power-cycle tests. Not yet regenerated. |
-| Generate and enumerate HID bootloader | Generated; build blocked | Pulled skeleton 0e87595. Address/32 KB layout and USB fuses/descriptors reviewed; Harmony common/configuration/task files missing and SYS_Tasks empty. USB routing/power and enumeration not verified. |
+| Generate/build HID bootloader | Linux build passed | Core regeneration 556a4fa supplies missing files/tasks; make bootloader compiles 23 C sources at -O2 and generates HEX. Program sections end at 0x9D005DFC, within 32 KB reservation. Warnings reviewed preliminarily; USB routing/VBUS/entry still need work. |
+| Enumerate HID bootloader | Not tested | Do not program current skeleton before board routing/power and entry review. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Correct the bootloader **Harmony Core Service** generation: enable driver-common and system-service-common files; verify system interrupt, bare-metal OSAL and application/configuration/task generation. Keep BareMetal/no RTOS, regenerate and push. See the [build blocker](docs/bootloader.md).
+- Set the bootloader project's tool to **PICkit 5** in MPLAB X and retain -Wall/-Wextra; Clean/Build to verify the regenerated project on Windows. Do not program yet.
+- Review the USB mux/VBUS schematic and implement appropriate board-control initialisation plus physical bootloader entry before hardware enumeration. Review the nontrivial compiler diagnostics.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
 - Keep the reviewed bootloader clocks: USB PLL ON, input ÷3, UFRCEN OFF, 48 MHz USB clock; system PLL ÷3/×24/÷2 for 48 MHz SYSCLK/PBCLK. Finish USB Device HID Bootloader dependency connections.
 - FreeRTOS is removed; keep required Harmony Core/USB dependencies. Set **Self Powered checked** for the externally powered board; verify USB VBUS sensing and prevent back-feeding.
-- Generated APP_START/JUMP uses PA_TO_KVA0(0x1D008000), confirming virtual address 0x9D008000; linker reservation is 32 KB. Binary fit still needs a passing build. Do not program yet.
+- Generated APP_START/JUMP uses PA_TO_KVA0(0x1D008000), confirming virtual address 0x9D008000; the -O2 binary now fits the 32 KB reservation. Do not program yet.
 - Resolve the carrier USB mux and VBUS/power path before connecting/attempting USB updates.
 - If needed, inspect `app_led_diagnostics` for readiness, NACK/collision/timeout faults and transition count.
 - Record carrier-board/PIM revisions and remaining hardware measurements; review USB routing/power before bootloader generation.
@@ -157,3 +159,4 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Reviewed bootloader Clock Configurator: USB PLL input ÷3/4 MHz, UPLLEN ON, UFRCEN OFF and 48 MHz USB clock; system PLL ÷3/×24/÷2. USB HID bootloader/NVM component is visible; full dependency graph and memory settings remain to be reviewed.
 - **2026-10-14:** User removed FreeRTOS, confirmed external board supply, reported 32,768-byte bootloader reservation and firmware trigger OFF. Corrected Self Powered to checked for this power arrangement; core owns APP_START_ADDRESS. Candidate 0x9D008000 remains subject to generated layout/map review. Bootloader skeleton generation/handoff was next at that point; programming was not authorised.
 - **2026-10-14:** User confirmed Self Powered and physical application address 0x1D008000, generated and pushed skeleton 0e87595. Source review confirms the 0x9D008000 mapping, 32 KB linker region, USB clock fuses, 128-byte rows/1 KB erase pages and 04D8:003C self-powered HID descriptors. Build fails because Harmony common/configuration/task files are missing and SYS_Tasks remains empty. Requested MCC generation-switch correction; no bootloader hardware test yet.
+- **2026-10-14:** Pulled Core regeneration 556a4fa with no user-reported notifications. Verified generated SYS_Tasks and common files. Added make bootloader; all 23 sources compile/link at -O2 and produce valid HEX within 32 KB. Standalone tests/build still pass; USB board routing/VBUS, physical entry and update-safety review remain.

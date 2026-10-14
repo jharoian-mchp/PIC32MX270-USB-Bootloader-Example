@@ -16,8 +16,19 @@ APP_SOURCES := application/src/main.c application/src/app_led.c \
 HOST_CC ?= cc
 # Extra diagnostics beyond the default Windows MPLAB X build flags.
 APP_WARNINGS ?= -Wall -Wextra
+BTL_DIR := build/bootloader
+BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
+BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check application test
+.PHONY: toolchain-check application bootloader test
+
+bootloader:
+	@mkdir -p "$(BTL_DIR)"
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O2 -fno-common -ffunction-sections -fdata-sections $(BTL_WARNINGS) -Ibootloader/src -Ibootloader/src/config/default $(BTL_SOURCES) -Wl,--script=bootloader/src/config/default/btl.ld,--defsym=_min_heap_size=512,--gc-sections,-Map="$(BTL_DIR)/bootloader.map" -o "$(BTL_DIR)/bootloader.elf"
+	"$(XC32_ROOT)/bin/xc32-bin2hex" "$(BTL_DIR)/bootloader.elf"
+	"$(XC32_ROOT)/bin/xc32-size" "$(BTL_DIR)/bootloader.elf"
+	@test -s "$(BTL_DIR)/bootloader.hex"
+	@echo "Built skeleton only: USB routing, entry and update safety are not hardware verified. Do not program yet."
 
 application:
 	@mkdir -p "$(APP_DIR)"

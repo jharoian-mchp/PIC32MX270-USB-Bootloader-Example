@@ -2,7 +2,7 @@
 
 The standalone LED1 baseline is preserved at annotated tag **[v0.1.0-led-blink](https://github.com/jharoian-mchp/PIC32MX270-USB-Bootloader-Example/tree/v0.1.0-led-blink)**, targeting commit **dd59a291254b45d44fba65810b2085d9b6ea40df**. The user confirmed production programming, expected blinking, and recovery after both MCLR and a power cycle on 2026-10-13.
 
-The next stage is a **separate USB device HID bootloader**, followed by a relocated version of the blink application. The initial bootloader skeleton is generated and pulled at **0e87595**. Its Linux build is blocked by missing Harmony common/configuration/task files; no bootloader binary or hardware test has passed yet.
+The next stage is a **separate USB device HID bootloader**, followed by a relocated version of the blink application. The initial skeleton was pulled at **0e87595**. Core regeneration at **556a4fa** supplied the missing common/configuration/task files; the complete Linux XC32 bootloader build now passes. USB hardware enumeration and update tests have not run.
 
 ## Preserve the working application
 
@@ -51,15 +51,15 @@ Saved package metadata records **bootloader v3.9.0**, **USB v3.16.0**, **Harmony
 Verified in generated sources:
 
 - `bootloader_common.h`: APP_START_ADDRESS and APP_JUMP_ADDRESS use **PA_TO_KVA0(0x1D008000)**, corresponding to **0x9D008000**. The physical address shown in MCC is correct.
-- `btl.ld`: program region starts at **0x9D000000**, length **32,768**, bootloader exception base **0x9D000000**; reset remains **0xBFC00000**. Actual binary fit cannot be checked until the build succeeds.
+- `btl.ld`: program region starts at **0x9D000000**, length **32,768**, bootloader exception base **0x9D000000**; reset remains **0xBFC00000**. The regenerated -O2 build fits the reservation; see the build results below.
 - Program `PAGE_SIZE` is **128 bytes** (row-buffer naming), ERASE_BLOCK_SIZE is **1,024 bytes**; the NVM PLIB agrees.
 - Clocks/debug fuses match the plan, including UPLLEN ON, UPLLIDIV DIV_3 and ICS_PGx4.
 - USB descriptors: VID/PID **04D8:003C**, endpoint-0 and HID IN/OUT packets **64 bytes**, Self Powered set, Remote Wakeup absent. Declared bus draw is currently 100 mA; actual consumption still needs review.
 - Datastream code attaches on POWER_DETECTED and detaches on POWER_REMOVED. Board routing/physical VBUS sensing is not verified by that software path.
 
-### Build blocker: Harmony Core generation
+### Resolved build blocker: Harmony Core generation
 
-The repository contains no `configuration.h`, `tasks.c`, `system/system.h`, system interrupt/common or driver-common/OSAL generated files. Required USB/bootloader headers include these missing files. `definitions.h` still defines **SYS_Tasks() as an empty macro**, so the current main loop would not service the USB/bootloader tasks even if includes were patched manually.
+At skeleton commit **0e87595**, the repository contained no `configuration.h`, `tasks.c`, `system/system.h`, system interrupt/common or driver-common/OSAL generated files. Required USB/bootloader headers included those missing files. `definitions.h` defined **SYS_Tasks() as an empty macro**, so that main loop would not service USB/bootloader tasks even if includes were patched manually.
 
 Inspection of core **v3.17.1** generator scripts confirms that common/configuration/tasks generation is gated by switches which default OFF. In the **Harmony Core Service** component, keep **BareMetal/no RTOS** and enable:
 
@@ -67,9 +67,21 @@ Inspection of core **v3.17.1** generator scripts confirms that common/configurat
 - **Generate Harmony System Service Common Files** (`ENABLE_SYS_COMMON`).
 - Verify **Enable System Interrupt**, **Enable OSAL** (bare-metal implementation) and **Generate Harmony Application Files** become enabled through dependencies.
 
-Regenerate through MCC and push the result. Check for `configuration.h`, `tasks.c`, `system/` headers/sources, driver-common/OSAL headers, and a real SYS_Tasks implementation calling the USB/bootloader task functions. Review any placeholder application files produced by the generator. Do not hand-create missing generated headers or reintroduce FreeRTOS just to satisfy these dependencies.
+These settings were applied by the user and regenerated at **556a4fa**. For future regeneration, check for `configuration.h`, `tasks.c`, `system/` headers/sources, driver-common/OSAL headers, and a real SYS_Tasks implementation calling the USB/bootloader task functions. Review any placeholder application files produced by the generator. Do not hand-create missing generated headers or reintroduce FreeRTOS just to satisfy these dependencies.
 
-The build failure has been reproduced with XC32 v6.00/DFP 1.7.380. The original generated files remain unchanged; no bootloader firmware is ready to program.
+The original build failure was reproduced with XC32 v6.00/DFP 1.7.380. The user's Core regeneration at **556a4fa** resolved it without hand-created headers or local edits to generated files. `configuration.h`, common/system/driver/OSAL headers, `sys_int.c`, `tasks.c` and application placeholders are present. `SYS_Tasks()` now calls `bootloader_USB_DEVICE_HID_Tasks()`, `USB_DEVICE_Tasks()` and placeholder `APP_Tasks()`; USBFS is configured for interrupt mode.
+
+### Linux build results — 2026-10-14
+
+Run **`make bootloader`** from the repository root. It compiles all **23 project C sources** with XC32 v6.00, DFP 1.7.380, the host project's **-O2**, generated `btl.ld`, section garbage collection and 512-byte minimum heap. Outputs go under ignored `build/bootloader/`.
+
+- Compile, link and Intel HEX generation pass; all 1,950 HEX records have valid checksums/lengths.
+- `xc32-size`: **23,837 bytes text, 224 bytes data, 1,868 bytes BSS**. This total includes separate boot/reset/configuration sections; use linker/section addresses for program-region fit.
+- Loadable program-flash sections occupy **23,429 bytes**, with highest end **0x9D005DFC**, below application start **0x9D008000**. The remaining address span is **8,708 bytes**. Boot reset/configuration records are in their separate device-defined regions.
+- The existing standalone application and mocked tests still pass. This does not satisfy the outstanding application-regeneration follow-up.
+- With -Wall/-Wextra there are many repeated unused-parameter diagnostics in generated USB template headers, plus enum/function-pointer conversions, intentional-looking fallthrough, old-style declarations, an initializer warning and six EVIC MMIO array-bounds diagnostics at -O2. These are not dismissed as universally harmless; review nontrivial diagnostics before hardware deployment. Generated sources were not patched or warning categories suppressed.
+
+The bootloader project still selects **noID** as its tool. Set **PICkit 5** in MPLAB X before a host build/debug session, and retain the agreed warning options. Building is now possible, but **do not program the skeleton yet**: the MCP23008 USB routing, VBUS circuit, physical entry and update safety are not implemented/verified.
 
 ### Further update-path issues to resolve
 
@@ -128,7 +140,7 @@ Record generated VID/PID, report sizes, host utility version and accepted firmwa
 | Preserve production-tested standalone application | Tag v0.1.0-led-blink pushed and verified at dd59a29. |
 | Create bootloader MCC project and identify package versions | Bootloader library added; host content updates reported. Final installed versions not recorded in the repository yet. |
 | Regenerate/retest application after H3 updates | Required follow-up; not performed. Preserve the tagged baseline and user-owned LED code. |
-| Review generated memory and clock configuration | Physical 0x1D008000 mapped to 0x9D008000, 32 KB reservation, fuses/geometry and descriptors reviewed. Build blocked by missing Harmony common/configuration/task files. |
+| Review generated memory and clock configuration | Core regeneration 556a4fa resolves missing files/tasks; complete 23-source Linux -O2 build/HEX passes and fits 32 KB. Physical 0x1D008000 maps to 0x9D008000. Hardware not tested. |
 | Review/program USB connector routing and power | Not verified. |
 | Enumerate as USB HID and connect host utility | Not tested. |
 | Relocate blink application and verify firmware update | Not started. |
