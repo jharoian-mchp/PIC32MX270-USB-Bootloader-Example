@@ -13,7 +13,7 @@ Reviewed: **2026-10-14**. This is a schematic/source review with the user-report
 | Board revision | R7 | Recorded as reported; need the full PCB/assembly identification or photo to match a schematic revision. |
 | U2 | 10 pins, marking AG7 | Conflicts with documented 12-pin NCN1188. Marking alone has not established a part number. |
 | VBUS_SENSE | 0 V | Consistent with the disconnected state. Does not establish the voltage on J2 pin 1. |
-| J2 connector VBUS with no host | Not supplied | Still needed for the back-feed check before connecting the PC. |
+| J2 connector VBUS with no host | 0 V, confirmed by user on 2026-10-14 | Initial no-host voltage check passes. Does not prove all reverse-current/fault conditions are safe. |
 
 A candidate search found ten-pin USB switches with different enable/select interfaces, including FSUSB42, but its official marking diagram does not match AG7. No candidate part is confirmed and no alternative truth table is approved. In particular, a switch with an active-high disable/OE input could be **disconnected**, not enabled, by driving both controls high.
 
@@ -110,7 +110,7 @@ Use the unmodified tagged LED firmware if firmware is needed while measuring. **
 5. After the disconnected check passes, use an appropriate protected USB connection/breakout to a host. Verify J2 VBUS is about 5 V and VBUS_SENSE is around 3.3 V, then falls near 0 V on unplug. If sense exceeds the device's permitted voltage or does not track cable VBUS, stop.
 6. Do resistance/continuity checks only with **all board power, USB and PICkit connections removed**. Switched IC paths cannot always be interpreted by a simple continuity beep; do not use a meter's resistance mode on a powered USB/MCU circuit.
 
-Report board revision/U2 identity, disconnected J2 VBUS and VBUS_SENSE values first. If safe access is unavailable, send the board photo and describe available measurement tools; do not improvise risky probing.
+Disconnected J2 VBUS and VBUS_SENSE are now both user-reported 0 V. Resolve the installed U2 identity and matching board revision/routing next; host-attached sense tracking has not been tested. If safe access is unavailable, send the board photo and describe available measurement tools; do not improvise risky probing.
 
 ## Next implementation milestone
 

@@ -134,7 +134,7 @@ Do not enable host configuration-bit programming or live update for this first b
 
 **Hold mux setup pending installed U2 identification:** the user reported board revision R7, **ten-pin U2 marked AG7**, and disconnected VBUS_SENSE 0 V. The supplied schematic specifies a **twelve-pin NCN1188**. The earlier GP5=GP6=1 setting applies only to that documented circuit and is not approved for the reported installed board. See [the observations and identification checklist](usb-circuit.md).
 
-The schematic-only path is **J2 → EMI filter U3 → NCN1188 HDN/HDP → MCU D+/D−**. Confirm the actual switch and matching routing before using its truth table. J2 connector VBUS itself has not yet been measured; VBUS_SENSE 0 V does not complete the back-feed check.
+The schematic-only path is **J2 → EMI filter U3 → NCN1188 HDN/HDP → MCU D+/D−**. Confirm the actual switch and matching routing before using its truth table. The user subsequently measured **J2 connector VBUS = 0 V** with no host, as well as **VBUS_SENSE = 0 V**. The initial disconnected voltage check passes; actual U2 identification and host-attached voltage tracking remain unresolved.
 
 **Important:** J2 cable VBUS is divided/clamped onto **RA1/PIM pin 80**, while the carrier feeds dedicated MCU VBUS/PIM pin 54 from **5V_SW_DIG**. The generated driver uses dedicated VBUS session status, so it must not be assumed to detect PC cable presence. Before coding/programming, confirm the installed revision/U2 part and measure disconnected J2 VBUS and RA1 sense safely; see the checklist and attached schematic crops in that review.
 
