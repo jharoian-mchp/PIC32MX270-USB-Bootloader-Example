@@ -84,6 +84,7 @@ tests/                 Mocked application tests
 tools/
   toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
+  update-safety.md     Host-only generated-parser audit and hardening requirements
   usb-entry.md         SW1-held startup enumeration and safe-idle test
   usb-enumeration.md   Diagnostic-only ADC/mux/enumeration board test
   usb-circuit.md       Mini-B mux/VBUS schematic findings and physical checks
@@ -127,12 +128,14 @@ The application project is present. A separate `bootloader/` directory is the ne
 | Enumerate HID bootloader | First connection passed, user screenshots | Windows VID_04D8/PID_003C; ADC 622 counts, mux latch 0x60/direction 0x9F, zero ADC/mux/USB error counters. Historical USB_OPEN startup flag explained; ADC unplug/replug and attach counts confirmed; MCLR and power cycle both remove/re-enumerate USB, confirmed by user. Earlier cable-replug configured flag not captured. No update commands. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
 | SW1 diagnostic startup selection | Passed, user-reported | User confirmed 51a78c5 works as described: held-at-reset enumeration, latched entry, normal safe idle and no late entry. No application handoff. |
-| Verify USB updates and recovery | Not started | Requires parser/flash/image safety review, relocated application and compatible host utility. |
+| Generated update-path audit | Defects reproduced, host-only | 12 unsafe behaviors confirmed with mocked flash/datastream and sanitizers; generated code untouched. See docs/update-safety.md. |
+| Verify USB updates and recovery | Disabled/not tested | Requires hardened parser/flash/image policy, relocated application and compatible host utility. |
 
 ### Next steps
 
 - Initial [diagnostic enumeration](docs/usb-enumeration.md) passes, including MCLR/power-cycle re-enumeration. Generated SW1/BOOT_REQUEST settings are verified. User-owned startup debounce now gates enumeration: hold SW1 across reset for diagnostic mode; no button yields safe idle, not application handoff. The user confirmed [SW1 works as described](docs/usb-entry.md); physical-entry diagnostics pass. Update commands remain inactive.
-- Review/test parser length/address bounds, flash errors and valid-image/interruption policy before enabling updates or relocating the application.
+- The [host-only update audit](docs/update-safety.md) reproduces 12 unsafe behaviors in generated framing/HEX/flash handling. Run `make update-audit` to reproduce them safely with mocks; a passing audit is not update approval.
+- Harden bounded framing/command validation first, then HEX/row-range/error handling and image-completion/interruption policy before restoring update tasks or relocating the application.
 - U2 is identified as **12-pin NCN1188**, marking AG7; the user corrected the initial ten-pin count. Mini-B mux selection is **GP5=GP6=1**, preserving other bits. Disconnected readings are 0 V; connected readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. User confirmed MCU VDD=3.3 V, same measurement point and return-to-zero on unplug. RA1 GPIO VIH requires 2.145 V, so add/review AN1 ADC sensing using AVDD/AVSS instead of GPIO-high detection; proposed setup is in docs/usb-circuit.md. See [USB circuit checks](docs/usb-circuit.md).
 - User-owned mux/ADC/attach diagnostic logic is implemented and software-tested. Capture hardware unplug/replug/reset results before proceeding. Physical SW1 diagnostic entry is now user-confirmed; update-safety logic remains next.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
@@ -202,3 +205,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Pulled c4d27a6 SW1 generation, verified AN4 disabled and BOOT_REQUEST_Get. Added startup-button debounce: held SW1 enables enumeration, normal startup safe-idles without application handoff. Builds/mocks/sanitizers pass; SW1 hardware test next. Updates inactive.
 
 - **2026-10-14:** User confirmed SW1 works as described for diagnostic startup-gated version 51a78c5. Physical entry milestone passes; normal start remains safe idle, with no application handoff or update commands. Parser/flash/image-safety tests are next.
+
+- **2026-10-14:** Added host-only audit against unmodified generated update code. Reproduced 12 unsafe behaviors (eight non-crashing cases, four sanitizer failures) with mocked flash/datastream; valid baselines pass. Diagnostic/application builds and tests still pass, and update/erase/write code remains absent from diagnostic ELF. Next harden framing/command validation and HEX/flash/image contracts before enabling updates.

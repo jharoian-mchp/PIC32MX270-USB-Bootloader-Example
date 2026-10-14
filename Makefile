@@ -20,7 +20,7 @@ BTL_DIR := build/bootloader
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check application bootloader test
+.PHONY: toolchain-check application bootloader test update-audit
 
 bootloader:
 	@mkdir -p "$(BTL_DIR)"
@@ -43,6 +43,10 @@ test:
 	./build/tests/app_led_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/usb_mocks -Ibootloader/src bootloader/src/board_usb_diag.c tests/board_usb_diag_test.c -o build/tests/board_usb_diag_test
 	./build/tests/board_usb_diag_test
+
+# A passing audit means known defects reproduced, not that updates are safe.
+update-audit:
+	HOST_CC="$(HOST_CC)" sh tests/run-update-audit.sh
 
 toolchain-check:
 	@mkdir -p "$(SMOKE_DIR)"
