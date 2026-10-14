@@ -1,6 +1,6 @@
 # SW1 startup-entry test
 
-This diagnostic build **enumerates only when SW1 is held during startup**. No button selects **safe idle**, not application handoff. Firmware-update commands remain inactive. Linux builds, mocked tests and sanitizer checks pass; SW1 behavior on the board is not yet tested.
+This diagnostic build **enumerates only when SW1 is held during startup**. No button selects **safe idle**, not application handoff. Firmware-update commands remain inactive. Linux builds, mocked tests and sanitizer checks pass. On 2026-10-14 the user confirmed **SW1 works as described** for this diagnostic startup-entry test.
 
 ## Configuration and behavior
 
@@ -15,7 +15,7 @@ After SYS_Initialize, the diagnostic loop samples the button at 5 ms intervals. 
 
 The strong `bootloader_Trigger()` deliberately still returns true to block the generated application's unsafe first-word-only jump path. It **does not mean the button is pressed**. The subsequent user-owned startup decision gates USB enumeration. We will integrate SW1 into the final trigger/valid-image/handoff policy only after update safety and the relocated application are tested.
 
-The initial USB enumeration/reset/cable tests in `docs/usb-enumeration.md` apply to the preceding always-enumerating diagnostic version. This SW1-gated revision needs its own hardware verification.
+The initial USB enumeration/reset/cable tests in `docs/usb-enumeration.md` apply to the preceding always-enumerating diagnostic version. The user subsequently confirmed this SW1-gated revision works as described; no firmware-update or application-handoff result is implied.
 
 ## Software checks
 
@@ -35,6 +35,10 @@ XC32 v6.00/DFP 1.7.380 -O2 builds this diagnostic image within the 32 KB reserva
 For timing-sensitive behavior, run freely rather than repeatedly single-stepping through startup or USB tasks. Debugger halts can exceed the startup window; hold SW1 before starting execution. There is no LED heartbeat or normal application in this build.
 
 Report the normal-start and held-SW1 enumeration results, the three new diagnostic fields, and any build/programming error. These results establish physical entry only; they do not establish firmware update, flash protection, valid-image recovery or application handoff.
+
+## Observed hardware result — 2026-10-14
+
+The user reported **“SW1 works as described”** after delivery of startup-gated diagnostic commit **51a78c5**. Record the intended selection behavior as passed, user-reported: normal reset does not enumerate, held SW1 during reset enables diagnostic enumeration, release after entry stays in diagnostics, and a late press does not enter without reset. No additional timing measurements or per-case screenshots were supplied. This pass does not verify a functional update bootloader or application handoff.
 
 ## Next work
 

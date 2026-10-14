@@ -126,14 +126,15 @@ The application project is present. A separate `bootloader/` directory is the ne
 | Enumeration-only diagnostic code | Software checks passed | User-owned ADC hysteresis/mux/readback/attach code, always-diagnostic entry, no update-task calls. Linux build/mocks/sanitizers pass; erase/write/parser routines absent from linked ELF. |
 | Enumerate HID bootloader | First connection passed, user screenshots | Windows VID_04D8/PID_003C; ADC 622 counts, mux latch 0x60/direction 0x9F, zero ADC/mux/USB error counters. Historical USB_OPEN startup flag explained; ADC unplug/replug and attach counts confirmed; MCLR and power cycle both remove/re-enumerate USB, confirmed by user. Earlier cable-replug configured flag not captured. No update commands. |
 | Define and test memory layout and application handoff | Not started | Bootloader size and linker contract not established. |
-| Verify USB updates and recovery | Not started | Requires bootloader, relocated application and compatible host utility. |
+| SW1 diagnostic startup selection | Passed, user-reported | User confirmed 51a78c5 works as described: held-at-reset enumeration, latched entry, normal safe idle and no late entry. No application handoff. |
+| Verify USB updates and recovery | Not started | Requires parser/flash/image safety review, relocated application and compatible host utility. |
 
 ### Next steps
 
-- Initial [diagnostic enumeration](docs/usb-enumeration.md) passes, including MCLR/power-cycle re-enumeration. Generated SW1/BOOT_REQUEST settings are verified. User-owned startup debounce now gates enumeration: hold SW1 across reset for diagnostic mode; no button yields safe idle, not application handoff. Follow [the SW1 board test](docs/usb-entry.md). Update commands remain inactive.
+- Initial [diagnostic enumeration](docs/usb-enumeration.md) passes, including MCLR/power-cycle re-enumeration. Generated SW1/BOOT_REQUEST settings are verified. User-owned startup debounce now gates enumeration: hold SW1 across reset for diagnostic mode; no button yields safe idle, not application handoff. The user confirmed [SW1 works as described](docs/usb-entry.md); physical-entry diagnostics pass. Update commands remain inactive.
 - Review/test parser length/address bounds, flash errors and valid-image/interruption policy before enabling updates or relocating the application.
 - U2 is identified as **12-pin NCN1188**, marking AG7; the user corrected the initial ten-pin count. Mini-B mux selection is **GP5=GP6=1**, preserving other bits. Disconnected readings are 0 V; connected readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. User confirmed MCU VDD=3.3 V, same measurement point and return-to-zero on unplug. RA1 GPIO VIH requires 2.145 V, so add/review AN1 ADC sensing using AVDD/AVSS instead of GPIO-high detection; proposed setup is in docs/usb-circuit.md. See [USB circuit checks](docs/usb-circuit.md).
-- User-owned mux/ADC/attach diagnostic logic is implemented and software-tested. Capture hardware unplug/replug/reset results before proceeding. Physical SW1 entry and update-safety logic remain later work.
+- User-owned mux/ADC/attach diagnostic logic is implemented and software-tested. Capture hardware unplug/replug/reset results before proceeding. Physical SW1 diagnostic entry is now user-confirmed; update-safety logic remains next.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
 - Keep the reviewed bootloader clocks: USB PLL ON, input ÷3, UFRCEN OFF, 48 MHz USB clock; system PLL ÷3/×24/÷2 for 48 MHz SYSCLK/PBCLK. Finish USB Device HID Bootloader dependency connections.
@@ -199,3 +200,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Reviewed SW1/RB2 BOOT_REQUEST pin screen and carrier Figure A-8; R18 is a 20 kΩ pull-up to 3.3 V, button shorts to ground, active-low. Internal pulls can stay off. Generated GPIO digital/input settings and entry behavior remain next; updates inactive.
 
 - **2026-10-14:** Pulled c4d27a6 SW1 generation, verified AN4 disabled and BOOT_REQUEST_Get. Added startup-button debounce: held SW1 enables enumeration, normal startup safe-idles without application handoff. Builds/mocks/sanitizers pass; SW1 hardware test next. Updates inactive.
+
+- **2026-10-14:** User confirmed SW1 works as described for diagnostic startup-gated version 51a78c5. Physical entry milestone passes; normal start remains safe idle, with no application handoff or update commands. Parser/flash/image-safety tests are next.
