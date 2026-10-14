@@ -43,6 +43,7 @@
 // Section: Included Files
 // *****************************************************************************
 // *****************************************************************************
+#include "configuration.h"
 #include "definitions.h"
 #include "device.h"
 
@@ -111,6 +112,8 @@
 // Section: System Data
 // *****************************************************************************
 // *****************************************************************************
+/* Structure to hold the object handles for the modules in the system. */
+SYSTEM_OBJECTS sysObj;
 
 // *****************************************************************************
 // *****************************************************************************
@@ -231,6 +234,9 @@ void SYS_Initialize ( void* data )
 
 
     /* MISRAC 2023 deviation block end */
+    APP_Initialize();
+
+
     EVIC_Initialize();
 
 	/* Enable global interrupts */
