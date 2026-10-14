@@ -38,7 +38,9 @@ The 2026-10-14 Clock Configurator screenshot confirms **UPLLIDIV DIV_3, UPLLEN O
 
 The bootloader component screenshot shows USB Device HID Bootloader with an NVM dependency and firmware-trigger option. Leave firmware-triggered entry disabled for the initial physical-button design. Bootloader reservation/application start are not yet reviewed.
 
-The subsequent Project Graph shows NVM, USB Device HID Bootloader, USB Device Layer/HID Function Driver, USB Full Speed Driver and I²C1. It also includes FreeRTOS/Core Service; use a bare-metal/no-RTOS configuration for this initial bootloader if supported by the installed package, then review the resulting dependencies. No RTOS is required by the agreed design. The USB device screen shows endpoint-0 buffer size 64 and the bootloader Product ID selection; exact VID/PID and Self Powered/Remote Wakeup states still need verification. Self Powered must reflect the actual board power arrangement, not merely a default.
+The updated 2026-10-14 Project Graph shows NVM, USB Device HID Bootloader, USB Device Layer/HID Function Driver, USB Full Speed Driver, I²C1 and Harmony Core, with **FreeRTOS removed**. Retain Harmony Core if the USB stack requires it; it is not itself FreeRTOS. The USB device screen shows endpoint-0 buffer size 64 and the bootloader Product ID selection; exact VID/PID and Remote Wakeup state still need verification.
+
+The user confirmed an **external power supply powers the board**. Set **Self Powered checked**: unchecked describes bus-powered operation. This descriptor setting does not enable host VBUS sourcing and does not replace USB-host VBUS detection. Verify the actual power/USB circuit prevents back-feeding the PC and set the USB current declaration from actual bus consumption. Keep Remote Wakeup disabled for the initial bring-up unless it is deliberately implemented and tested.
 
 The first build objective is successful **USB enumeration and a host connection**, not a firmware erase/write operation. Do not program a bootloader until generated code, memory bounds and board USB power/routing have been reviewed.
 
@@ -52,7 +54,11 @@ An upstream Harmony source review on 2026-10-13 found:
 - [`bootloader_usb_device_hid.py`](https://github.com/Microchip-MPLAB-Harmony/bootloader/blob/master/config/bootloader_usb_device_hid.py) currently declares a **32,768-byte PIC32MX reservation**.
 - [`module.py`](https://github.com/Microchip-MPLAB-Harmony/bootloader/blob/master/config/module.py) declares MEMORY and USB_DEVICE_HID dependencies for this component.
 
-These are observations of upstream `master`, which can change. They are **not verified values from the user's installed bootloader package**. Do not adopt the reservation or an application start address until its package/configuration and generated map are reviewed.
+These are observations of upstream `master`, which can change. On 2026-10-14, the user reported the installed bootloader component's **Bootloader Size = 32,768 bytes**, matching the reference reservation, and firmware-triggered entry **unchecked**. This size is a reservation, not the measured binary size.
+
+The reference generator sets **core.APP_START_ADDRESS**, so the application address belongs to **System/core**, not necessarily the bootloader component UI. Look under System's device/project settings. If absent in the UI, inspect the generated linker symbols and bootloader headers. With a bootloader origin of 0x9D000000 and a 0x8000 reservation, the calculated candidate application start is **0x9D008000**, aligned to 1 KB pages. This is provisional until the installed package's generated layout/map confirms it; it is not a directive to relocate the current standalone application now.
+
+Save/generate the bootloader skeleton and share it for review after setting the appropriate USB device power descriptor. Generating files is safe; **do not program it yet**. Verify bootloader/application reset, exception and configuration ownership before accepting the calculated candidate address.
 
 Before flash updates, agree on:
 
@@ -91,7 +97,7 @@ Record generated VID/PID, report sizes, host utility version and accepted firmwa
 | Preserve production-tested standalone application | Tag v0.1.0-led-blink pushed and verified at dd59a29. |
 | Create bootloader MCC project and identify package versions | Bootloader library added; host content updates reported. Final installed versions not recorded in the repository yet. |
 | Regenerate/retest application after H3 updates | Required follow-up; not performed. Preserve the tagged baseline and user-owned LED code. |
-| Review generated memory and clock configuration | Not generated. |
+| Review generated memory and clock configuration | Clock screen reviewed; 32 KB reservation and firmware trigger OFF reported. Application address/UI not exposed; generated layout needed. |
 | Review/program USB connector routing and power | Not verified. |
 | Enumerate as USB HID and connect host utility | Not tested. |
 | Relocate blink application and verify firmware update | Not started. |

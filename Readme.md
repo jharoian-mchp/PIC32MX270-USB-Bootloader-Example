@@ -128,7 +128,8 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
 - Continue the separate bootloader MCC project for PIC32MX270F256D.
 - Keep the reviewed bootloader clocks: USB PLL ON, input ÷3, UFRCEN OFF, 48 MHz USB clock; system PLL ÷3/×24/÷2 for 48 MHz SYSCLK/PBCLK. Finish USB Device HID Bootloader dependency connections.
-- Send the Project Graph, bootloader settings/package version and proposed memory values for review before generation/programming.
+- FreeRTOS is removed; keep required Harmony Core/USB dependencies. Set **Self Powered checked** for the externally powered board; verify USB VBUS sensing and prevent back-feeding.
+- Save/generate and share the bootloader skeleton for source/linker review, without programming. Reported reservation is 32 KB; candidate application start is 0x9D008000 if the generated bootloader origin is 0x9D000000. Verify System/core APP_START_ADDRESS or generated symbols first.
 - Resolve the carrier USB mux and VBUS/power path before connecting/attempting USB updates.
 - If needed, inspect `app_led_diagnostics` for readiness, NACK/collision/timeout faults and transition count.
 - Record carrier-board/PIM revisions and remaining hardware measurements; review USB routing/power before bootloader generation.
@@ -154,3 +155,4 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-13:** Pulled host compiler-option commit dd59a29. User confirmed production programming and blinking after both MCLR and power cycle. Re-ran Linux build/tests and pushed annotated tag v0.1.0-led-blink at that exact commit. Prepared separate USB HID bootloader configuration instructions.
 - **2026-10-14:** User reported that adding the bootloader library updated H3 content. Added a required application-regeneration and regression-test follow-up after package versions settle. No application regeneration or new hardware verification has occurred yet.
 - **2026-10-14:** Reviewed bootloader Clock Configurator: USB PLL input ÷3/4 MHz, UPLLEN ON, UFRCEN OFF and 48 MHz USB clock; system PLL ÷3/×24/÷2. USB HID bootloader/NVM component is visible; full dependency graph and memory settings remain to be reviewed.
+- **2026-10-14:** User removed FreeRTOS, confirmed external board supply, reported 32,768-byte bootloader reservation and firmware trigger OFF. Corrected Self Powered to checked for this power arrangement; core owns APP_START_ADDRESS. Candidate 0x9D008000 remains subject to generated layout/map review. Bootloader skeleton generation/handoff is next; programming is not authorised yet.

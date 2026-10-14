@@ -13,6 +13,7 @@
 - Production-tested standalone baseline is annotated tag v0.1.0-led-blink at dd59a291254b45d44fba65810b2085d9b6ea40df, including host -Wall/-Wextra settings. Never move this milestone tag. Create the HID bootloader as a separate project; see docs/bootloader.md.
 - REQUIRED FOLLOW-UP (2026-10-14): adding the bootloader library updated host H3 content. After package versions settle, regenerate the application's own MCC configuration too, preserving LED code/integration and standalone memory layout. Record actual versions, rebuild both platforms and repeat production blink/MCLR/power-cycle tests. Not yet regenerated; old hardware verification applies only to the tagged baseline.
 - User-owned LED logic is `application/src/app_led.c`/`.h`, called from main.c. Preserve it and its public project entries during MCC regeneration; generated PLIBs remain unchanged. See `docs/application.md` for diagnostics and board tests.
+- Bootloader configuration (2026-10-14): FreeRTOS removed, 32 KB reservation reported, firmware trigger OFF. Board is externally powered: USB Self Powered should be checked. APP_START_ADDRESS is core-owned; candidate 0x9D008000 needs generated layout verification. Do not program bootloader before USB mux/VBUS and memory review.
 - Start with a simple application before adding Bluetooth or audio functionality.
 
 ## Documentation
