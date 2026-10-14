@@ -46,6 +46,12 @@ Primary sources:
 - `bootloader/src/config/default/bootloader/bootloader_usb_device_hid.c`: receive framing around lines 175–238, command dispatcher around lines 243–324, CRC address/length reads at 298–300.
 - `bootloader/src/config/default/peripheral/nvm/plib_nvm.c`: operation-start returns true and exposes `NVM_ErrorGet`; generated NVM wrapper does not consume that error status.
 
+## First hardening layer added
+
+User-owned **update_protocol.c/.h** now supplies bounded framing/CRC/encoding, command-length/HEX-shape checks and full application-span validation for READ_CRC. Safe-behavior host tests, deterministic randomized coverage, sanitizers and strict XC32 compilation pass; see [the implementation contract](update-protocol.md).
+
+The new layer is **not called by active firmware** and executes no commands. Generated code stays untouched, so this reproduction audit intentionally still shows its failures. HEX address/session state, flash operations and valid-image policy are not hardened yet. The active SW1 diagnostic image remains unchanged.
+
 ## Additional untested concerns
 
 - Flash busy loops have no timeout; an indefinitely busy peripheral was not run as a hanging host test. A timeout does not itself abort an in-progress erase/program operation safely; establish failure/reset behavior from the device requirements.

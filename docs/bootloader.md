@@ -115,6 +115,12 @@ The first [diagnostic connection](usb-enumeration.md) passed: Windows VID_04D8/P
 
 The generated weak bootloader trigger returns false and its application-jump helper accepts an application based only on a non-erased first word. The diagnostic strong override always returns true; the later functional bootloader still needs a physical/valid-image policy. SW1 startup-gated diagnostics are implemented and software-tested; the user confirmed they work as described on 2026-10-14. No-button startup stays safe idle; final application handoff and stronger valid-image/recovery policy remain unimplemented. The generated HEX parser also uses `<= FLASH_END_ADDRESS` even though flash end is exclusive, and reads a claimed record length without first checking it fits the available buffer. The [host-only safety audit](update-safety.md) now reproduces these and other problems: **12 unsafe behaviors**, including truncated/oversized buffer access, flash-end writes, unchecked CRC address/command lengths, ignored NVM error and failed-command resynchronisation. `make update-audit` runs unmodified generated sources with mocked flash/datastream and expected sanitizer evidence. Passing that target means defects reproduced, not safe updating. No generated code was changed and the diagnostic ELF still has no update/erase/write paths. Harden these cases before enabling host erase/program commands; enumeration is a separate milestone.
 
+## Bounded protocol layer — not yet active
+
+User-owned **update_protocol.c/.h** now handles split-frame escapes, CRC16, bounded receive/response encoding, exact command lengths, structural HEX checks and READ_CRC application-address spans. Host tests/sanitizers and strict XC32 cross-compilation pass. Public project metadata includes the source, but the diagnostic loop does not call it and linker garbage collection removes its routines. See [the layer contract and remaining checks](update-protocol.md).
+
+Next harden HEX address/session/row handling, flash-operation errors and image-completion/recovery. No update commands or application handoff are enabled.
+
 ## Memory contract to establish
 
 The exact device has **256 KB program flash, 3 KB boot flash, 1,024-byte erase pages and 128-byte program rows**. The HID stack cannot be assumed to fit in its 3 KB boot flash.

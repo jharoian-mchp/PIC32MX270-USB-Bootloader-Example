@@ -43,6 +43,8 @@ test:
 	./build/tests/app_led_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/usb_mocks -Ibootloader/src bootloader/src/board_usb_diag.c tests/board_usb_diag_test.c -o build/tests/board_usb_diag_test
 	./build/tests/board_usb_diag_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c tests/update_protocol_test.c -o build/tests/update_protocol_test
+	./build/tests/update_protocol_test
 
 # A passing audit means known defects reproduced, not that updates are safe.
 update-audit:
