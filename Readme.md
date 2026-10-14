@@ -177,3 +177,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** User confirmed MCU VDD 3.3 V, VBUS_SENSE returns near 0 V on unplug and the same measurement point. Proposed AN1 ADC setup: AVDD/AVSS references, 1 µs TAD, 16 µs acquisition and software-started sampling. Candidate 1.5 V/0.8 V hysteresis awaits ADC readings and tests; no firmware change yet.
 
 - **2026-10-14:** Initial ADC screenshot shows correct AN1/reference/result choices, but TAD 125 ns and software-cleared SAMP trigger. Requested TAD 1,000 ns, internal-counter conversion trigger and 16 TAD acquisition, retaining software sampling start/polled completion. Revised ADC settings not yet generated.
+
+- **2026-10-14:** Updated ADC screenshots confirm 1,000 ns TAD, internal-counter conversion trigger and RA1/AN1 analog input with no pulls. SAMC=16 remains to be exposed/confirmed; ADC generation and hardware readings are not yet available.
