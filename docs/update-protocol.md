@@ -70,4 +70,4 @@ Existing `make test bootloader application` passes, and the linked diagnostic im
 
 ## Next layer
 
-The [user-owned HEX/flash layers](update-storage.md) now implement full address/order validation, row padding and mocked bounds/error/readback/timeout contracts. Next add explicit asynchronous row/flash orchestration and image-completion/commit policy before target binding. Preserve generated code and the working diagnostic behavior. Define image completion/commit/recovery before restoring command execution or application handoff.
+The [user-owned HEX/flash layers](update-storage.md) now implement full address/order validation, row padding and mocked bounds/error/readback/timeout contracts. The [asynchronous session and CRC32 commit layer](update-image.md) now pass mocked tests. Host length/CRC transport and target binding/dispatcher/handoff remain unimplemented; active updates are still disabled. Preserve generated code and the working diagnostic behavior. Define image completion/commit/recovery before restoring command execution or application handoff.

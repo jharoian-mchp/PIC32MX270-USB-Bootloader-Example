@@ -26,7 +26,7 @@ Rows are **128 bytes**, `0xFF` padded, emitted at complete-row boundaries, a mov
 
 The row sink must **copy/stage or synchronously verify** the entire row before returning success and must not retain the generator's row pointer. It receives normalized physical addresses and may be called more than once per input batch.
 
-The flash adapter below is asynchronous and uses one private buffer. It is **not directly connected to the row sink**. A future orchestrator must pause/stage rows, poll and verify each hardware operation, and acknowledge the host only after the required operation completes. Do not pass a one-row asynchronous backend into the synchronous sink and claim that queued rows are safely programmed. No queue, command dispatcher, host acknowledgment or target PLIB binding has been added yet.
+The flash adapter below is asynchronous and uses one private buffer. The later [session controller](update-image.md) now connects the row sink through up to three private row copies per record, draining/verifying them one operation at a time. That controller is mocked and not called by active firmware. A future orchestrator must pause/stage rows, poll and verify each hardware operation, and acknowledge the host only after the required operation completes. Do not pass a one-row asynchronous backend into the synchronous sink and claim that queued rows are safely programmed. The private session row queue now exists; command dispatcher, host acknowledgment and target PLIB binding are still absent.
 
 ## Flash adapter contract
 

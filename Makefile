@@ -47,6 +47,8 @@ test:
 	./build/tests/update_protocol_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c bootloader/src/update_hex.c bootloader/src/update_flash.c tests/update_storage_test.c -o build/tests/update_storage_test
 	./build/tests/update_storage_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c bootloader/src/update_hex.c bootloader/src/update_flash.c bootloader/src/update_image.c bootloader/src/update_session.c tests/update_session_test.c -o build/tests/update_session_test
+	./build/tests/update_session_test
 
 # A passing audit means known defects reproduced, not that updates are safe.
 update-audit:

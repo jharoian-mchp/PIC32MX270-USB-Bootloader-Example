@@ -11,9 +11,20 @@ bool UPDATE_HexBegin(UPDATE_HEX *h, uint32_t end, UPDATE_ROW_SINK sink, void *co
 {
     if (h == NULL || sink == NULL || end <= UPDATE_APP_PHYSICAL_START ||
         end > UPDATE_FLASH_PHYSICAL_END || end % UPDATE_ROW_SIZE) return false;
-    *h = (UPDATE_HEX){ .end = end, .sink = sink, .context = context,
+    *h = (UPDATE_HEX){ .end = end, .data_end = end, .sink = sink, .context = context,
                       .status = UPDATE_HEX_ACCEPTED, .active = true };
     memset(h->row, 0xFF, sizeof(h->row));
+    return true;
+}
+
+bool UPDATE_HexBeginImage(UPDATE_HEX *h, uint32_t length, UPDATE_ROW_SINK sink, void *context)
+{
+    if (length == 0U || length > UPDATE_FLASH_PHYSICAL_END - UPDATE_APP_PHYSICAL_START)
+        return false;
+    uint32_t data_end = UPDATE_APP_PHYSICAL_START + length;
+    uint32_t row_end = (data_end + UPDATE_ROW_SIZE - 1U) & ~(UPDATE_ROW_SIZE - 1U);
+    if (!UPDATE_HexBegin(h, row_end, sink, context)) return false;
+    h->data_end = data_end;
     return true;
 }
 
@@ -64,7 +75,7 @@ static UPDATE_HEX_STATUS ValidateBatch(const UPDATE_HEX *h, const uint8_t *data,
                     return UPDATE_HEX_BAD_ADDRESS;
                 uint32_t physical;
                 if (!UPDATE_ApplicationSpan(extension + offset, r[0], &physical) ||
-                    physical >= h->end || r[0] > h->end - physical)
+                    physical >= h->data_end || r[0] > h->data_end - physical)
                     return UPDATE_HEX_BAD_ADDRESS;
                 if (have_data && physical < last_end) return UPDATE_HEX_BAD_ORDER;
                 last_end = physical + r[0];
@@ -96,6 +107,12 @@ static UPDATE_HEX_STATUS ValidateBatch(const UPDATE_HEX *h, const uint8_t *data,
         pos += total;
     }
     return UPDATE_HEX_ACCEPTED;
+}
+
+UPDATE_HEX_STATUS UPDATE_HexCheck(const UPDATE_HEX *h, const uint8_t *records, size_t size)
+{
+    if (h == NULL || !h->active) return UPDATE_HEX_NOT_ACTIVE;
+    return ValidateBatch(h, records, size);
 }
 
 UPDATE_HEX_STATUS UPDATE_HexFeed(UPDATE_HEX *h, const uint8_t *records, size_t size)
