@@ -51,6 +51,18 @@ Expected successful JSON:
 
 This is an approved **read-only query test**, not approval to run a vendor updater or program an application through USB. The Python CLI still contains no destructive operation.
 
+## Windows stale source-list build failure — 2026-10-15
+
+User build log attachment 111 fails at link time on USB_PROBE_Configure/Event/Initialize/Tasks. The link command omits **usb_probe.o** and **update_wire.o**. Comparison with the saved project XML shows **32 C source entries but only 30 compiled** in that log; both missing sources are present in Git/XML and resolve locally. A repeated local XC32 build links all four USB_PROBE definitions successfully. No source-code fix or generated-file edit is needed on that evidence; stale IDE/generated-makefile state is the likely cause.
+
+Recovery:
+
+1. Close the bootloader project in MPLAB X, confirm the latest Git files are present, reopen `bootloader/USB_HID_bootloader.X`, then Clean/Build. Check output contains compilation/link objects for both **usb_probe.c** and **update_wire.c**.
+2. If the files still appear absent in the IDE source tree, add those existing files through **Source Files → Add Existing Item**, save and rebuild; do not create duplicate source copies.
+3. If project entries are present but the makefile remains stale, close MPLAB X and remove only ignored `nbproject/Makefile-default.mk`, `nbproject/Makefile-impl.mk` and `nbproject/Makefile-variables.mk`, then reopen/build so the IDE recreates them. **Keep configurations.xml, project.xml, the root project Makefile and nbproject/private/**; do not delete all project metadata or private programmer settings.
+
+Do not program until the Windows build passes. Report the new source-list/link output if it still fails; compiler warnings alone are not this missing-object linker failure.
+
 ## Endpoint diagnostics
 
 Watch **usb_probe_diagnostics**:
