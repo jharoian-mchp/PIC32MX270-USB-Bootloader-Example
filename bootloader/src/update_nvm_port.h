@@ -35,10 +35,23 @@ static inline void UPDATE_NvmPortMode(uint32_t operation)
 static inline void UPDATE_NvmPortAddress(uint32_t address){NVMADDR=address;}
 static inline void UPDATE_NvmPortSourceAddress(uint32_t address)
 {__asm__ volatile("sync":::"memory");NVMSRCADDR=address;}
-static inline void UPDATE_NvmPortLaunch(void)
+static inline __attribute__((always_inline)) void UPDATE_NvmPortLaunch(void)
 {
-    NVMKEY=0;NVMKEY=0xAA996655U;NVMKEY=0x556699AAU;
-    NVMCONSET=_NVMCON_WR_MASK;
+    /* One compiler/assembler-ordered block: prepare operands BEFORE the keys;
+     * no inserted loads, spills or scheduling between the unlock/WR stores.
+     * IRQ/bus exclusion remains the caller's responsibility. */
+    __asm__ volatile(
+        ".set push\n\t"
+        ".set noreorder\n\t"
+        "sw $zero, 0(%0)\n\t"
+        "sw %2, 0(%0)\n\t"
+        "sw %3, 0(%0)\n\t"
+        "sw %4, 0(%1)\n\t"
+        ".set pop\n\t"
+        :
+        : "r" (&NVMKEY), "r" (&NVMCONSET), "r" (0xAA996655U),
+          "r" (0x556699AAU), "r" (_NVMCON_WR_MASK)
+        : "memory");
 }
 static inline void UPDATE_NvmPortDisarm(void){NVMCONCLR=_NVMCON_WREN_MASK;}
 static inline bool UPDATE_NvmPortRead(uint32_t address,uint8_t *out,size_t size)
