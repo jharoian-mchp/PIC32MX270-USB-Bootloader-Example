@@ -63,6 +63,8 @@ test:
 	./build/tests/update_dispatch_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/nvm_mocks -Ibootloader/src bootloader/src/update_nvm.c bootloader/src/update_flash.c tests/update_nvm_test.c -o build/tests/update_nvm_test
 	./build/tests/update_nvm_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c bootloader/src/update_hex.c bootloader/src/update_flash.c bootloader/src/update_image.c bootloader/src/update_session.c bootloader/src/update_lifecycle.c tests/update_lifecycle_test.c -o build/tests/update_lifecycle_test
+	./build/tests/update_lifecycle_test
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s host -v
 	bun tools/check-nvm-codegen.ts --selftest
 
