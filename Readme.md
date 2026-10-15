@@ -232,3 +232,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-15:** Connected user-owned read-only CAPABILITIES receiver/responder with HID queue/cancel/buffer lifetime tests. Board event integration preserves SW1/ADC/mux selection; generated updater remains bypassed. Strict mocks/sanitizers/XC32 build pass, active program load ends 0x9D00692C within 32 KB; destructive/session/erase/write symbols absent. Windows Python probe is next, no upload commands.
 
 - **2026-10-15:** User Windows probe build failed linking USB_PROBE symbols. Log compiles 30 sources while valid shared XML lists 32: usb_probe.c/update_wire.c omitted from stale host makefile. Local XC32 tests/build repeat successfully. Documented reopen/project-source refresh and narrow ignored-makefile regeneration; no source or programmer-setting changes made. Windows rebuild remains pending.
+
+- **2026-10-15:** User confirmed both probe sources were present but stale generated MPLAB makefiles omitted them. Deleting/regenerating makefiles resolved the Windows build. Program built; programming this revision and Python capabilities probe remain to be reported.

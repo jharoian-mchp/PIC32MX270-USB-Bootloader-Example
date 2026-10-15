@@ -61,7 +61,7 @@ Recovery:
 2. If the files still appear absent in the IDE source tree, add those existing files through **Source Files → Add Existing Item**, save and rebuild; do not create duplicate source copies.
 3. If project entries are present but the makefile remains stale, close MPLAB X and remove only ignored `nbproject/Makefile-default.mk`, `nbproject/Makefile-impl.mk` and `nbproject/Makefile-variables.mk`, then reopen/build so the IDE recreates them. **Keep configurations.xml, project.xml, the root project Makefile and nbproject/private/**; do not delete all project metadata or private programmer settings.
 
-Do not program until the Windows build passes. Report the new source-list/link output if it still fails; compiler warnings alone are not this missing-object linker failure.
+**Resolved, user-confirmed 2026-10-15:** both source files were visible in the project, but deleting/recreating the generated makefiles fixed compilation/linking. The program is now built on Windows. This confirms stale generated makefile state as the cause; no C-source fix was required. Programming this revision and the read-only Python probe remain to be reported.
 
 ## Endpoint diagnostics
 
