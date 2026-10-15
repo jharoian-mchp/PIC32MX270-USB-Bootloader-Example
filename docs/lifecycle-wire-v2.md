@@ -1,6 +1,6 @@
 # Offline lifecycle wire schema, version 2
 
-`update_lifecycle_wire.c/.h` and `host/lifecycle_wire.py` define matching offline stage/execute/query/resume packets. **They do not dispatch requests, send HID reports or enable hardware writes.** The deployed endpoint remains version-1 CAPABILITIES-only; existing Python `probe`/`plan` are unchanged.
+`update_lifecycle_wire.c/.h` and `host/lifecycle_wire.py` define matching offline stage/execute/query/resume packets. **The codecs do not dispatch requests or send HID reports.** A separate [inactive version-2 dispatcher](link-dispatch-v2.md) now drives the typed core in mocks; no live handler or hardware writes are enabled. The deployed endpoint remains version-1 CAPABILITIES-only; existing Python `probe`/`plan` are unchanged.
 
 ## Request envelope
 
@@ -67,4 +67,4 @@ The same review found no other concrete transition defect under the documented e
 - All version-2 packets remain refused by `pic32_hid.py transact`; no HID dependency is needed for codecs and no new live CLI command exists.
 - Strict XC32 lifecycle/codec compilation, eight-mode NVM code-generation checks and diagnostic `make bootloader` pass. Shared MPLAB XML lists 36 sources. Diagnostic footprint remains text26670/data80/bss1568; inactive codec/lifecycle/update symbols are absent.
 
-Next implement/review the inactive version-2 request dispatcher and dynamic host fixtures (tickets are device-issued, so static offline plans cannot predetermine a complete upload). Then audit/bind the generated USB lifecycle and run [gated hardware tests](nvm-hardware-test-plan.md). Application regeneration/relocation and protection recovery still precede hardware uploads. No reprogramming is needed for these library/codec changes.
+The inactive dispatcher and dynamic C/Python mock exchanges now exist and passed bounded static review. Tickets remain device-issued; static offline plans cannot predetermine a complete upload. Next audit/bind the generated USB lifecycle and run [gated hardware tests](nvm-hardware-test-plan.md). Application regeneration/relocation and protection recovery still precede hardware uploads. No reprogramming is needed for these library/codec changes.

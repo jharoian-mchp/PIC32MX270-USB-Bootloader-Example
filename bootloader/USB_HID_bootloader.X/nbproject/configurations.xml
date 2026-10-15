@@ -11,6 +11,7 @@
       <itemPath>../src/update_session.h</itemPath>
       <itemPath>../src/update_lifecycle.h</itemPath>
       <itemPath>../src/update_lifecycle_wire.h</itemPath>
+      <itemPath>../src/update_link_dispatch.h</itemPath>
       <itemPath>../src/update_dispatch.h</itemPath>
       <itemPath>../src/update_nvm.h</itemPath>
       <itemPath>../src/update_nvm_port.h</itemPath>
@@ -269,6 +270,7 @@
       <itemPath>../src/update_session.c</itemPath>
       <itemPath>../src/update_lifecycle.c</itemPath>
       <itemPath>../src/update_lifecycle_wire.c</itemPath>
+      <itemPath>../src/update_link_dispatch.c</itemPath>
       <itemPath>../src/update_dispatch.c</itemPath>
       <itemPath>../src/update_nvm.c</itemPath>
       <itemPath>../src/update_wire.c</itemPath>
