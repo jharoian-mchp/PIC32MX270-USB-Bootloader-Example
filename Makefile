@@ -21,7 +21,7 @@ BTL_DIR := build/bootloader
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check application bootloader test update-audit
+.PHONY: toolchain-check application bootloader test test-sanitize update-audit
 
 bootloader:
 	@mkdir -p "$(BTL_DIR)"
@@ -56,7 +56,13 @@ test:
 	./build/tests/vendor_host_vectors_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_wire.c tests/update_wire_test.c -o build/tests/update_wire_test
 	./build/tests/update_wire_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c bootloader/src/update_hex.c bootloader/src/update_flash.c bootloader/src/update_image.c bootloader/src/update_session.c bootloader/src/update_wire.c bootloader/src/update_dispatch.c tests/update_dispatch_test.c -o build/tests/update_dispatch_test
+	./build/tests/update_dispatch_test
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s host -v
+
+# Rebuild all mock tests with sanitizers, including Python-plan -> C integration.
+test-sanitize:
+	$(MAKE) test HOST_CC="$(HOST_CC) -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie"
 
 # A passing audit means known defects reproduced, not that updates are safe.
 update-audit:

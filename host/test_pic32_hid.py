@@ -126,6 +126,111 @@ class Images(unittest.TestCase):
         self.assertEqual(host.prepare_hex(image.normalized_hex).binary, data)
 
 
+class Plans(unittest.TestCase):
+    def test_plan_reconstruction_bounds_and_readonly_guard(self):
+        # Full application range, multiple address windows, sparse source gaps.
+        text = image_text(extra=(host.hex_record(4, 0, b"\x1D\x03"),
+                                host.hex_record(0, 0xFBFF, b"z")))
+        plan = host.upload_plan(text, token=0x100401, request_base=10)
+        image = host.prepare_hex(text)
+        self.assertTrue(plan["offline_only"])
+        self.assertFalse(plan["hardware_writes_enabled"])
+        self.assertEqual(plan["image"], image.manifest)
+        records = bytearray()
+        self.assertEqual(plan["operations"][0]["wait_for"], "READY")
+        for index, op in enumerate(plan["operations"]):
+            payload = bytes.fromhex(op["payload_hex"])
+            self.assertLessEqual(len(payload), 510)
+            self.assertEqual(host.FrameDecoder().feed(bytes.fromhex(op["framed_hex"]))[0], payload)
+            reports = [bytes.fromhex(item) for item in op["hid_reports_hex"]]
+            self.assertTrue(all(len(report) == 65 and report[0] == 0 for report in reports))
+            decoder = host.FrameDecoder()
+            decoded = None
+            for report in reports:
+                decoded, used = decoder.feed(report[1:])
+                if decoded is not None:
+                    self.assertFalse(any(report[1:][used:]))
+            self.assertEqual(decoded, payload)
+            self.assertEqual(int.from_bytes(payload[2:6], "little"), index + 10)
+            self.assertEqual(int.from_bytes(payload[6:10], "little"), 0x100401)
+            if index == 0:
+                self.assertEqual(host.BEGIN_BODY.unpack(payload)[4:],
+                                 (len(image.binary), binascii.crc32(image.binary)))
+            else:
+                self.assertEqual(int.from_bytes(payload[10:14], "little"), index - 1)
+                records.extend(payload[14:])
+            device = FakeDevice()
+            with self.assertRaises(host.HostError):
+                host.transact(device, payload)
+            self.assertFalse(device.writes)
+        self.assertEqual(plan["operations"][-1]["wait_for"], "COMPLETE")
+        offset = 0
+        lines = []
+        while offset < len(records):
+            size = records[offset] + 5
+            record = records[offset:offset + size]
+            self.assertEqual(len(record), size)
+            self.assertEqual(sum(record) & 255, 0)
+            lines.append(":" + record.hex())
+            offset += size
+        self.assertEqual(host.prepare_hex("\n".join(lines)).binary, image.binary)
+
+    def test_validation_exclusive_and_cli(self):
+        for token, base in ((0, 1), (-1, 1), (0x100000000, 1), (True, 1),
+                            (1, 0), (1, 0xFFFFFFFF), (1, -1)):
+            with self.assertRaises(host.HostError):
+                host.upload_plan(image_text(), token, base)
+        plan = host.upload_plan(image_text())
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "plan.json"
+            host.write_plan(plan, path)
+            before = path.read_bytes()
+            with self.assertRaises(FileExistsError):
+                host.write_plan(plan, path)
+            self.assertEqual(path.read_bytes(), before)
+            src = Path(directory) / "image.hex"
+            src.write_text(image_text(), encoding="ascii")
+            target = Path(directory) / "cli.json"
+            result = subprocess.run([sys.executable, "-S", str(Path(host.__file__)), "plan", str(src),
+                                     "--output", str(target)], capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(target.read_text()), plan)
+            result = subprocess.run([sys.executable, str(Path(host.__file__)), "plan", str(src),
+                                     "--output", str(target)], capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(json.loads(target.read_text()), plan)
+
+    def test_state_schema(self):
+        self.assertEqual(host.parse_state(host.STATE_BODY.pack(7, 3, 2, 128, 8, 0, 1, 1)),
+                         {"session_token": 7, "last_mutation_id": 3, "next_batch_sequence": 2,
+                          "length": 128, "state": 8, "flash_status": 0, "hex_status": 1,
+                          "updates_enabled": True})
+        for body in (b"short", host.STATE_BODY.pack(0, 0, 0, 0, 12, 0, 0, 0),
+                     host.STATE_BODY.pack(0, 0, 0, 0, 0, 7, 0, 0),
+                     host.STATE_BODY.pack(0, 0, 0, 0, 0, 0, 0, 2)):
+            with self.assertRaises(host.HostError):
+                host.parse_state(body)
+
+    def test_python_plan_through_c_mock_flash(self):
+        root = Path(host.__file__).resolve().parent.parent
+        runner = root / "build/tests/update_dispatch_test"
+        if not runner.exists():
+            self.skipTest("make test builds the C dispatcher runner")
+        # Small escaped values, large multi-window image, and maximum span.
+        for text in (image_text(), image_text(extra=(host.hex_record(4, 0, b"\x1D\x01"),
+                                                    host.hex_record(0, 0xA000, bytes(range(128))))),
+                     image_text(extra=(host.hex_record(4, 0, b"\x1D\x03"),
+                                       host.hex_record(0, 0xFBFF, b"z")))):
+            plan = host.upload_plan(text)
+            with tempfile.TemporaryDirectory() as directory:
+                vector = Path(directory) / "plan.txt"
+                vector.write_text("".join(op["payload_hex"] + " " +
+                                         ("8" if op["wait_for"] == "COMPLETE" else "3") + "\n"
+                                         for op in plan["operations"]), encoding="ascii")
+                result = subprocess.run([str(runner), str(vector)], capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
 class FakeDevice:
     def __init__(self, response=b"", short=False):
         self.response = [response[i:i + 64] for i in range(0, len(response), 64)]

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""PIC32MX270 HID host: offline image preparation and read-only discovery/probe.
+"""PIC32MX270 HID host: offline image preparation/planning and read-only probe.
 
-Python 3.10+. stdlib only for prepare/selftest; optional PyPI 'hidapi' exposes
-module 'hid' for list/probe. NO erase/program/reset/abort CLI or firmware binding.
+Python 3.10+. stdlib only for prepare/plan/selftest; optional PyPI 'hidapi'
+exposes module 'hid' for list/probe. NO uploader or hardware-write transport.
 """
 from __future__ import annotations
 
@@ -30,7 +30,14 @@ REPORT_SIZE = 64
 PROTOCOL_VERSION = 1
 CAPABILITIES = 0x60
 STATUS = 0x61
-# 0x62..0x65 reserved for future manifest/batch/abort/run; NEVER transmitted here.
+BEGIN = 0x62
+BATCH = 0x63
+ABORT = 0x64
+BATCH_BYTES_MAX = PAYLOAD_MAX - 14
+STATE_BODY = struct.Struct("<IIIIBBBB")
+BEGIN_BODY = struct.Struct("<BBIIII")
+BATCH_HEADER = struct.Struct("<BBIII")
+# Mutation payloads are offline fixtures ONLY; transact refuses them. No RUN.
 REQUEST_HEADER = struct.Struct("<BBI")
 RESPONSE_HEADER = struct.Struct("<BBBBI")
 CAP_BODY = struct.Struct("<4sHHIIHH")
@@ -253,6 +260,84 @@ def write_package(image: PreparedImage, path: Path) -> None:
         raise
 
 
+def upload_plan(text: str, token: int = 1, request_base: int = 1) -> dict:
+    """Offline fixtures only: deterministic IDs are NOT live session allocation.
+
+    Future uploader must probe update permission, allocate a fresh session token,
+    wait for each operation, check status/token/sequence and never replay older
+    mutations. No plan is passed to the strictly read-only HID transport.
+    """
+    for name, value in (("session token", token), ("request base", request_base)):
+        if type(value) is not int or not 1 <= value <= 0xFFFFFFFF:
+            raise HostError(f"invalid {name}: must be 1..0xFFFFFFFF")
+    image = prepare_hex(text)
+    batches: list[bytes] = []
+    batch = bytearray()
+    for line in image.normalized_hex.splitlines():
+        record = bytes.fromhex(line[1:])
+        if len(batch) + len(record) > BATCH_BYTES_MAX:
+            batches.append(bytes(batch))
+            batch.clear()
+        batch.extend(record)
+    if batch:
+        batches.append(bytes(batch))
+    if request_base + len(batches) > 0xFFFFFFFF:
+        raise HostError("mutation request IDs would overflow; no wrapping allowed")
+    operations = []
+
+    def operation(payload: bytes, wait: str, sequence: int | None) -> None:
+        wire = encode_frame(payload)
+        reports = [b"\0" + wire[off:off + REPORT_SIZE].ljust(REPORT_SIZE, b"\0")
+                   for off in range(0, len(wire), REPORT_SIZE)]
+        operations.append({
+            "opcode": payload[0], "request_id": int.from_bytes(payload[2:6], "little"),
+            "batch_sequence": sequence, "wait_for": wait,
+            "payload_hex": payload.hex(), "framed_hex": wire.hex(),
+            "hid_reports_hex": [report.hex() for report in reports],
+        })
+
+    operation(BEGIN_BODY.pack(BEGIN, PROTOCOL_VERSION, request_base, token,
+                              len(image.binary), int(image.manifest["crc32"], 16)), "READY", None)
+    for sequence, records in enumerate(batches):
+        payload = BATCH_HEADER.pack(BATCH, PROTOCOL_VERSION, request_base + 1 + sequence,
+                                    token, sequence) + records
+        operation(payload, "COMPLETE" if sequence == len(batches) - 1 else "READY", sequence)
+    return {
+        "schema": "pic32mx270-hid-plan/1", "offline_only": True,
+        "hardware_writes_enabled": False, "session_token": token,
+        "image": image.manifest, "batch_records_max": BATCH_BYTES_MAX,
+        "operations": operations,
+        "retry_policy": "stop-and-wait; exact latest accepted mutation only; never replay earlier IDs",
+        "warning": "Offline fixture; no device opened. Deployed firmware rejects mutations. "
+                   "No uploader, automatic retry/resume, reset or application handoff is implemented.",
+    }
+
+
+def write_plan(plan: dict, path: Path) -> None:
+    created = False
+    try:
+        with path.open("x", encoding="ascii") as output:
+            created = True
+            json.dump(plan, output, indent=2, sort_keys=True)
+            output.write("\n")
+    except Exception:
+        if created:
+            path.unlink(missing_ok=True)
+        raise
+
+
+def parse_state(body: bytes) -> dict:
+    """Decode inactive dispatcher state; no live STATUS CLI is connected."""
+    if len(body) != STATE_BODY.size:
+        raise HostError("invalid state response length")
+    token, last_id, sequence, length, state, flash, hex_status, enabled = STATE_BODY.unpack(body)
+    if state > 11 or flash > 6 or hex_status > 6 or enabled not in (0, 1):
+        raise HostError("invalid state response fields")
+    return {"session_token": token, "last_mutation_id": last_id,
+            "next_batch_sequence": sequence, "length": length, "state": state,
+            "flash_status": flash, "hex_status": hex_status, "updates_enabled": bool(enabled)}
+
+
 def request_payload(opcode: int, request_id: int) -> bytes:
     if opcode not in (CAPABILITIES, STATUS):
         raise HostError("this host permits only read-only CAPABILITIES/STATUS requests")
@@ -353,7 +438,7 @@ def transact(device, payload: bytes, timeout: float = 2.0, clock=time.monotonic)
             if any(report[used:]):
                 raise HostError("non-padding bytes after response")
             return parse_response(result, opcode, request_id)
-    raise HostError("no matching response; current enumeration-only firmware has no host protocol handler")
+    raise HostError("no matching response; check SW1 entry, firmware revision and USB connection")
 
 
 def probe(module, path_hex: str | None, timeout: float) -> dict:
@@ -376,6 +461,11 @@ def main(argv: list[str] | None = None) -> int:
     prepare = commands.add_parser("prepare", help="offline: validate relocated HEX and create image package")
     prepare.add_argument("hex", type=Path)
     prepare.add_argument("--output", type=Path, required=True)
+    plan = commands.add_parser("plan", help="offline: create manifest/batch wire fixtures; sends no reports")
+    plan.add_argument("hex", type=Path)
+    plan.add_argument("--output", type=Path, required=True)
+    plan.add_argument("--session-token", type=lambda value: int(value, 0), default=1)
+    plan.add_argument("--request-base", type=lambda value: int(value, 0), default=1)
     commands.add_parser("list", help="enumerate matching HID interfaces; sends no reports")
     query = commands.add_parser("probe", help="send read-only versioned capabilities request; no legacy fallback")
     query.add_argument("--path-hex")
@@ -390,6 +480,12 @@ def main(argv: list[str] | None = None) -> int:
             write_package(image, args.output)
             print(json.dumps(image.manifest, indent=2, sort_keys=True))
             print(f"Prepared {args.output}; no device opened or programmed.")
+        elif args.command == "plan":
+            if args.hex.stat().st_size > MAX_HEX_BYTES:
+                raise HostError("HEX input exceeds 4 MiB limit")
+            result = upload_plan(args.hex.read_text(encoding="ascii"), args.session_token, args.request_base)
+            write_plan(result, args.output)
+            print(f"Planned {len(result['operations'])} mutations in {args.output}; offline only, no HID I/O.")
         elif args.command == "list":
             listed = candidates(hid_module())
             print(json.dumps([{key: (value.hex() if isinstance(value, bytes) else value)

@@ -87,6 +87,7 @@ tools/
 docs/
   usb-host-probe.md    Active read-only capabilities endpoint and Python hardware test
   host-compatibility.md Vendor host packet findings and recommended manifest extension
+  update-dispatch.md   Manifest/replay contract and offline Python plans; mock-tested only
   update-image.md      Metadata-last commit and bounded async session; not active in firmware
   update-storage.md    HEX row/session and flash backend contracts; not active in firmware
   update-protocol.md   Tested bounded framing/command validation; not active in firmware
@@ -238,3 +239,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-15:** User Windows Python list identifies 04D8:003C vendor HID; probe returns validated protocol1/max510/origin1D008000/end1D03FC00/128-row/1024-erase capabilities. First end-to-end read-only host transaction passes. Repeat/reconnect endpoint test remains before manifest/target integration; updates inactive.
 
 - **2026-10-15:** User confirmed all read-only host exercises pass: repeated probes, USB unplug/replug, MCLR and power cycle holding SW1. Read-only Python/HID link and lifecycle smoke-test milestone complete. Manifest-aware updater/target integration and application regeneration/relocation remain next; uploads disabled.
+
+- **2026-10-15:** Added inactive manifest-aware BEGIN/BATCH/ABORT/STATUS dispatcher and Python offline `plan` command. Stop-and-wait token/sequence checks and whole-byte latest-mutation replay avoid duplicate flash actions; replies expose asynchronous completion/failure. Nine strict C executables and 13 Python test methods pass, including Python plans through framed reports/dispatcher/mocked flash for small, multi-window and maximum 228352-byte images. Full ASan/UBSan suites and strict dispatcher XC32 compilation pass; diagnostic build remains text26670/data80/bss1568 and excludes all inactive update execution symbols. Independent static delegate review found no concrete defects; no hardware uploads tested. See docs/update-dispatch.md. Target backend, application regeneration/relocation and write-gated USB transport/recovery are next; existing diagnostic firmware needs no reprogramming.
