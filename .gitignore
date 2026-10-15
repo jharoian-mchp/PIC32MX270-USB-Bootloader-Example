@@ -25,6 +25,11 @@
 **/*.X/*mc3.bak*
 **/*.X/*.bak*/
 
+# Python host local environments/cache
+**/__pycache__/
+*.py[cod]
+/host/.venv/
+
 # Root toolchain-check outputs
 /build/
 

@@ -9,6 +9,7 @@
       <itemPath>../src/update_flash.h</itemPath>
       <itemPath>../src/update_image.h</itemPath>
       <itemPath>../src/update_session.h</itemPath>
+      <itemPath>../src/update_wire.h</itemPath>
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">
           <logicalFolder name="bootloader" displayName="bootloader" projectFiles="true">
@@ -260,6 +261,7 @@
       <itemPath>../src/update_flash.c</itemPath>
       <itemPath>../src/update_image.c</itemPath>
       <itemPath>../src/update_session.c</itemPath>
+      <itemPath>../src/update_wire.c</itemPath>
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">
           <logicalFolder name="bootloader" displayName="bootloader" projectFiles="true">

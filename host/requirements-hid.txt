@@ -1,0 +1,3 @@
+# Optional: needed only for device list/probe, not prepare/selftest/tests.
+# PyPI package hidapi imports as "hid"; do not install the unrelated "hid" package.
+hidapi>=0.14.0,<0.16

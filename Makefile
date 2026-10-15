@@ -14,6 +14,7 @@ APP_SOURCES := application/src/main.c application/src/app_led.c \
  application/src/config/default/peripheral/i2c/master/plib_i2c1_master.c \
  application/src/config/default/peripheral/tmr/plib_tmr2.c
 HOST_CC ?= cc
+PYTHON ?= python3
 # Extra diagnostics beyond the default Windows MPLAB X build flags.
 APP_WARNINGS ?= -Wall -Wextra
 BTL_DIR := build/bootloader
@@ -51,6 +52,9 @@ test:
 	./build/tests/update_session_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c tests/vendor_host_vectors_test.c -o build/tests/vendor_host_vectors_test
 	./build/tests/vendor_host_vectors_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_wire.c tests/update_wire_test.c -o build/tests/update_wire_test
+	./build/tests/update_wire_test
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s host -v
 
 # A passing audit means known defects reproduced, not that updates are safe.
 update-audit:

@@ -4,7 +4,7 @@ This project will build a USB HID bootloader and a simple application for the **
 
 Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. The initial MCC application is generated; saved components record **CSP v3.26.0**. User-owned LED1 code now builds with XC32 here and passes mocked tests. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blinking. The user also confirmed production operation and blinking after MCLR and power-cycle resets. The exact tested commit is tagged **v0.1.0-led-blink**. A tested **enumeration-only diagnostic build** now adds AN1 sensing and safe mini-B mux setup; the first connected-state ADC/mux and Windows HID enumeration test is confirmed. ADC unplug/replug detection and detach/reattach are now confirmed; host re-enumeration after MCLR and power cycle is now user-confirmed. Firmware-update commands stay inactive.
 
-Last updated: **2026-10-14**. Update this file when project decisions, setup requirements or verified progress change.
+Last updated: **2026-10-15**. Update this file when project decisions, setup requirements or verified progress change.
 
 ## Recommended approach
 
@@ -80,7 +80,8 @@ Makefile               XC32 application build, mocked tests and compiler smoke t
 application/
   app.X/               MPLAB X project and saved MCC configuration
   src/                 Generated PLIBs, main and user-owned LED application
-tests/                 Mocked application tests
+host/                  Python image preparation and read-only HID discovery/probe
+tests/                 Mocked application/update tests
 tools/
   toolchain-smoke.c    Exact-device compile/link test; not application firmware
 docs/
@@ -137,13 +138,14 @@ The application project is present. A separate `bootloader/` directory is the ne
 | HEX rows and flash-operation adapter | Software checks passed, not integrated | Full-span/order/batch validation, row padding and mocked flash bounds/error/readback/timeout tests pass. No target backend binding or command execution. |
 | Image commit and async session | Software checks passed, not integrated | Metadata-last CRC32 commit, exact image-span bounds, copied-row queue and abort/busy quarantine tested with mocks/sanitizers. Last 1 KB page reserved provisionally; no target writes or handoff. |
 | Host compatibility review | Offline review complete | UnifiedHost 1.19.3 bare erase lacks manifest; inspected checksum class uses command 8 rather than generated READ_CRC 4. Captured frame-vector tests pass. Project host extension recommended, not implemented. |
-| Verify USB updates and recovery | Disabled/not tested | Requires host manifest/schema, target backend/dispatcher, relocated app/linker and controlled hardware qualification. |
+| Python host preparation/read-only tools | Software tests passed | host/pic32_hid.py validates/packages relocated HEX, lists HID and probes versioned capabilities. Optional hidapi; no upload/erase/reset command. Current firmware lacks query handler; probe expected to time out. |
+| Verify USB updates and recovery | Disabled/not tested | Requires active manifest/schema handler, target backend/dispatcher, relocated app/linker and controlled hardware qualification. |
 
 ### Next steps
 
 - Initial [diagnostic enumeration](docs/usb-enumeration.md) passes, including MCLR/power-cycle re-enumeration. Generated SW1/BOOT_REQUEST settings are verified. User-owned startup debounce now gates enumeration: hold SW1 across reset for diagnostic mode; no button yields safe idle, not application handoff. The user confirmed [SW1 works as described](docs/usb-entry.md); physical-entry diagnostics pass. Update commands remain inactive.
 - The [host-only update audit](docs/update-safety.md) reproduces 12 unsafe behaviors in generated framing/HEX/flash handling. Run `make update-audit` to reproduce them safely with mocks; a passing audit is not update approval.
-- [Bounded framing and command validation](docs/update-protocol.md) now pass tests, but remain uncalled in firmware. [HEX session/row and flash adapter](docs/update-storage.md) now pass strict tests too. [Image commit and asynchronous sessions](docs/update-image.md) now pass mocked tests too. The [vendor host inspection](docs/host-compatibility.md) confirms bare erase has no manifest and the inspected checksum class differs from generated command 4. Recommend a small project host extension with negotiated length/CRC manifest; implement/test that schema before target binding and application relocation.
+- [Bounded framing and command validation](docs/update-protocol.md) now pass tests, but remain uncalled in firmware. [HEX session/row and flash adapter](docs/update-storage.md) now pass strict tests too. [Image commit and asynchronous sessions](docs/update-image.md) now pass mocked tests too. The [vendor host inspection](docs/host-compatibility.md) confirms bare erase has no manifest and the inspected checksum class differs from generated command 4. A [Python host](host/README.md) now implements offline image preparation and read-only discovery/probe, with a matching uncalled C capabilities schema. Next add/test its firmware read-only endpoint on Windows before implementing manifest-aware upload/target binding.
 - U2 is identified as **12-pin NCN1188**, marking AG7; the user corrected the initial ten-pin count. Mini-B mux selection is **GP5=GP6=1**, preserving other bits. Disconnected readings are 0 V; connected readings are J2 VBUS 5.16 V and VBUS_SENSE 2.011 V. User confirmed MCU VDD=3.3 V, same measurement point and return-to-zero on unplug. RA1 GPIO VIH requires 2.145 V, so add/review AN1 ADC sensing using AVDD/AVSS instead of GPIO-high detection; proposed setup is in docs/usb-circuit.md. See [USB circuit checks](docs/usb-circuit.md).
 - User-owned mux/ADC/attach diagnostic logic is implemented and software-tested. Capture hardware unplug/replug/reset results before proceeding. Physical SW1 diagnostic entry is now user-confirmed; update-safety logic remains next.
 - **Regenerate the application against the updated H3 content**, preserving app_led.c/.h, main integration, project entries, PICkit 5 and warning options. Rebuild on Linux/Windows and repeat production blink/MCLR/power-cycle tests. Keep v0.1.0-led-blink unchanged.
@@ -223,3 +225,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-14:** Added exact length/CRC32 image acceptance and metadata-last commit at reserved last 1 KB page, plus bounded async session orchestration. Mocked/sanitizer tests cover invalidation ordering, torn metadata, CRC, abort during row/commit, timeout quarantine and 70 KB image. Strict XC32 compile and existing builds/tests pass; active diagnostic unchanged. Host manifest transport/target backend/dispatcher/app layout still required before any hardware update.
 
 - **2026-10-14:** Inspected exact bootloader v3.9.0 UnifiedHost1.19.3 Java packet classes offline. Bare command2 erase has no manifest; inspected checksum class uses ID8 versus generated READ_CRC4. Captured info/erase/reset frame vectors pass validator tests. Recommend a small negotiated manifest-aware project host; no uploader or target update command enabled.
+
+- **2026-10-15:** User requested Python HID host. Added Python3.10+ offline HEX/image-package preparation, optional hidapi discovery and read-only versioned capabilities probe; no destructive CLI. Matching inert C wire schema/golden tests added. Nine Python test groups plus C/mocks/builds pass; standalone app HEX correctly rejected. Active firmware has no query handler yet, so real probe will time out; upload and hardware Python HID validation remain future work.
