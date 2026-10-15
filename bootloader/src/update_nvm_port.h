@@ -15,6 +15,13 @@ static inline void UPDATE_NvmPortInterruptRestore(uint32_t status)
 {__builtin_mtc0(12,0,status);}
 static inline bool UPDATE_NvmPortBusy(void){return NVMCONbits.WR!=0U;}
 static inline bool UPDATE_NvmPortDmaEnabled(void){return DMACONbits.ON!=0U;}
+static inline bool UPDATE_NvmPortUsbActive(void)
+{
+    /* USB has a bus master independent of DMACON. U1PWRC is the only USB
+     * status we read even during shutdown; USBPWR=0/USBBUSY=1 makes other
+     * USB status/register writes invalid (device data sheet register 10-5). */
+    return (U1PWRC&(_U1PWRC_USBPWR_MASK|_U1PWRC_USBBUSY_MASK))!=0U;
+}
 static inline uint32_t UPDATE_NvmPortError(void)
 {return NVMCON&(_NVMCON_WRERR_MASK|_NVMCON_LVDERR_MASK);}
 static inline bool UPDATE_NvmPortLowVoltage(void){return NVMCONbits.LVDSTAT!=0U;}

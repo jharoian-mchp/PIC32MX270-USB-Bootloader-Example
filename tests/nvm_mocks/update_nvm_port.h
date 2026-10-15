@@ -7,6 +7,7 @@ uint32_t UPDATE_NvmPortInterruptDisable(void);
 void UPDATE_NvmPortInterruptRestore(uint32_t status);
 bool UPDATE_NvmPortBusy(void);
 bool UPDATE_NvmPortDmaEnabled(void);
+bool UPDATE_NvmPortUsbActive(void);
 uint32_t UPDATE_NvmPortError(void);
 bool UPDATE_NvmPortLowVoltage(void);
 void UPDATE_NvmPortWait(uint32_t ticks);

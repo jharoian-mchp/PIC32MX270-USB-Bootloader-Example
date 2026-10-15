@@ -3,6 +3,8 @@
 #include "update_flash.h"
 /* Inactive PIC32MX270F256D backend. No diagnostic caller installs it.
  * Port clocks must be genuine SYSCLK/2 core count (4..50 MHz SYSCLK).
+ * USBPWR/USBBUSY and DMA must be clear at init/start and remain clear for the
+ * whole operation. Single main owner; no USB teardown/resume is implemented.
  * Initialise only when quiescent; adapter cannot cancel an active operation. */
 typedef struct {
     uint32_t lvd_ticks, settle_ticks, launch_error;

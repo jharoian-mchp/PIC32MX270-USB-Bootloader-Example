@@ -3,7 +3,7 @@
 #include <string.h>
 #include "update_nvm.h"
 #include "update_image.h"
-static bool busy,dma,low,enabled=true,auto_finish,reject_source;
+static bool busy,dma,usb_power,usb_busy,low,enabled=true,auto_finish,reject_source;
 static uint32_t error,operation,address,physical;
 static unsigned launches,reads;
 static uint32_t waits[8];static unsigned wait_count;
@@ -15,6 +15,7 @@ uint32_t UPDATE_NvmPortInterruptDisable(void){Event('D');bool old=enabled;enable
 void UPDATE_NvmPortInterruptRestore(uint32_t status){Event('R');enabled=status!=0;}
 bool UPDATE_NvmPortBusy(void){return busy;}
 bool UPDATE_NvmPortDmaEnabled(void){return dma;}
+bool UPDATE_NvmPortUsbActive(void){return usb_power||usb_busy;}
 uint32_t UPDATE_NvmPortError(void){return error;}
 bool UPDATE_NvmPortLowVoltage(void){return low;}
 void UPDATE_NvmPortWait(uint32_t ticks)
@@ -34,13 +35,13 @@ static void Finish(void)
     else memcpy(memory+address-UPDATE_APP_PHYSICAL_START,row,128);
 }
 void UPDATE_NvmPortLaunch(void)
-{Event('L');assert(!enabled&&!dma);++launches;busy=true;if(auto_finish)Finish();}
+{Event('L');assert(!enabled&&!dma&&!usb_power&&!usb_busy);++launches;busy=true;if(auto_finish)Finish();}
 void UPDATE_NvmPortDisarm(void){Event('C');assert(!busy);}
 bool UPDATE_NvmPortRead(uint32_t a,uint8_t *out,size_t size)
 {Event('Q');++reads;assert(!busy);memcpy(out,memory+a-UPDATE_APP_PHYSICAL_START,size);return true;}
 static void Reset(void)
 {
-    busy=dma=low=auto_finish=reject_source=false;enabled=true;
+    busy=dma=usb_power=usb_busy=low=auto_finish=reject_source=false;enabled=true;
     error=launches=reads=wait_count=event_count=0;row=NULL;memset(memory,255,sizeof(memory));
 }
 static void Events(const char *expected)
@@ -54,6 +55,8 @@ int main(void)
     assert(!UPDATE_NvmInit(&n,3999999,&b));assert(!UPDATE_NvmInit(&n,50000001,&b));
     busy=true;assert(!UPDATE_NvmInit(&n,48000000,&b));busy=false;
     dma=true;assert(!UPDATE_NvmInit(&n,48000000,&b));dma=false;
+    usb_power=true;assert(!UPDATE_NvmInit(&n,48000000,&b));usb_power=false;
+    usb_busy=true;assert(!UPDATE_NvmInit(&n,48000000,&b));usb_busy=false;
     error=0x2000;assert(!UPDATE_NvmInit(&n,48000000,&b));error=0;
     assert(!b.erase(b.context,UPDATE_APP_PHYSICAL_START-1024));
     assert(!b.erase(b.context,UPDATE_FLASH_PHYSICAL_END));
@@ -63,6 +66,13 @@ int main(void)
     reject_source=true;assert(!b.write(b.context,data,UPDATE_APP_PHYSICAL_START));reject_source=false;
     assert(launches==0);Events("");
     dma=true;assert(!b.erase(b.context,UPDATE_APP_PHYSICAL_START));dma=false;Events("DR");
+    usb_power=true;
+    assert(!b.erase(b.context,UPDATE_APP_PHYSICAL_START));Events("DR");
+    assert(!b.write(b.context,data,UPDATE_APP_PHYSICAL_START));Events("DR");
+    usb_power=false;usb_busy=true;
+    assert(!b.erase(b.context,UPDATE_APP_PHYSICAL_START));Events("DR");
+    assert(!b.write(b.context,data,UPDATE_APP_PHYSICAL_START));Events("DR");
+    usb_busy=false;assert(launches==0&&wait_count==0);
     busy=true;assert(!b.erase(b.context,UPDATE_APP_PHYSICAL_START));busy=false;Events("DR");
     error=0x2000;assert(!b.erase(b.context,UPDATE_APP_PHYSICAL_START));error=0;Events("DR");
     assert(b.write(b.context,data,UPDATE_APP_PHYSICAL_START));Events("DMASWLR");
@@ -98,6 +108,6 @@ int main(void)
     auto_finish=true;assert(UPDATE_FlashInit(&f,&b,UPDATE_APP_PHYSICAL_START,UPDATE_FLASH_PHYSICAL_END,100));
     assert(UPDATE_FlashWrite(&f,UPDATE_APP_PHYSICAL_START,(uint8_t *)data,0));
     assert(!busy&&UPDATE_FlashPoll(&f,1)==UPDATE_FLASH_OK);
-    puts("PASS: NVM physical bounds/rows, explicit clock delays/WR settle, IRQ restore, DMA/LVD/errors, uncached-source port contract, stalled/asynchronous completion and timeout source ownership. No hardware binding enabled.");
+    puts("PASS: NVM physical bounds/rows, explicit clock delays/WR settle, IRQ restore, DMA/USB-power/busy/LVD/errors, uncached-source port contract, stalled/asynchronous completion and timeout source ownership. No hardware binding enabled.");
     return 0;
 }

@@ -34,7 +34,8 @@ static bool Start(UPDATE_NVM *n,uint32_t address,const uint32_t *source,bool era
     if(!n->initialized||!Span(address,size)||(address&(size-1U))!=0U||
        (!erase&&!UPDATE_NvmPortSource(source,&physical)))return false;
     uint32_t interrupts=UPDATE_NvmPortInterruptDisable();
-    if(UPDATE_NvmPortBusy()||n->pending||UPDATE_NvmPortDmaEnabled()||Error(n)!=0U)
+    if(UPDATE_NvmPortBusy()||n->pending||UPDATE_NvmPortDmaEnabled()||
+       UPDATE_NvmPortUsbActive()||Error(n)!=0U)
     {UPDATE_NvmPortInterruptRestore(interrupts);return false;}
     UPDATE_NvmPortMode(erase?4U:3U);
     UPDATE_NvmPortAddress(address);
@@ -64,7 +65,8 @@ static bool Read(void *context,uint32_t address,uint8_t *out,size_t size)
 bool UPDATE_NvmInit(UPDATE_NVM *n,uint32_t hz,UPDATE_FLASH_BACKEND *backend)
 {
     if(n==NULL||backend==NULL||hz<4000000U||hz>50000000U||
-       UPDATE_NvmPortBusy()||UPDATE_NvmPortDmaEnabled()||UPDATE_NvmPortError()!=0U)return false;
+       UPDATE_NvmPortBusy()||UPDATE_NvmPortDmaEnabled()||UPDATE_NvmPortUsbActive()||
+       UPDATE_NvmPortError()!=0U)return false;
     *n=(UPDATE_NVM){.lvd_ticks=(hz+199999U)/200000U,
                    .settle_ticks=(hz+1999999U)/2000000U,.initialized=true};
     *backend=(UPDATE_FLASH_BACKEND){n,Busy,Error,Erase,Write,Read};return true;
