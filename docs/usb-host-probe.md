@@ -69,7 +69,9 @@ User terminal output confirms `py -3 host\pic32_hid.py list` finds one interface
 
 `probe --timeout 2` returns protocol **1**, max payload **510**, origin **0x1D008000**, exclusive image end **0x1D03FC00**, row size **128** and erase size **1024**. The host validated the matching frame CRC, version/opcode/request ID and capabilities layout, so the first end-to-end Python/HID/firmware read-only transaction passes. The observed Windows hidapi API/report conventions work in this environment; no Python/hidapi version number was supplied.
 
-Repeated probes and reset/unplug/replug with the new endpoint remain to be explicitly reported. The earlier enumeration-only lifecycle tests do not fully qualify pending report cancellation. This result performs no flash write and does not authorize update/erase/reset commands. Next complete the endpoint repeat/reconnect smoke test, then manifest/upload schema and target integration.
+The user subsequently confirmed **all requested exercises passed**: repeated probes, USB unplug/replug, MCLR while holding SW1, and power cycle while holding SW1. This completes the read-only host-link/lifecycle smoke test in the user's Windows environment. No per-cycle counters, counts of repetitions or interrupted mid-report fault-injection results were supplied, so this is not exhaustive cancellation qualification.
+
+No flash write occurred through the host tool and update/erase/reset commands remain disabled. Next implement/test manifest/upload schema and target integration, with the application regeneration/relocation follow-up still open.
 
 ## Endpoint diagnostics
 
