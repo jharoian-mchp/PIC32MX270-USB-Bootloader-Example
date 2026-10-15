@@ -1,6 +1,6 @@
 # Read-only Python-to-firmware probe test
 
-The SW1-gated diagnostic firmware now answers the project's **read-only CAPABILITIES** request. The Python host validates its version, request ID and memory layout. **No erase/program/reset/session command is executed.** Linux builds, C/Python/mocked transport tests and sanitizers pass; this endpoint still needs its Windows hardware test.
+The SW1-gated diagnostic firmware now answers the project's **read-only CAPABILITIES** request. The Python host validates its version, request ID and memory layout. **No erase/program/reset/session command is executed.** Linux builds, C/Python/mocked transport tests and sanitizers pass. The user confirmed the Windows Python HID list/capabilities probe succeeds on 2026-10-15.
 
 ## Firmware integration
 
@@ -62,6 +62,14 @@ Recovery:
 3. If project entries are present but the makefile remains stale, close MPLAB X and remove only ignored `nbproject/Makefile-default.mk`, `nbproject/Makefile-impl.mk` and `nbproject/Makefile-variables.mk`, then reopen/build so the IDE recreates them. **Keep configurations.xml, project.xml, the root project Makefile and nbproject/private/**; do not delete all project metadata or private programmer settings.
 
 **Resolved, user-confirmed 2026-10-15:** both source files were visible in the project, but deleting/recreating the generated makefiles fixed compilation/linking. The program is now built on Windows. This confirms stale generated makefile state as the cause; no C-source fix was required. Programming this revision and the read-only Python probe remain to be reported.
+
+## Windows hardware result — 2026-10-15
+
+User terminal output confirms `py -3 host\pic32_hid.py list` finds one interface with VID **04D8**, PID **003C**, interface 0, usage page **FF00**, usage 1 and product string **USB HID Bootloader**. Serial is empty, as expected.
+
+`probe --timeout 2` returns protocol **1**, max payload **510**, origin **0x1D008000**, exclusive image end **0x1D03FC00**, row size **128** and erase size **1024**. The host validated the matching frame CRC, version/opcode/request ID and capabilities layout, so the first end-to-end Python/HID/firmware read-only transaction passes. The observed Windows hidapi API/report conventions work in this environment; no Python/hidapi version number was supplied.
+
+Repeated probes and reset/unplug/replug with the new endpoint remain to be explicitly reported. The earlier enumeration-only lifecycle tests do not fully qualify pending report cancellation. This result performs no flash write and does not authorize update/erase/reset commands. Next complete the endpoint repeat/reconnect smoke test, then manifest/upload schema and target integration.
 
 ## Endpoint diagnostics
 

@@ -22,7 +22,7 @@ host\.venv\Scripts\python.exe host\pic32_hid.py list
 
 `list` sends no USB reports. It selects vendor-defined usage page **FF00**, usage **1**, VID/PID **04D8:003C**, and lists exact paths. More than one matching interface is rejected by probe unless an explicit `--path-hex` selects one. No serial string is assumed.
 
-The `requirements-hid.txt` version range is the API target, not a Windows-wheel compatibility result. HID calls have been tested with mocks here; installation and real Python HID access on Windows still need verification.
+The `requirements-hid.txt` version range is the API target, not a Windows-wheel compatibility result. HID calls pass mocks and the user confirmed Windows list/probe success on 2026-10-15. The exact installed Python/hidapi versions were not supplied; this is a tested environment, not proof of every version in the requirement range.
 
 ## Prepare a relocated image offline
 
