@@ -58,6 +58,8 @@ test:
 	./build/tests/update_wire_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c bootloader/src/update_hex.c bootloader/src/update_flash.c bootloader/src/update_image.c bootloader/src/update_session.c bootloader/src/update_wire.c bootloader/src/update_dispatch.c tests/update_dispatch_test.c -o build/tests/update_dispatch_test
 	./build/tests/update_dispatch_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/nvm_mocks -Ibootloader/src bootloader/src/update_nvm.c bootloader/src/update_flash.c tests/update_nvm_test.c -o build/tests/update_nvm_test
+	./build/tests/update_nvm_test
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s host -v
 
 # Rebuild all mock tests with sanitizers, including Python-plan -> C integration.
