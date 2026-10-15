@@ -44,9 +44,24 @@ part_id = raw_DEVID & 0x0FFFFFFF
 revision = raw_DEVID >> 28
 ```
 
-For the listed D part, raw A1/A2 examples are **1660A053 / 2660A053**. These are expected examples, not board measurements. The DB variant has a different device ID; unknown IDs/revisions require a fresh applicability check.
+For the listed D part, raw A1/A2 examples are **1660A053 / 2660A053**. These are expected examples, not raw board-register measurements. The DB variant has a different device ID; unknown IDs/revisions require a fresh applicability check.
 
-Read `DEVID` in an existing MPLAB/PICkit debugging session and save the hexadecimal value or Device Information output. Also record DEVCFG0 if available. No new diagnostic image is needed just to obtain debugger/device identity information. Programming configuration bits, bulk erase and protection tests require a later explicit hardware plan.
+### Board evidence received 2026-10-15
+
+The user supplied Device ID **0660A053** and tool-reported “Device Revision Id = 0xA1”. This identifies the expected PIC32MX270F256D **A1** revision. `0xA1` is the tool's revision label; it is not a raw four-bit VER value. A raw combined DEVID register value was not supplied and is not required to repeat the tool's part/revision identification.
+
+[The configuration screenshot](images/device-config-a1-2026-10-15.png) displays:
+
+| Field | Displayed value | Decoded protection |
+|---|---|---|
+| DEVCFG0 at physical 1FC00BFC | **7FFFFFE0** | PWP field **1FF**, BWP **1**, CP **1** |
+| PWP | OFF | Program Flash unprotected |
+| BWP | OFF | Boot Flash unprotected |
+| CP | OFF | Code protection disabled |
+
+The screenshot also shows DEVCFG3=FFFFFFFF, DEVCFG2=FFF9FAFA and DEVCFG1=FD74CE5B. These are IDE-displayed configuration values; the image alone does not establish whether the table is a live device readback or a loaded image/configuration view. Do not promote it to post-programming readback evidence. The protection choices match the generated configuration; no bits have been changed here.
+
+This evidence completes the part/revision identification input for the conditional A1 plan. Programming configuration bits, bulk erase and protection tests still require an explicit reviewed hardware/recovery plan.
 
 ## Errata applicability and 32 KB candidate
 
@@ -61,7 +76,7 @@ The earlier audit listed family protection issues without selecting a silicon ro
 
 The original PDF tables govern; the converted text loses some table alignment. The installed DFP 1.7.380 `xc32/32MX270F256D/configuration.data` defines **PWP32K**, masked DEVCFG0 value **00077C00**, field value **1DF** under mask **0007FC00**. This is the nominal first-32-KB protection encoding.
 
-**Conditional candidate, not applied:** for a confirmed listed PIC32MX270F256D A1/A2 and reviewed recovery plan, select `PWP=PWP32K`, `BWP=ON`, retain other settings. The intended boundaries are:
+**Conditional candidate, not applied:** the reported PIC32MX270F256D A1 fits the listed applicability row. After a reviewed recovery plan, select `PWP=PWP32K`, `BWP=ON`, retaining other settings. The intended boundaries are:
 
 - Program Flash pages 0–31: physical `[1D000000, 1D008000)` protected (32 × 1024 bytes).
 - Relocated application begins on page 32: `1D008000`, intended writable.
@@ -76,4 +91,4 @@ Before applying the candidate, verify the board ID/revision, linker/HEX/configur
 
 `make test`, `make test-sanitize`, `make nvm-codegen-check` and `make bootloader` pass with the USB guard. Diagnostic footprint stays text26670/data80/bss1568 and inactive update execution symbols are absent. No hardware writes were performed. A delegated USB research attempt timed out; the guard then received a completed bounded static review, which explicitly noted the whole-operation ownership requirement.
 
-Next obtain the board's **raw DEVID/revision** and, if accessible, **DEVCFG0**. Windows MCC regeneration and relocated-application linker/startup review still precede a live uploader. See [integration audit](nvm-integration-audit.md), [backend contract](update-nvm.md) and [application regeneration requirement](application.md).
+Board part/revision and IDE-displayed DEVCFG0 are now recorded. Next define the host/driver lifecycle and protection-boundary/recovery test plan; obtain actual device configuration readback when that test is performed. Windows MCC regeneration and relocated-application linker/startup review still precede a live uploader. See [integration audit](nvm-integration-audit.md), [backend contract](update-nvm.md) and [application regeneration requirement](application.md).

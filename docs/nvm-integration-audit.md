@@ -57,7 +57,7 @@ This audit changes no configuration bits. Protection settings can affect future 
 | Unlock source/codegen | Independent static review; ordered assembly; eight target compile modes | Recheck final integrated production/debug images and compiler/options changes |
 | Startup/settle/source | PDF review, 10 µs/1 µs Count waits, KSEG1 row checks, mocked errors/buffer retention | Verify clock/Count, voltage and actual row/page behaviour on target |
 | USB/peripheral bus | Independent USB bus master identified; IRP ownership/cancel source inspected | Reviewed bus-exclusion/arbitration policy and measured HID responsiveness/recovery |
-| Hardware protection | PWP/BWP OFF identified; errata recorded | Revision-specific encoding, protected/writable boundaries and recovery tests |
+| Hardware protection | User/tool identifies PIC32MX270F256D A1; IDE screenshot displays DEVCFG0=7FFFFFE0/all protection OFF; conditional encoding documented | Device readback during controlled test, protected/writable boundaries and recovery tests |
 | Application | Tagged standalone blink preserved | Windows MCC regeneration with LED preservation, relocated startup/linker review, both-platform builds |
 | Upload/recovery | Mocked dispatcher/plan/metadata-last tests | Write-gated transport/uploader, power-cut/reset/cable-loss and valid-image handoff tests |
 
