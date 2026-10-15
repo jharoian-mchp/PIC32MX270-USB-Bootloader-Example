@@ -90,7 +90,12 @@ int main(void)
     Reset(&c);op=Begin(1,1,128,0);assert(!UPDATE_LifecycleStage(&c,&op,0,NULL));
     op.epoch=8;assert(!UPDATE_LifecycleStage(&c,&op,0,&ticket));op.epoch=7;
     op.length=3;assert(!UPDATE_LifecycleStage(&c,&op,0,&ticket));op.length=128;
-    Accepted(&c,&op);assert(erases==0);UPDATE_LifecycleAck(&c,c.ticket,true,now); /* duplicate ignored */
+    UPDATE_LIFECYCLE before=c;UPDATE_STAGED_OPERATION original=op;
+    assert(!UPDATE_LifecycleStage(&c,&op,0,&c.ticket));assert(!memcmp(&c,&before,sizeof(c)));
+    assert(!UPDATE_LifecycleStage(&c,&op,0,&op.id));assert(!memcmp(&op,&original,sizeof(op)));
+    Accepted(&c,&op);assert(erases==0);
+    uint32_t saved=c.ticket;assert(!UPDATE_LifecycleStage(&c,&c.staged,now,&c.ticket));assert(c.ticket==saved);
+    UPDATE_LifecycleAck(&c,c.ticket,true,now); /* duplicate ignored */
     Pump(&c);assert(erases==2&&c.session.status==UPDATE_SESSION_READY);Resume(&c);
     op=(UPDATE_STAGED_OPERATION){.epoch=7,.token=1,.id=2,.kind=UPDATE_STAGE_BATCH,.size=1};
     assert(!UPDATE_LifecycleStage(&c,&op,now,&ticket));assert(c.session.status==UPDATE_SESSION_READY);

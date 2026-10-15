@@ -11,6 +11,11 @@ static bool Same(const UPDATE_STAGED_OPERATION *a,const UPDATE_STAGED_OPERATION 
 }
 static bool Expired(const UPDATE_LIFECYCLE *c,uint32_t now)
 {return (uint32_t)(now-c->since)>=c->phase_timeout_ms;}
+static bool Overlaps(const void *a,size_t an,const void *b,size_t bn)
+{
+    uintptr_t x=(uintptr_t)a,y=(uintptr_t)b;
+    return x<=y?y-x<an:x-y<bn;
+}
 bool UPDATE_LifecycleInit(UPDATE_LIFECYCLE *c,const UPDATE_FLASH_BACKEND *backend,
                          uint64_t epoch,uint32_t flash_timeout,uint32_t phase_timeout,bool enabled)
 {
@@ -22,6 +27,10 @@ bool UPDATE_LifecycleInit(UPDATE_LIFECYCLE *c,const UPDATE_FLASH_BACKEND *backen
 bool UPDATE_LifecycleStage(UPDATE_LIFECYCLE *c,const UPDATE_STAGED_OPERATION *op,
                           uint32_t now,uint32_t *ticket)
 {
+    /* Reject output aliases BEFORE writing even a failure value. Otherwise a
+     * caller can reset our counter and let a stale ticket authorise a new ACK. */
+    if(ticket!=NULL&&((c!=NULL&&Overlaps(ticket,sizeof(*ticket),c,sizeof(*c)))||
+       (op!=NULL&&Overlaps(ticket,sizeof(*ticket),op,sizeof(*op)))))return false;
     if(ticket!=NULL)*ticket=0;
     if(c==NULL||!c->initialized||!c->enabled||op==NULL||ticket==NULL||
        op->epoch!=c->epoch||op->token==0U||op->id==0U||op->size>UPDATE_LIFECYCLE_RECORD_MAX)return false;

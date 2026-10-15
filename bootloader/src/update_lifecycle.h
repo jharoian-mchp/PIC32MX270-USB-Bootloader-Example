@@ -34,7 +34,9 @@ typedef struct {
 bool UPDATE_LifecycleInit(UPDATE_LIFECYCLE *c,const UPDATE_FLASH_BACKEND *backend,
                          uint64_t epoch,uint32_t flash_timeout,uint32_t phase_timeout,bool enabled);
 /* No flash effects, including malformed HEX. Exact latest stage replays return
- * its ticket in any state; no lease refresh. New stage requires LINK. */
+ * its ticket in any state; no lease refresh. New stage requires LINK.
+ * Ticket output must not overlap controller or input operation; rejected
+ * before any failure-value write to prevent counter corruption/reuse. */
 bool UPDATE_LifecycleStage(UPDATE_LIFECYCLE *c,const UPDATE_STAGED_OPERATION *op,
                           uint32_t now,uint32_t *ticket);
 bool UPDATE_LifecycleExecute(UPDATE_LIFECYCLE *c,uint64_t epoch,uint32_t token,

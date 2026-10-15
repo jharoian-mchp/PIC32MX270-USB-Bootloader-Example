@@ -99,6 +99,10 @@ host\.venv\Scripts\python.exe host\pic32_hid.py probe --path-hex <hex-path-from-
 
 The transport checks version/opcode/request ID, length/layout, frame CRC, report size/padding and timeout; mismatches fail without legacy fallback. It bounds noise/report reads and does not automatically retry. HID device handles are closed even on failure. An OS HID write can still block beyond the user-space deadline; a later upload transport must qualify that behavior and recovery separately.
 
+## Offline version-2 lifecycle codecs
+
+`lifecycle_wire.py` constructs/parses separate version-2 HELLO/STAGE/EXECUTE/QUERY/RESUME fixtures with a 64-bit epoch, independent RPC/operation IDs and device-issued ticket. It has no HID I/O or CLI uploader. [Schema documentation](../docs/lifecycle-wire-v2.md) defines the 478-byte record bound and feature gating. C/Python golden vectors and exact 510-byte boundary tests pass; `pic32_hid.py transact` refuses these packets. The deployed firmware does not negotiate version 2.
+
 ## Tests
 
 ```sh
@@ -107,6 +111,6 @@ make test
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s host -v
 ```
 
-Thirteen Python test methods cover frame splits/random chunking, CRC/rejections, HEX normalization/bounds/checksums/EOF/overlap, deterministic package output/no overwrite, request/version/ID/capability mismatches, short reports/timeouts, device selection, close-on-failure, and refusal of destructive opcodes/CLI. C wire tests validate the same capabilities vector; strict XC32 compilation and sanitizer checks pass. Planner tests check maximum-span reconstruction, request-ID overflow, report bounds/padding, no overwrite and refusal to send planned writes. `make test` also executes Python plans through the C framed dispatcher and mocked flash. `make test-sanitize` rebuilds those C tests with ASan/UBSan.
+Fifteen Python test methods cover frame splits/random chunking, CRC/rejections, HEX normalization/bounds/checksums/EOF/overlap, deterministic package output/no overwrite, request/version/ID/capability mismatches, short reports/timeouts, device selection, close-on-failure, and refusal of destructive opcodes/CLI. C wire tests validate the same capabilities vector; strict XC32 compilation and sanitizer checks pass. Planner tests check maximum-span reconstruction, request-ID overflow, report bounds/padding, no overwrite and refusal to send planned writes. `make test` also executes Python plans through the C framed dispatcher and mocked flash. `make test-sanitize` rebuilds those C tests with ASan/UBSan.
 
 The Windows [read-only endpoint milestone](../docs/usb-host-probe.md) passed. Next implement/review the target backend, regenerate/relocate the application and integrate write-gated transport/recovery. No current artifact is a working uploader.

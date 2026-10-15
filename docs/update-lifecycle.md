@@ -1,6 +1,6 @@
 # Inactive ticketed update lifecycle core
 
-`update_lifecycle.c/.h` implements a typed, mock-tested staging/execute/ACK/USB-off/result/resume controller around `UPDATE_SESSION`. **No wire schema, USB callback binding or target caller is connected.** Hardware writes stay disabled; no reprogramming is needed for this library stage.
+`update_lifecycle.c/.h` implements a typed, mock-tested staging/execute/ACK/USB-off/result/resume controller around `UPDATE_SESSION`. **No USB callback binding or target caller is connected.** A separate [offline version-2 schema/codec](lifecycle-wire-v2.md) now exists; it is not a request dispatcher or transmitter. Hardware writes stay disabled; no reprogramming is needed for this library stage.
 
 ## API and ownership
 
@@ -42,6 +42,6 @@ The caller must not reenable USB during any active operation, timeout buffer ret
 - Strict XC32 lifecycle compilation and `make bootloader` pass. Diagnostic remains text26670/data80/bss1568 with inactive lifecycle/update execution symbols absent. Shared MPLAB XML lists all 35 sources.
 - `make nvm-codegen-check` passes unchanged eight-mode target launch checks. No new host command or mutation transport exists.
 
-A bounded independent contract review found two issues (local send authorisation and commit-cancel reporting), which were clarified here and in the proposal. Full controller code review timed out; a later narrow completion/cancel fragment review found the declared semantics consistent under its assumptions. Full independent code review is still open. Tests do not validate generated USB teardown, actual board NVM timing, epoch generation, transport identity, power-cut recovery or application handoff.
+A bounded independent contract review found two issues (local send authorisation and commit-cancel reporting), which were clarified here and in the proposal. Full controller code review timed out; a later narrow completion/cancel fragment review found the declared semantics consistent under its assumptions. A later full static core review completed and found a ticket-output aliasing bug, fixed by rejecting overlap before any output write and tested for controller/input aliases. Follow-up review confirmed the fix. No additional concrete core findings were reported under the documented assumptions. Tests do not validate generated USB teardown, actual board NVM timing, epoch generation, transport identity, power-cut recovery or application handoff.
 
-Next finalise/implement the negotiated wire schema and identity representation with offline C/Python fixtures, then independently review the full core and generated USB lifecycle before live binding. Preserve the [USB-off proposal](usb-off-update-session.md), [hardware gates](nvm-hardware-test-plan.md) and physical SW1/PICkit recovery. No hardware programming is requested for this stage.
+Offline version-2 codecs/C/Python vectors and full core review now exist. Next implement/review a version-2 dispatcher and dynamic host fixtures, then review the generated USB lifecycle before live binding. Preserve the [USB-off proposal](usb-off-update-session.md), [hardware gates](nvm-hardware-test-plan.md) and physical SW1/PICkit recovery. No hardware programming is requested for this stage.
