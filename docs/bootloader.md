@@ -175,6 +175,8 @@ Host commit c4d27a6 regenerated RB2/BOOT_REQUEST. User-owned diagnostics sample 
 
 The inspected upstream package includes **UnifiedHost 1.19.3**, whose [README](https://github.com/Microchip-MPLAB-Harmony/bootloader/blob/master/tools/UnifiedHost-1.19.3/readme.txt) describes PIC32 support and requires **Java 8 with JavaFX/OpenJFX**. Use the utility and VID/PID/protocol corresponding to the selected installed bootloader package. Its readiness and device connection have not been tested.
 
+The [offline UnifiedHost v1.19.3 packet review](host-compatibility.md) confirms bare erase has no image length/CRC manifest and the inspected checksum class differs from the generated command. A small manifest-aware project host is recommended; none is implemented or connected yet. Do not send stock-utility update commands.
+
 Record generated VID/PID, report sizes, host utility version and accepted firmware format before attempting an update. Do not treat a successful generic HID enumeration as proof that the update protocol is compatible. Use development identifiers only as permitted by the vendor; do not assign arbitrary production USB identifiers.
 
 ## Stage checklist

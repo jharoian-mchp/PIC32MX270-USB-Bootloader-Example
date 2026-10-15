@@ -17,7 +17,7 @@ The last **1 KB erase page** is reserved for metadata. Maximum declared image sp
 
 The host must declare **image length and expected CRC32** before starting. CRC covers exactly that span starting at application entry, including sparse gaps as 0xFF. The initial reset word must not be erased. A type-05 HEX entry, if supplied, must map to application start. These checks do not prove code authenticity, vector correctness or a runnable application.
 
-**Host compatibility is not yet defined:** the legacy ERASE_FLASH command carries no manifest parameters. The selected update host must transport length/CRC explicitly, through an agreed command extension or image-manifest format. Do not claim drop-in compatibility with UnifiedHost until that is verified.
+The [offline vendor host review](host-compatibility.md) confirms legacy ERASE_FLASH carries no manifest and finds a checksum-class mismatch. Recommend a small project host with explicit negotiated length/CRC manifest. Its wire schema/uploader is not yet implemented; do not claim drop-in UnifiedHost compatibility or bypass manifest validation.
 
 ## Update sequence
 
