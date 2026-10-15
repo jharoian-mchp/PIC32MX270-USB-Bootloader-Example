@@ -15,7 +15,7 @@ The diagnostic code:
 - Uses tentative **465-count connect / 248-count disconnect** hysteresis for the measured 3.3 V reference. Three consecutive connect samples are required; a low sample detaches promptly. These thresholds distinguish measured presence, not a complete USB VBUS-compliance qualification.
 - Reads expander OLAT/IODIR, clears only GP5/GP6 latch bits to establish disconnect, makes only those pins outputs, sets both high, then reads back latch/direction. **GP0–GP4 and GP7 are preserved.** I²C failures have a 100 ms deadline and one-second retry; no electrical bus-clear algorithm is claimed.
 - Opens its own USB device handle. It **ignores generated POWER_DETECTED/REMOVED events** for attachment because the dedicated VBUS input is board-powered. Only qualified ADC presence plus successful mux readback enables the D+ pull-up; ADC timeout detaches.
-- Calls USB_DEVICE_Tasks directly. It does **not** call generated SYS_Tasks, the bootloader protocol tasks, DATASTREAM tasks or NVM write/erase APIs. No HID report receive queue is submitted. Basic HID idle requests are supported for enumeration.
+- Calls USB_DEVICE_Tasks and the strictly read-only usb_probe receiver directly. It does **not** call generated SYS_Tasks, generated updater tasks, DATASTREAM tasks or NVM write/erase APIs. The current read-only revision submits a query-only receive queue through [usb_probe.c](usb-host-probe.md); no legacy/update command is dispatched. Basic HID idle requests remain supported.
 
 The generated HID descriptor/VID/PID are unchanged: **04D8:003C**, self-powered, 64-byte reports. A working enumeration does not prove host-update compatibility.
 

@@ -17,6 +17,11 @@ static uint16_t sample_value;
 static USB_DEVICE_EVENT_HANDLER usb_event;
 static USB_DEVICE_HID_EVENT_HANDLER hid_event;
 bool bootloader_Trigger(void);
+static bool probe_active;
+void USB_PROBE_Initialize(USB_DEVICE_HANDLE handle) { (void)handle;probe_active=false; }
+void USB_PROBE_Configure(bool active) { probe_active=active; }
+void USB_PROBE_Event(USB_DEVICE_HID_EVENT event,void *data) { (void)event;(void)data; }
+void USB_PROBE_Tasks(uint32_t now) { (void)now; }
 
 bool EVIC_INT_Disable(void) { bool old = enabled; enabled = false; return old; }
 void EVIC_INT_Restore(bool old) { enabled = old; }
@@ -100,12 +105,12 @@ int main(void)
     assert((registers[0x0A]&0x9FU)==(0xA5&0x9FU));
     usb_event(USB_DEVICE_EVENT_POWER_DETECTED,NULL,0); assert(attaches==0);
     Sample(624); Sample(624); assert(attaches==0); Sample(624); assert(attaches==1);
-    usb_event(USB_DEVICE_EVENT_CONFIGURED,NULL,0); assert(board_usb_diagnostics.configured && hid_event);
+    usb_event(USB_DEVICE_EVENT_CONFIGURED,NULL,0); assert(board_usb_diagnostics.configured && hid_event && probe_active);
     USB_DEVICE_HID_EVENT_DATA_SET_IDLE idle={4,0};
     hid_event(0,USB_DEVICE_HID_EVENT_SET_IDLE,&idle,0);
     hid_event(0,USB_DEVICE_HID_EVENT_GET_IDLE,NULL,0);
     Sample(350); assert(board_usb_diagnostics.cable_present && attaches==1);
-    Sample(0); assert(!board_usb_diagnostics.cable_present && board_usb_diagnostics.detach_count==1);
+    Sample(0); assert(!board_usb_diagnostics.cable_present && board_usb_diagnostics.detach_count==1 && !probe_active);
     Sample(624); Sample(624); Sample(624); assert(attaches==2);
     Advance(10); assert(adc_pending); Advance(10);
     assert(board_usb_diagnostics.adc_timeouts==1 && adc_resets==1 && !adc_pending);

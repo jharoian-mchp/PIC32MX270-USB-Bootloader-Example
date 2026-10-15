@@ -167,6 +167,10 @@ Use the [converted PIM and carrier references](docling/README.md), verifying sma
 
 First confirm routing and power, then USB descriptors/enumeration, then HID host communication. Keep erase/program operations disabled until those prerequisites and memory bounds pass.
 
+## Active read-only capabilities endpoint
+
+The user-owned [usb_probe endpoint](usb-host-probe.md) now receives EP1 query reports, checks version/ID/framing and answers only CAPABILITIES. RESET/deconfiguration/ADC detach cancel queues without reusing live buffers. Strict mocked transport tests, sanitizer and XC32 builds pass; Windows Python probe is next. No legacy/destructive command handler or target write/session path is active.
+
 ## SW1 diagnostic startup gate
 
 Host commit c4d27a6 regenerated RB2/BOOT_REQUEST. User-owned diagnostics sample active-low SW1 at 5 ms intervals; four consecutive lows inside a 50 ms window latch enumeration enabled. Without the request, startup stays safe idle with no USB client/tasks/mux changes, not application handoff. The strong trigger still prevents jumping into old application bytes. Builds, mocks and sanitizers pass; the user confirmed [the SW1 test](usb-entry.md) works as described. Parser/flash/image-safety tests are next. Updates remain inactive.

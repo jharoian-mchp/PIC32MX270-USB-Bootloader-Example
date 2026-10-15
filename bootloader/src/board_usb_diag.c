@@ -1,6 +1,7 @@
 /* User-owned, enumeration-only bring-up. No update protocol or flash writes. */
 #include "board_usb_diag.h"
 #include "definitions.h"
+#include "usb_probe.h"
 
 #define EXPANDER_ADDRESS 0x22U
 #define REG_IODIR 0x00U
@@ -63,6 +64,7 @@ static void Detach(void)
     if (board_usb_diagnostics.attached)
     {
         bool enabled = EVIC_INT_Disable();
+        USB_PROBE_Configure(false);
         USB_DEVICE_Detach(usb_handle);
         board_usb_diagnostics.attached = false;
         board_usb_diagnostics.configured = false;
@@ -78,6 +80,7 @@ static USB_DEVICE_HID_EVENT_RESPONSE HIDEvent(
 {
     (void)index;
     (void)context;
+    USB_PROBE_Event(event,data);
     switch (event)
     {
         case USB_DEVICE_HID_EVENT_SET_IDLE:
@@ -88,7 +91,7 @@ static USB_DEVICE_HID_EVENT_RESPONSE HIDEvent(
             (void)USB_DEVICE_ControlSend(usb_handle, &hid_idle, 1U);
             break;
         default:
-            /* No report queues or update command handler in this image. */
+            /* Report events feed a strictly read-only capabilities endpoint. */
             break;
     }
     return USB_DEVICE_HID_EVENT_RESPONSE_NONE;
@@ -103,13 +106,16 @@ static void USBEvent(USB_DEVICE_EVENT event, void *data, uintptr_t context)
         case USB_DEVICE_EVENT_CONFIGURED:
             board_usb_diagnostics.configured = true;
             (void)USB_DEVICE_HID_EventHandlerSet(USB_DEVICE_HID_INDEX_0, HIDEvent, 0);
+            USB_PROBE_Configure(true);
             break;
         case USB_DEVICE_EVENT_RESET:
+            USB_PROBE_Configure(false);
             ++board_usb_diagnostics.usb_resets;
             board_usb_diagnostics.configured = false;
             board_usb_diagnostics.suspended = false;
             break;
         case USB_DEVICE_EVENT_DECONFIGURED:
+            USB_PROBE_Configure(false);
             board_usb_diagnostics.configured = false;
             break;
         case USB_DEVICE_EVENT_SUSPENDED:
@@ -323,6 +329,7 @@ void BOARD_USB_DIAG_Initialize(void)
     CNPDACLR = 1U << 1;
     AD1CON2 = 0;
     usb_handle = USB_DEVICE_HANDLE_INVALID;
+    USB_PROBE_Initialize(USB_DEVICE_HANDLE_INVALID);
 }
 
 void BOARD_USB_DIAG_Tasks(void)
@@ -338,6 +345,7 @@ void BOARD_USB_DIAG_Tasks(void)
         {
             USB_DEVICE_EventHandlerSet(usb_handle, USBEvent, 0);
             USB_DEVICE_Detach(usb_handle); /* Explicitly start with no D+ pull-up. */
+            USB_PROBE_Initialize(usb_handle);
             board_usb_diagnostics.usb_open = true;
         }
         else board_usb_diagnostics.last_fault = BOARD_USB_FAULT_USB_OPEN;
@@ -354,7 +362,8 @@ void BOARD_USB_DIAG_Tasks(void)
         ++board_usb_diagnostics.attach_count;
         EVIC_INT_Restore(enabled);
     }
-    /* Deliberately bypass generated SYS_Tasks: no bootloader protocol parser,
-     * report receive queue, NVM erase/write or application handoff runs. */
+    /* Deliberately bypass generated updater: the report receiver accepts only
+     * versioned read-only queries, never erase/write/reset/session commands. */
+    USB_PROBE_Tasks(now);
     USB_DEVICE_Tasks(sysObj.usbDevObject0);
 }

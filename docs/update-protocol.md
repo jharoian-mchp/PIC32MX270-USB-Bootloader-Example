@@ -1,6 +1,6 @@
 # Bounded framing and command validation
 
-User-owned `bootloader/src/update_protocol.c`/`.h` now provides bounded framing, CRC16, command-length checks and safe application-span validation. **It is not integrated into the diagnostic loop and performs no USB, flash or application-jump operations.** Updates remain disabled.
+User-owned `bootloader/src/update_protocol.c`/`.h` now provides bounded framing, CRC16, command-length checks and safe application-span validation. **Its framing/CRC functions are now used by the read-only capabilities endpoint**, but command execution/flash/application-jump operations remain disconnected. Updates remain disabled.
 
 Reviewed: **2026-10-14**. The layer addresses the framing/dispatcher portion of the [generated-code safety audit](update-safety.md). Generated code is unchanged, so `make update-audit` still reproduces its defects; the hardened layer has separate safe-behavior tests.
 
@@ -64,9 +64,9 @@ This range reflects the current 32 KB reservation and **does not reserve final-i
 - Physical/cached/uncached ranges, start/end boundaries, empty/overflowing spans, boot/config/SFR/RAM rejection, and randomized comparison against a 64-bit span oracle.
 - Deterministic **2,000 randomly chunked round trips**, **100,000 arbitrary-byte decoder steps**, and **5,000 random command buffers**.
 
-AddressSanitizer/UndefinedBehaviorSanitizer tests pass. The source cross-compiles for PIC32MX270F256D with XC32 v6.00/DFP 1.7.380 and **-O2 -Wall -Wextra -Werror** without warning suppressions. Public MPLAB X project metadata includes it, but nothing calls it in current firmware; section garbage collection removes its routines from the linked diagnostic ELF.
+AddressSanitizer/UndefinedBehaviorSanitizer tests pass. The source cross-compiles for PIC32MX270F256D with XC32 v6.00/DFP 1.7.380 and **-O2 -Wall -Wextra -Werror** without warning suppressions. Public MPLAB X metadata includes it. The new read-only usb_probe endpoint calls framing/CRC; the legacy command validator and all update-session/flash execution paths remain unused. See [the hardware probe test](usb-host-probe.md).
 
-Existing `make test bootloader application` passes, and the linked diagnostic image remains **21,753 text / 80 data / 768 BSS** with no update/erase/write/parser routines. No hardware reprogramming or host utility is needed for this change.
+Existing `make test bootloader application` passes. The earlier inert-layer diagnostic image was **21,753 text / 80 data / 768 BSS**. The active read-only probe build is larger; its size/bounds are checked in the probe stage. A controlled firmware reprogram/probe test is now needed for that endpoint, but erase/write/session execution remains absent.
 
 ## Next layer
 

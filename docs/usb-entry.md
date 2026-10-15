@@ -1,6 +1,6 @@
 # SW1 startup-entry test
 
-This diagnostic build **enumerates only when SW1 is held during startup**. No button selects **safe idle**, not application handoff. Firmware-update commands remain inactive. Linux builds, mocked tests and sanitizer checks pass. On 2026-10-14 the user confirmed **SW1 works as described** for this diagnostic startup-entry test.
+This diagnostic build **enumerates only when SW1 is held during startup**. No button selects **safe idle**, not application handoff. Firmware-update commands remain inactive; the current revision additionally serves [read-only capabilities queries](usb-host-probe.md). Linux builds, mocked tests and sanitizer checks pass. On 2026-10-14 the user confirmed **SW1 works as described** for this diagnostic startup-entry test.
 
 ## Configuration and behavior
 

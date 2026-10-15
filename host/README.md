@@ -1,6 +1,6 @@
 # Python PIC32 HID host — preparation and read-only tools
 
-`pic32_hid.py` is a **Python 3.10+ command-line tool** for image preparation, HID discovery and a versioned read-only capabilities probe. **It has no upload, erase, reset, run or abort command.** The current enumeration-only firmware does not yet implement its query handler, so probe is expected to time out against that version.
+`pic32_hid.py` is a **Python 3.10+ command-line tool** for image preparation, HID discovery and a versioned read-only capabilities probe. **It has no upload, erase, reset, run or abort command.** The current read-only diagnostic revision now implements the capabilities handler; program it and enter with SW1 before probing. Older enumeration-only firmware will time out. See [the hardware test](../docs/usb-host-probe.md).
 
 Python was explicitly selected for the Windows host. Offline commands use only the standard library; HID discovery/probe optionally use the PyPI **hidapi** package, imported as `hid`. Do not install the unrelated package named `hid`.
 
@@ -75,7 +75,7 @@ origin:u32le(1D008000)  image_end_exclusive:u32le(1D03FC00)
 row_size:u16le(128)  erase_size:u16le(1024)
 ```
 
-`bootloader/src/update_wire.c/.h` implements pure C validation/response construction for this same read-only schema, but it is **not called by active firmware**. C/Python tests agree on the golden envelope vector. STATUS response schema and CLI are not implemented; a later dispatcher can use that reserved query after its data contract is agreed.
+`bootloader/src/update_wire.c/.h` implements pure C validation/response construction for this same read-only schema, and is now called by the user-owned usb_probe.c read-only endpoint. C/Python tests agree on the golden envelope vector. STATUS response schema and CLI are not implemented; a later dispatcher can use that reserved query after its data contract is agreed.
 
 ```powershell
 host\.venv\Scripts\python.exe host\pic32_hid.py probe --timeout 2
@@ -83,7 +83,7 @@ host\.venv\Scripts\python.exe host\pic32_hid.py probe --timeout 2
 host\.venv\Scripts\python.exe host\pic32_hid.py probe --path-hex <hex-path-from-list>
 ```
 
-**Current diagnostic firmware:** list may find it, but probe should report no matching response until the read-only handler is integrated. Do not interpret that timeout as a mux/ADC failure if Windows enumeration works. No updater utility is enabled.
+**Current read-only firmware:** list should find it and probe should return capabilities after SW1-enabled startup/configuration. Older firmware without the endpoint will time out. Do not interpret that timeout as a mux/ADC failure if Windows enumeration works. No updater utility is enabled.
 
 The transport checks version/opcode/request ID, length/layout, frame CRC, report size/padding and timeout; mismatches fail without legacy fallback. It bounds noise/report reads and does not automatically retry. HID device handles are closed even on failure. An OS HID write can still block beyond the user-space deadline; a later upload transport must qualify that behavior and recovery separately.
 
@@ -97,4 +97,4 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s host -v
 
 Nine Python test groups cover frame splits/random chunking, CRC/rejections, HEX normalization/bounds/checksums/EOF/overlap, deterministic package output/no overwrite, request/version/ID/capability mismatches, short reports/timeouts, device selection, close-on-failure, and refusal of destructive opcodes/CLI. C wire tests validate the same capabilities vector; strict XC32 compilation and sanitizer checks pass. Existing firmware builds/tests remain unchanged.
 
-Next add/test the firmware read-only capabilities endpoint and prove the probe on Windows. Then define a negotiated BEGIN_IMAGE length/CRC and replay-safe update dispatcher, target backend and relocated application. No current artifact is a working uploader.
+Next follow [the Windows read-only endpoint test](../docs/usb-host-probe.md). Then define a negotiated BEGIN_IMAGE length/CRC and replay-safe update dispatcher, target backend and relocated application. No current artifact is a working uploader.

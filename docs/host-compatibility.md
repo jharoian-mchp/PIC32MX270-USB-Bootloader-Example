@@ -54,7 +54,7 @@ Proposed extension contract:
 - Gate reset/run on stored-image validation; no arbitrary memory read/write or config programming commands.
 - Host calculates the CRC32 over the filtered/relocated application span, filling gaps with 0xFF and excluding metadata/boot/configuration regions. The current standalone application is not yet that image.
 
-The user explicitly selected **Python** for the host on 2026-10-15. [host/pic32_hid.py](../host/README.md) now implements offline HEX validation/normalization/package preparation, device listing and a read-only versioned capabilities probe using optional **hidapi**. Query IDs 60/61 and the envelope/capabilities layout have matching pure C tests in update_wire.c. The current firmware does **not** call that handler, so probe is expected to time out until integration; STATUS response/upload schema remain unimplemented. No destructive command is available.
+The user explicitly selected **Python** for the host on 2026-10-15. [host/pic32_hid.py](../host/README.md) now implements offline HEX validation/normalization/package preparation, device listing and a read-only versioned capabilities probe using optional **hidapi**. Query IDs 60/61 and the envelope/capabilities layout have matching pure C tests in update_wire.c. The current read-only revision now calls the capabilities handler through usb_probe.c; the [Windows hardware test](usb-host-probe.md) is next. Older firmware times out; STATUS response/upload schema remain unimplemented. No destructive command is available.
 
 ## Verification and remaining work
 
