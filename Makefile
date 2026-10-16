@@ -30,7 +30,7 @@ usb-cancellation-check:
 usb-retirement-check:
 	bun tools/usb-retirement-overlay.ts --check
 	@mkdir -p build/retirement-hooks
-	@set -e; for f in bootloader/src/usb_retirement.c bootloader/src/config/default/initialization.c bootloader/src/config/default/usb/src/usb_device.c bootloader/src/config/default/usb/src/usb_device_hid.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs_device.c; do \
+	@set -e; for f in bootloader/src/usb_retirement.c bootloader/src/usb_restart_owner.c bootloader/src/config/default/initialization.c bootloader/src/config/default/usb/src/usb_device.c bootloader/src/config/default/usb/src/usb_device_hid.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs_device.c; do \
 	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O2 -DUSB_RETIREMENT_HOOKS=1 -Ibootloader/src -Ibootloader/src/config/default -c "$$f" -o "build/retirement-hooks/$$(basename "$$f" .c).o"; done
 	HOST_CC="$(HOST_CC)" bun tools/test-usb-retirement.ts
 
@@ -68,6 +68,10 @@ test:
 	./build/tests/usb_restart_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/usb_irp_ledger.c tests/usb_irp_ledger_test.c -o build/tests/usb_irp_ledger_test
 	./build/tests/usb_irp_ledger_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -Itests/usb_owner_mocks -Itests/usb_mocks -Ibootloader/src bootloader/src/usb_restart_owner.c bootloader/src/usb_restart.c tests/usb_restart_owner_test.c -o build/tests/usb_restart_owner_test
+	./build/tests/usb_restart_owner_test
+	./build/tests/usb_restart_owner_test error
+	./build/tests/usb_restart_owner_test ack-reset
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c tests/update_protocol_test.c -o build/tests/update_protocol_test
 	./build/tests/update_protocol_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c bootloader/src/update_hex.c bootloader/src/update_flash.c tests/update_storage_test.c -o build/tests/update_storage_test

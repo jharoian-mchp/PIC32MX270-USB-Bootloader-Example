@@ -76,6 +76,13 @@ static void CompletionTasks(void)
     {rx_complete=false;usb_probe_diagnostics.rx_pending=false;}
 }
 
+bool USB_PROBE_RetireReady(void)
+{
+    bool irq=EVIC_INT_Disable();CompletionTasks();
+    bool ready=!usb_probe_diagnostics.rx_pending&&!usb_probe_diagnostics.tx_pending;
+    EVIC_INT_Restore(irq);return ready;
+}
+
 void USB_PROBE_Tasks(uint32_t now)
 {
     bool enabled=EVIC_INT_Disable();

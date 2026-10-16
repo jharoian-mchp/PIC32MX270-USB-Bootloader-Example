@@ -62,7 +62,11 @@ static void Sent(uint32_t now)
 }
 int main(void)
 {
-    uint8_t wire[64];size_t n;Reset();n=Query(wire,0x60,1,0x01041021);
+    uint8_t wire[64];size_t n;
+    Reset();assert(!USB_PROBE_RetireReady());USB_PROBE_Configure(false);
+    bool irq=EVIC_INT_Disable();assert(USB_DEVICE_IRPCancelAll(1,0x01)==0);EVIC_INT_Restore(irq);
+    assert(USB_PROBE_RetireReady()&&!usb_probe_diagnostics.rx_pending);
+    Reset();n=Query(wire,0x60,1,0x01041021);
     /* A trailing DLE at first chunk survives into the next report. */
     size_t split=0;for(size_t i=0;i<n;i++)if(wire[i]==16){split=i+1;break;}
     assert(split);Deliver(wire,split,11);assert(rx_owned&&sends==0);
