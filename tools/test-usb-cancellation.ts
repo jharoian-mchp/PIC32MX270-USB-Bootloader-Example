@@ -23,13 +23,13 @@ try{
         chunks.push(body);manifest.push({path,name,sha256:new Bun.CryptoHasher("sha256").update(body).digest("hex")});
     }
     const hid=readFileSync("bootloader/src/config/default/usb/src/usb_device_hid.c","utf8");
-    const start=hid.indexOf("bool USB_RetirementHidCompletionValid");let at=hid.indexOf("{",start)+1,depth=1;
-    for(;at<hid.length&&depth;at++){if(hid[at]==="{")depth++;else if(hid[at]==="}")depth--;}
-    if(start<0||depth)throw Error("completionhook missing");
-    chunks.unshift(hid.slice(start,at));
+    const start=hid.lastIndexOf("#if USB_RETIREMENT_HOOKS\n#include \"usb_irp_ledger.h\"");
+    const end=hid.indexOf("bool USB_RetirementHidDrained",start);
+    if(start<0||end<0)throw Error("completion ledger hooks missing");
+    chunks.unshift(hid.slice(start,end)+"\n#endif\n");
     writeFileSync(dir+"/callbacks.inc",chunks.join("\n"));writeFileSync(dir+"/manifest.json",JSON.stringify(manifest,null,2)+"\n");
     const cc=(process.env.HOST_CC??"cc").trim().split(/\s+/);
-    const compile=Bun.spawnSync([...cc,"-std=c11","-O2","-Wall","-Wextra","-Werror","-DUSB_RETIREMENT_HOOKS=1","-Ibootloader/src","-Itests/retirement_mocks","-I"+dir,"bootloader/src/usb_retirement.c","tests/usb_cancellation_test.c","-o",dir+"/test"],{stdout:"inherit",stderr:"inherit"});
+    const compile=Bun.spawnSync([...cc,"-std=c11","-O2","-Wall","-Wextra","-Werror","-DUSB_RETIREMENT_HOOKS=1","-Ibootloader/src","-Itests/retirement_mocks","-I"+dir,"bootloader/src/usb_retirement.c","bootloader/src/usb_irp_ledger.c","tests/usb_cancellation_test.c","-o",dir+"/test"],{stdout:"inherit",stderr:"inherit"});
     if(compile.exitCode!==0)throw Error("compilefailed");
     const test=Bun.spawnSync([dir+"/test"],{stdout:"inherit",stderr:"inherit"});if(test.exitCode!==0)throw Error("testfailed");
 }catch(error){console.error(String(error));process.exit(1);}

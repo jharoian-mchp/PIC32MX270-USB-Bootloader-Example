@@ -16,6 +16,44 @@ const bases:Record<string,string>={
 const hooks: Record<string,string>={
 "usb/src/usb_device_hid.c": `
 #if USB_RETIREMENT_HOOKS
+#include "usb_irp_ledger.h"
+static USB_IRP_SLOT usb_retirement_slots[USB_DEVICE_HID_QUEUE_DEPTH_COMBINED];
+static unsigned USB_RetirementHidIndex(const void *pointer)
+{
+    uintptr_t p=(uintptr_t)pointer,base=(uintptr_t)&gUSBDeviceHIDIRP[0];
+    if(p<base||p-base>=sizeof(gUSBDeviceHIDIRP)||(p-base)%sizeof(gUSBDeviceHIDIRP[0])!=0U)return USB_DEVICE_HID_QUEUE_DEPTH_COMBINED;
+    return (unsigned)((p-base)/sizeof(gUSBDeviceHIDIRP[0]));
+}
+bool USB_RetirementHidSlotAvailable(unsigned i)
+{return i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED&&USB_IrpAvailable(&usb_retirement_slots[i]);}
+bool USB_RetirementHidReserve(void *irp,bool transmit)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(irp);
+    bool ok=i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED&&gUSBDeviceHIDIRP[i].status<=USB_DEVICE_IRP_STATUS_COMPLETED_SHORT&&USB_IrpReserve(&usb_retirement_slots[i],transmit);
+    __builtin_mtc0(12,0,irq);return ok;
+}
+bool USB_RetirementHidSubmitResult(void *pointer,bool success)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(pointer);
+    if(i==USB_DEVICE_HID_QUEUE_DEPTH_COMBINED){USB_RetirementFault();__builtin_mtc0(12,0,irq);return false;}
+    USB_DEVICE_IRP *irp=(USB_DEVICE_IRP *)pointer;USB_IRP_SLOT *slot=&usb_retirement_slots[i];
+    bool rollback=!success&&slot->armed&&irp->status<=USB_DEVICE_IRP_STATUS_SETUP;
+    bool owned=success||irp->status>USB_DEVICE_IRP_STATUS_SETUP;
+    if(!USB_IrpSubmitResult(slot,owned))USB_RetirementFault();
+    __builtin_mtc0(12,0,irq);return rollback;
+}
+bool USB_RetirementHidClaim(void *pointer,bool transmit)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(pointer);
+    bool ok=USB_RetirementHidCompletionValid(pointer,transmit)&&i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED&&USB_IrpClaim(&usb_retirement_slots[i],transmit);
+    __builtin_mtc0(12,0,irq);return ok;
+}
+void USB_RetirementHidRelease(void *pointer)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(pointer);
+    if(i==USB_DEVICE_HID_QUEUE_DEPTH_COMBINED||!USB_IrpRelease(&usb_retirement_slots[i]))USB_RetirementFault();
+    __builtin_mtc0(12,0,irq);
+}
 bool USB_RetirementHidCompletionValid(const void *pointer,bool transmit)
 {
     uintptr_t p=(uintptr_t)pointer,base=(uintptr_t)&gUSBDeviceHIDIRP[0];
@@ -27,7 +65,7 @@ bool USB_RetirementHidCompletionValid(const void *pointer,bool transmit)
 }
 bool USB_RetirementHidDrained(void)
 {
-    if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle())return false;
+    if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle()||!USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))return false;
     for(unsigned i=0;i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED;i++)
         if(gUSBDeviceHIDIRP[i].status>USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)return false;
     for(unsigned i=0;i<USB_DEVICE_HID_INSTANCES_NUMBER;i++)
@@ -41,6 +79,7 @@ bool USB_RetirementHidRetire(void)
     {__builtin_mtc0(12,0,irq);return false;}
     /* Preserve the shared basic-OSAL mutex/one-time guard; reset only retired
      * IRP/instance storage after all references and callbacks are released. */
+    memset(usb_retirement_slots,0,sizeof(usb_retirement_slots));
     memset(gUSBDeviceHIDIRP,0,sizeof(gUSBDeviceHIDIRP));
     memset(gUsbDeviceHidInstance,0,sizeof(gUsbDeviceHidInstance));
     __builtin_mtc0(12,0,irq);return true;
@@ -140,7 +179,35 @@ const completions:[string,string,boolean][]=[
 ["F_USB_DEVICE_HID_ReportSendCallBack","irpTx",true],
 ];
 function completionGuard(pointer:string,transmit:boolean):string {
-    return `\n#if USB_RETIREMENT_HOOKS\n    if(!USB_RetirementHidCompletionValid(${pointer},${transmit?"true":"false"}))\n    {USB_RetirementFault();return;}\n#endif\n`;
+    return `\n#if USB_RETIREMENT_HOOKS\n    if(!USB_RetirementHidClaim(${pointer},${transmit?"true":"false"}))\n    {USB_RetirementFault();return;}\n    USB_RETIREMENT_HID_CALLBACK_SCOPE retirement_callback __attribute__((cleanup(USB_RetirementHidCallbackCleanup)))={${pointer}};\n#endif\n`;
+}
+function allocationGuard(tx:boolean):[string,string] {
+    const base=tx?"if(gUSBDeviceHIDIRP[count].status\n                 <= USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)":"if( gUSBDeviceHIDIRP[count].status <=\n                 USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)";
+    const patched=base.slice(0,-1)+"\n#if USB_RETIREMENT_HOOKS\n                 && USB_RetirementHidReserve(&gUSBDeviceHIDIRP[count],"+(tx?"true":"false")+")\n#endif\n         )";
+    return [base,patched];
+}
+function submitParts(tx:boolean):[string,string,string,string] {
+    const call=tx?"hidSendError = USB_DEVICE_IRPSubmit( thisHIDInstance->devLayerHandle,\n                                  thisHIDInstance->endpointTx,\n                                  irp);":"hidReceiveError = USB_DEVICE_IRPSubmit( thisHIDInstance->devLayerHandle,\n                                           thisHIDInstance->endpointRx,\n                                           irp);";
+    const error=tx?"hidSendError":"hidReceiveError",queue=tx?"currentTxQueueSize":"currentRxQueueSize";
+    const patched=call+"\n#if USB_RETIREMENT_HOOKS\n             bool retirement_rollback=USB_RetirementHidSubmitResult(irp,"+error+"==USB_ERROR_NONE);\n#endif";
+    const rollback="status = OSAL_CRIT_Enter(OSAL_CRIT_TYPE_HIGH);\n                thisHIDInstance->"+queue+" --;\n                OSAL_CRIT_Leave(OSAL_CRIT_TYPE_HIGH, status);\n                *handle = USB_DEVICE_HID_TRANSFER_HANDLE_INVALID;";
+    const guarded="#if USB_RETIREMENT_HOOKS\n                if(retirement_rollback) {\n#endif\n                "+rollback+"\n#if USB_RETIREMENT_HOOKS\n                }\n#endif";
+    return [call,patched,rollback,guarded];
+}
+function stripSubmissions(text:string):string {
+    for(const tx of [true,false]) {
+        const[base,patched]=allocationGuard(tx);text=text.replace(patched,base);
+        const[call,patchedCall,rollback,guarded]=submitParts(tx);text=text.replace(patchedCall,call).replace(guarded,rollback);
+    }
+    return text;
+}
+function patchSubmissions(text:string):string {
+    for(const tx of [true,false]) {
+        const[base,patched]=allocationGuard(tx);const[call,patchedCall,rollback,guarded]=submitParts(tx);
+        for(const old of [base,call,rollback])if(text.split(old).length!==2)throw Error("HID submit shape changed");
+        text=text.replace(base,patched).replace(call,patchedCall).replace(rollback,guarded);
+    }
+    return text;
 }
 try {
     const changes:{path:string,text:string}[]=[];
@@ -154,7 +221,10 @@ try {
             text=text.replace('\n/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */\n#include "usb_retirement.h"','');
             for(const [,result] of guards[rel]??[])text=text.replace(`\n#if USB_RETIREMENT_HOOKS\n    USB_RETIREMENT_ADMISSION(${result});\n#endif\n`,'');
             text=text.replace(/USB_RETIREMENT_NOTIFY\(([^;]+)\);/g,(_,call)=>`${call};`);
-            if(rel.endsWith("usb_device_hid.c"))for(const[,pointer,transmit]of completions)text=text.replace(completionGuard(pointer,transmit),"");
+            if(rel.endsWith("usb_device_hid.c")){
+                for(const[,pointer,transmit]of completions)text=text.replace(completionGuard(pointer,transmit),"");
+                text=stripSubmissions(text);
+            }
         }
         const hash=new Bun.CryptoHasher("sha256").update(text).digest("hex");
         if(hash!==bases[rel])throw Error(`generated base changed: ${rel}; review/update overlay hashes before applying`);
@@ -167,8 +237,11 @@ try {
             const guard=`\n#if USB_RETIREMENT_HOOKS\n    USB_RETIREMENT_ADMISSION(${result});\n#endif\n`;
             text=text.slice(0,at)+guard+text.slice(at);
         }
-        if(rel.endsWith("usb_device_hid.c"))for(const[name,pointer,transmit]of completions){
-            const at=functionOpening(text,name);text=text.slice(0,at)+completionGuard(pointer,transmit)+text.slice(at);
+        if(rel.endsWith("usb_device_hid.c")){
+            text=patchSubmissions(text);
+            for(const[name,pointer,transmit]of completions){
+                const at=functionOpening(text,name);text=text.slice(0,at)+completionGuard(pointer,transmit)+text.slice(at);
+            }
         }
         // Count all lowest-layer callback/event dispatches. Call expressions
         // span lines but have no nested function argument parentheses today.

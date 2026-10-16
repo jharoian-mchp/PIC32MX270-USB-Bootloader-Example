@@ -279,8 +279,9 @@ void F_USB_DEVICE_HID_InitializeByDescriptorType
 void F_USB_DEVICE_HID_ReportSendCallBack(USB_DEVICE_IRP * irpTx)
 {
 #if USB_RETIREMENT_HOOKS
-    if(!USB_RetirementHidCompletionValid(irpTx,true))
+    if(!USB_RetirementHidClaim(irpTx,true))
     {USB_RetirementFault();return;}
+    USB_RETIREMENT_HID_CALLBACK_SCOPE retirement_callback __attribute__((cleanup(USB_RetirementHidCallbackCleanup)))={irpTx};
 #endif
 
     /* This function is called when a Report Send IRP has
@@ -413,7 +414,11 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_ReportSend
     for(count = 0; count < (uint32_t)USB_DEVICE_HID_QUEUE_DEPTH_COMBINED; count++)
     {
          if(gUSBDeviceHIDIRP[count].status
-                 <= USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)
+                 <= USB_DEVICE_IRP_STATUS_COMPLETED_SHORT
+#if USB_RETIREMENT_HOOKS
+                 && USB_RetirementHidReserve(&gUSBDeviceHIDIRP[count],true)
+#endif
+         )
          {
              /* This means we have free IRP. Populate
               * the IRP */
@@ -432,15 +437,24 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_ReportSend
              hidSendError = USB_DEVICE_IRPSubmit( thisHIDInstance->devLayerHandle,
                                   thisHIDInstance->endpointTx,
                                   irp);
+#if USB_RETIREMENT_HOOKS
+             bool retirement_rollback=USB_RetirementHidSubmitResult(irp,hidSendError==USB_ERROR_NONE);
+#endif
 
              /* If IRP Submit function returned any error, then invalidate the
                Transfer handle.  */
             if (hidSendError != USB_ERROR_NONE )
             {
+                #if USB_RETIREMENT_HOOKS
+                if(retirement_rollback) {
+#endif
                 status = OSAL_CRIT_Enter(OSAL_CRIT_TYPE_HIGH);
                 thisHIDInstance->currentTxQueueSize --;
                 OSAL_CRIT_Leave(OSAL_CRIT_TYPE_HIGH, status);
                 *handle = USB_DEVICE_HID_TRANSFER_HANDLE_INVALID;
+#if USB_RETIREMENT_HOOKS
+                }
+#endif
             }
 
              /*Release mutex, done with shared resource*/
@@ -562,8 +576,9 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_TransferCancel
 void F_USB_DEVICE_HID_ReportReceiveCallBack(USB_DEVICE_IRP * irpRx)
 {
 #if USB_RETIREMENT_HOOKS
-    if(!USB_RetirementHidCompletionValid(irpRx,false))
+    if(!USB_RetirementHidClaim(irpRx,false))
     {USB_RetirementFault();return;}
+    USB_RETIREMENT_HID_CALLBACK_SCOPE retirement_callback __attribute__((cleanup(USB_RetirementHidCallbackCleanup)))={irpRx};
 #endif
 
     SYS_MODULE_INDEX iHID = (uint16_t)irpRx->userData;
@@ -696,7 +711,11 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_ReportReceive
     for(count = 0; count < (uint32_t)USB_DEVICE_HID_QUEUE_DEPTH_COMBINED; count++)
     {
          if( gUSBDeviceHIDIRP[count].status <=
-                 USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)
+                 USB_DEVICE_IRP_STATUS_COMPLETED_SHORT
+#if USB_RETIREMENT_HOOKS
+                 && USB_RetirementHidReserve(&gUSBDeviceHIDIRP[count],false)
+#endif
+         )
          {
              /* We have found a free IRP. Populate the IRP
               * and then submit it*/
@@ -712,15 +731,24 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_ReportReceive
              hidReceiveError = USB_DEVICE_IRPSubmit( thisHIDInstance->devLayerHandle,
                                            thisHIDInstance->endpointRx,
                                            irp);
+#if USB_RETIREMENT_HOOKS
+             bool retirement_rollback=USB_RetirementHidSubmitResult(irp,hidReceiveError==USB_ERROR_NONE);
+#endif
 
              /* If IRP Submit function returned any error, then invalidate the
                Transfer handle.  */
             if (hidReceiveError != USB_ERROR_NONE )
             {
+                #if USB_RETIREMENT_HOOKS
+                if(retirement_rollback) {
+#endif
                 status = OSAL_CRIT_Enter(OSAL_CRIT_TYPE_HIGH);
                 thisHIDInstance->currentRxQueueSize --;
                 OSAL_CRIT_Leave(OSAL_CRIT_TYPE_HIGH, status);
                 *handle = USB_DEVICE_HID_TRANSFER_HANDLE_INVALID;
+#if USB_RETIREMENT_HOOKS
+                }
+#endif
             }
 
             /*Release mutex, done with shared resource*/
@@ -1045,6 +1073,44 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_EventHandlerSet
 
 
 #if USB_RETIREMENT_HOOKS
+#include "usb_irp_ledger.h"
+static USB_IRP_SLOT usb_retirement_slots[USB_DEVICE_HID_QUEUE_DEPTH_COMBINED];
+static unsigned USB_RetirementHidIndex(const void *pointer)
+{
+    uintptr_t p=(uintptr_t)pointer,base=(uintptr_t)&gUSBDeviceHIDIRP[0];
+    if(p<base||p-base>=sizeof(gUSBDeviceHIDIRP)||(p-base)%sizeof(gUSBDeviceHIDIRP[0])!=0U)return USB_DEVICE_HID_QUEUE_DEPTH_COMBINED;
+    return (unsigned)((p-base)/sizeof(gUSBDeviceHIDIRP[0]));
+}
+bool USB_RetirementHidSlotAvailable(unsigned i)
+{return i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED&&USB_IrpAvailable(&usb_retirement_slots[i]);}
+bool USB_RetirementHidReserve(void *irp,bool transmit)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(irp);
+    bool ok=i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED&&gUSBDeviceHIDIRP[i].status<=USB_DEVICE_IRP_STATUS_COMPLETED_SHORT&&USB_IrpReserve(&usb_retirement_slots[i],transmit);
+    __builtin_mtc0(12,0,irq);return ok;
+}
+bool USB_RetirementHidSubmitResult(void *pointer,bool success)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(pointer);
+    if(i==USB_DEVICE_HID_QUEUE_DEPTH_COMBINED){USB_RetirementFault();__builtin_mtc0(12,0,irq);return false;}
+    USB_DEVICE_IRP *irp=(USB_DEVICE_IRP *)pointer;USB_IRP_SLOT *slot=&usb_retirement_slots[i];
+    bool rollback=!success&&slot->armed&&irp->status<=USB_DEVICE_IRP_STATUS_SETUP;
+    bool owned=success||irp->status>USB_DEVICE_IRP_STATUS_SETUP;
+    if(!USB_IrpSubmitResult(slot,owned))USB_RetirementFault();
+    __builtin_mtc0(12,0,irq);return rollback;
+}
+bool USB_RetirementHidClaim(void *pointer,bool transmit)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(pointer);
+    bool ok=USB_RetirementHidCompletionValid(pointer,transmit)&&i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED&&USB_IrpClaim(&usb_retirement_slots[i],transmit);
+    __builtin_mtc0(12,0,irq);return ok;
+}
+void USB_RetirementHidRelease(void *pointer)
+{
+    uint32_t irq=__builtin_disable_interrupts();unsigned i=USB_RetirementHidIndex(pointer);
+    if(i==USB_DEVICE_HID_QUEUE_DEPTH_COMBINED||!USB_IrpRelease(&usb_retirement_slots[i]))USB_RetirementFault();
+    __builtin_mtc0(12,0,irq);
+}
 bool USB_RetirementHidCompletionValid(const void *pointer,bool transmit)
 {
     uintptr_t p=(uintptr_t)pointer,base=(uintptr_t)&gUSBDeviceHIDIRP[0];
@@ -1056,7 +1122,7 @@ bool USB_RetirementHidCompletionValid(const void *pointer,bool transmit)
 }
 bool USB_RetirementHidDrained(void)
 {
-    if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle())return false;
+    if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle()||!USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))return false;
     for(unsigned i=0;i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED;i++)
         if(gUSBDeviceHIDIRP[i].status>USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)return false;
     for(unsigned i=0;i<USB_DEVICE_HID_INSTANCES_NUMBER;i++)
@@ -1070,6 +1136,7 @@ bool USB_RetirementHidRetire(void)
     {__builtin_mtc0(12,0,irq);return false;}
     /* Preserve the shared basic-OSAL mutex/one-time guard; reset only retired
      * IRP/instance storage after all references and callbacks are released. */
+    memset(usb_retirement_slots,0,sizeof(usb_retirement_slots));
     memset(gUSBDeviceHIDIRP,0,sizeof(gUSBDeviceHIDIRP));
     memset(gUsbDeviceHidInstance,0,sizeof(gUsbDeviceHidInstance));
     __builtin_mtc0(12,0,irq);return true;

@@ -15,7 +15,7 @@ void mock_restore(uint32_t value){irq=value!=0;}
 #define DRV_USBFS_INSTANCES_NUMBER 1U
 #define DRV_USBFS_ENDPOINTS_NUMBER 2U
 #define USB_DEVICE_IRP_STATUS_COMPLETED_SHORT 1
-#define USB_DEVICE_IRP_STATUS_SETUP 2U
+#define USB_DEVICE_IRP_STATUS_SETUP 2
 #define USBFS_UOWN 0x80U
 #define USBFS_STALL_SET 0x04U
 typedef struct {int status;uintptr_t data,userData;} USB_DEVICE_IRP;
@@ -46,6 +46,10 @@ int main(void)
 {
     U1PWRC=1;assert(!USB_RetirementBlocked());
     assert(Guarded(true)&&Guarded(false));assert(USB_RetirementCallbacksIdle());
+    assert(USB_RetirementHidReserve(&gUSBDeviceHIDIRP[0],false));
+    assert(!USB_RetirementHidReserve(&gUSBDeviceHIDIRP[0],true));
+    assert(USB_RetirementHidSubmitResult(&gUSBDeviceHIDIRP[0],false));
+    assert(USB_RetirementHidSlotAvailable(0));
     assert(USB_RetirementAdmissionBegin());assert(!USB_RetirementFence());USB_RetirementAdmissionEnd();
     USB_RetirementCallbackEnter();assert(!USB_RetirementFence());USB_RetirementCallbackLeave();
     assert(USB_RetirementFence()&&USB_RetirementBlocked());assert(!USB_RetirementAdmissionBegin());

@@ -1,6 +1,6 @@
 # Cancellation callback tests and initializer readiness
 
-Selected real generated cancellation/HID callback bodies now run together with the retirement admission gate in host tests. The opt-in HID callback overlay also rejects invalid pool pointers and zero-count completions before dereferencing instance/count state. **This does not establish per-IRP exactly-once completion or generation-safe reuse.** Hooks remain default-off; USB-only initialization/thaw and board restart are not implemented.
+Selected real generated cancellation/HID callback bodies now run together with the retirement admission gate in host tests. The opt-in HID callback overlay also rejects invalid pool pointers and zero-count completions before dereferencing instance/count state. **The initial aggregate guard did not establish per-IRP completion ownership.** A subsequent [per-slot ledger](usb-irp-ledger.md) claims completions within each reservation lifetime; generation-safe reuse after restart is still unimplemented. Hooks remain default-off; USB-only initialization/thaw and board restart are not implemented.
 
 ## Generated cancellation path under test
 
@@ -45,4 +45,4 @@ Independent bounded harness review limited the claims to selected software behav
 
 `make test`/`test-sanitize`, opt-in enabled `make usb-retirement-check` and default `make bootloader` pass. Existing fourteen C test executables plus source/hook/cancellation harnesses, 16 Python methods and Bun self-tests remain green. Default diagnostic footprint and update-symbol exclusions remain unchanged; no programming is required for this source/test stage.
 
-Next implement/review per-IRP completion admission/consumption, then a staged USB-only initializer and reopen policy. Only after those pass and the actual cancel/off-idle/controller binding is reviewed can a read-only board restart diagnostic be delivered. NVM/protection/application/upload gates remain separate; uploads are disabled.
+Per-IRP reserve/claim/release now exists and is mock/source-tested. Next implement/review a staged USB-only initializer and old-reference/generation reopen policy. Only after those pass and the actual cancel/off-idle/controller binding is reviewed can a read-only board restart diagnostic be delivered. NVM/protection/application/upload gates remain separate; uploads are disabled.
