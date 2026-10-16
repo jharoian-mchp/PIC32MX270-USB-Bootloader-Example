@@ -48,6 +48,8 @@
 #include "usb/usb_device.h"
 #include "usb/src/usb_external_dependencies.h"
 #include "usb/src/usb_device_hid_local.h"
+/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */
+#include "usb_retirement.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -176,6 +178,10 @@ void F_USB_DEVICE_HID_InitializeByDescriptorType
     uint8_t * pDescriptor
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION();
+#endif
+
     /* This function is called by the device layer when it
      * initializes the HID function driver. The device layer
      * passes descriptors to this function and the function
@@ -351,6 +357,10 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_ReportSend
     size_t size
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION(USB_DEVICE_HID_RESULT_ERROR);
+#endif
+
     size_t count;
     USB_DEVICE_IRP * irp = NULL;
     USB_DEVICE_HID_INSTANCE * thisHIDInstance;
@@ -624,6 +634,10 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_ReportReceive
     size_t size
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION(USB_DEVICE_HID_RESULT_ERROR);
+#endif
+
 
     size_t count = 0;
     USB_DEVICE_IRP * irp;
@@ -976,6 +990,10 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_EventHandlerSet
     uintptr_t context
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION(USB_DEVICE_HID_RESULT_ERROR);
+#endif
+
     USB_DEVICE_HID_INSTANCE * thisHIDInstance;
 
     /* Check if we have a valid instance */
@@ -1014,3 +1032,29 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_EventHandlerSet
 
 
 
+
+
+#if USB_RETIREMENT_HOOKS
+bool USB_RetirementHidDrained(void)
+{
+    if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle())return false;
+    for(unsigned i=0;i<USB_DEVICE_HID_QUEUE_DEPTH_COMBINED;i++)
+        if(gUSBDeviceHIDIRP[i].status>USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)return false;
+    for(unsigned i=0;i<USB_DEVICE_HID_INSTANCES_NUMBER;i++)
+        if(gUsbDeviceHidInstance[i].currentTxQueueSize||gUsbDeviceHidInstance[i].currentRxQueueSize)return false;
+    return true;
+}
+bool USB_RetirementHidRetire(void)
+{
+    uint32_t irq=__builtin_disable_interrupts();
+    if(!USB_RetirementRetirementAuthorized()||!USB_RetirementHidDrained())
+    {__builtin_mtc0(12,0,irq);return false;}
+    /* Preserve the shared basic-OSAL mutex/one-time guard; reset only retired
+     * IRP/instance storage after all references and callbacks are released. */
+    memset(gUSBDeviceHIDIRP,0,sizeof(gUSBDeviceHIDIRP));
+    memset(gUsbDeviceHidInstance,0,sizeof(gUsbDeviceHidInstance));
+    __builtin_mtc0(12,0,irq);return true;
+}
+#endif
+
+/* USB_RETIREMENT_OVERLAY_END */

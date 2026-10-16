@@ -1,6 +1,6 @@
 # Target USB restart ports — supported-API blockers
 
-**The target restart ports are not implemented.** Source checks and an exact-function audit show the current public API set cannot by itself establish the all-path fence/drain/retirement contract. Do not attach `usb_restart.c` to a chain of existing calls and claim a safe board restart. No firmware changes, programming or flash operations are needed for this audit stage.
+**The full target restart ports are not implemented.** Subsequent [opt-in owning-TU retirement hooks](usb-retirement-hooks.md) add a checked private-state overlay, but cancel/reinitialise/thaw and board binding remain unimplemented. Source checks and an exact-function audit show the current public API set cannot by itself establish the all-path fence/drain/retirement contract. Do not attach `usb_restart.c` to a chain of existing calls and claim a safe board restart. No firmware changes, programming or flash operations are needed for this audit stage.
 
 ## Supported versus missing operations
 
@@ -62,4 +62,4 @@ The user-confirmed device is PIC32MX270F256D A1; protection bits remain unchange
 
 Selected-function audit and full existing strict/sanitizer suites pass: fourteen C test executables plus one source-audit harness, 16 Python methods and Bun codegen self-tests. Diagnostic `make bootloader` remains unchanged; no new firmware sources were added in this audit step. Generated files are not modified. The delegated supported-API exploration timed out; parent source inspection and executable audit provide the stated facts. Independent audit review corrected two wording overclaims (counter persistence and mutex freeing); those descriptions now distinguish conditional mock outcomes and basic-OSAL no-op deletion.
 
-Next implement/review the minimal retirement hooks under a regeneration-safe policy, then bind the inactive coordinator and deliver the read-only test image. This audit does not complete the target-port or hardware-restart checklist item.
+The checked opt-in retirement overlay now exists. Next finish real-stack cancellation/late-callback review and USB-only initialization/thaw, then bind the inactive coordinator and deliver the read-only test image. This audit does not complete the target-port or hardware-restart checklist item.

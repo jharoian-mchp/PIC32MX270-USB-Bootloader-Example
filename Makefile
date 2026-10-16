@@ -21,7 +21,14 @@ BTL_DIR := build/bootloader
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check nvm-codegen-check usb-restart-audit application bootloader test test-sanitize update-audit
+.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check application bootloader test test-sanitize update-audit
+
+usb-retirement-check:
+	bun tools/usb-retirement-overlay.ts --check
+	@mkdir -p build/retirement-hooks
+	@set -e; for f in bootloader/src/usb_retirement.c bootloader/src/config/default/usb/src/usb_device.c bootloader/src/config/default/usb/src/usb_device_hid.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs_device.c; do \
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O2 -DUSB_RETIREMENT_HOOKS=1 -Ibootloader/src -Ibootloader/src/config/default -c "$$f" -o "build/retirement-hooks/$$(basename "$$f" .c).o"; done
+	HOST_CC="$(HOST_CC)" bun tools/test-usb-retirement.ts
 
 # Reproduces selected generated restart ownership gaps; not target approval.
 usb-restart-audit:
@@ -78,6 +85,8 @@ test:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s host -v
 	bun tools/check-nvm-codegen.ts --selftest
 	HOST_CC="$(HOST_CC)" bun tools/audit-usb-restart.ts
+	bun tools/usb-retirement-overlay.ts --check
+	HOST_CC="$(HOST_CC)" bun tools/test-usb-retirement.ts
 
 # Rebuild all mock tests with sanitizers, including Python-plan -> C integration.
 test-sanitize:

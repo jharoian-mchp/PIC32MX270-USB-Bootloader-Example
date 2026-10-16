@@ -53,6 +53,8 @@
 
 #include "usb/src/usb_device_local.h"
 #include "driver/usb/drv_usb.h"
+/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */
+#include "usb_retirement.h"
 
 /**********************************
  * Device layer instance objects.
@@ -1125,6 +1127,10 @@ USB_DEVICE_CONTROL_TRANSFER_RESULT USB_DEVICE_ControlSend
     size_t length 
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION(USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED);
+#endif
+
     USB_DEVICE_OBJ * usbDeviceThisInstance;
     USB_DEVICE_IRP * irpHandle;   
 
@@ -1198,6 +1204,10 @@ USB_DEVICE_CONTROL_TRANSFER_RESULT USB_DEVICE_ControlReceive
     size_t length
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION(USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED);
+#endif
+
     USB_DEVICE_CONTROL_TRANSFER_STRUCT * pControlTransfer;
     USB_DEVICE_OBJ * client;
 
@@ -1247,6 +1257,10 @@ USB_DEVICE_CONTROL_TRANSFER_RESULT USB_DEVICE_ControlStatus
     USB_DEVICE_CONTROL_STATUS status
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION(USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED);
+#endif
+
     USB_DEVICE_OBJ * usbDeviceThisInstance;
     USB_DEVICE_IRP * irpHandle;
 
@@ -3505,3 +3519,27 @@ void F_USB_DEVICE_Other_Speed_Descriptor_Request
 /* MISRAC 2012 deviation block end */
 
 /********************End of file********************************/
+
+
+#if USB_RETIREMENT_HOOKS
+bool USB_RetirementDeviceDrained(void)
+{
+    if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle())return false;
+    for(unsigned i=0;i<USB_DEVICE_INSTANCES_NUMBER;i++)
+    {
+        USB_DEVICE_OBJ *d=&usbDeviceInstance[i];
+        if(d->irpEp0Rx.status>USB_DEVICE_IRP_STATUS_SETUP||d->irpEp0Tx.status>USB_DEVICE_IRP_STATUS_SETUP)return false;
+    }
+    return true;
+}
+bool USB_RetirementDeviceRetire(void)
+{
+    uint32_t irq=__builtin_disable_interrupts();
+    if(!USB_RetirementRetirementAuthorized()||!USB_RetirementDeviceDrained())
+    {__builtin_mtc0(12,0,irq);return false;}
+    memset(usbDeviceInstance,0,sizeof(usbDeviceInstance));
+    __builtin_mtc0(12,0,irq);return true;
+}
+#endif
+
+/* USB_RETIREMENT_OVERLAY_END */

@@ -52,6 +52,8 @@ SUBSTITUTE  GOODS,  TECHNOLOGY,  SERVICES,  OR  ANY  CLAIMS  BY  THIRD   PARTIES
 #include "configuration.h"
 #include "driver/usb/usbfs/src/drv_usbfs_local.h"
 #include "interrupts.h"
+/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */
+#include "usb_retirement.h"
 
 
 // *****************************************************************************
@@ -590,3 +592,59 @@ void DRV_USBFS_USB_Handler(void)
 {
     DRV_USBFS_Tasks_ISR(sysObj.drvUSBFSObject); 
 }
+
+
+#if USB_RETIREMENT_HOOKS
+bool USB_RetirementDriverDrained(void)
+{
+    if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle())return false;
+    for(unsigned i=0;i<DRV_USBFS_INSTANCES_NUMBER;i++)
+    {
+        DRV_USBFS_OBJ *d=&gDrvUSBGroup[i].gDrvUSBObj;
+        if(!d->inUse)continue;
+        if(d->inInterruptContext||d->endpointTable==NULL)return false;
+        for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL)return false;
+        if(d->pBDT==NULL)return false;
+        for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)
+        {
+            uint8_t status=d->pBDT[e].byte[0];
+            /* UOWN|STALL may deliberately persist without an IRP. Ordinary
+             * owned buffers must finish/cancel before shutdown. */
+            if((status&USBFS_UOWN)!=0U&&(status&USBFS_STALL_SET)==0U)return false;
+        }
+    }
+    return true;
+}
+bool USB_RetirementPowerOff(void)
+{
+    uint32_t irq=__builtin_disable_interrupts();
+    bool ok=USB_RetirementHidDrained()&&USB_RetirementDeviceDrained()&&USB_RetirementDriverDrained();
+    if(ok)for(unsigned i=0;i<DRV_USBFS_INSTANCES_NUMBER;i++)
+    {
+        DRV_USBFS_OBJ *d=&gDrvUSBGroup[i].gDrvUSBObj;
+        if(d->inUse){(void)M_DRV_USBFS_InterruptSourceDisable(d->interruptSource);PLIB_USB_Disable(d->usbID);}
+    }
+    if(ok)USB_RetirementPowerOffAuthorized();
+    __builtin_mtc0(12,0,irq);return ok;
+}
+bool USB_RetirementDriverRetire(void)
+{
+    uint32_t irq=__builtin_disable_interrupts();
+    if(!USB_RetirementRetirementAuthorized()||!USB_RetirementDriverDrained())
+    {__builtin_mtc0(12,0,irq);return false;}
+    /* BDT can still contain UOWN|STALL with empty queue before shutdown. It
+     * may be cleared ONLY now, off idle. Preserve globally allocated BDT. */
+    for(unsigned i=0;i<DRV_USBFS_INSTANCES_NUMBER;i++)
+    {
+        DRV_USBFS_OBJ *d=&gDrvUSBGroup[i].gDrvUSBObj;
+        DRV_USBFS_BDT_ENTRY *bdt=d->pBDT;
+        if(d->inUse)DRV_USBFS_Deinitialize(i);
+        if(bdt!=NULL)memset((void *)bdt,0,DRV_USBFS_ENDPOINTS_NUMBER*4U*sizeof(DRV_USBFS_BDT_ENTRY));
+        memset(gDrvUSBGroup[i].gDrvUSBEndpoints,0,sizeof(gDrvUSBGroup[i].gDrvUSBEndpoints));
+        memset(d,0,sizeof(*d));
+    }
+    __builtin_mtc0(12,0,irq);return true;
+}
+#endif
+
+/* USB_RETIREMENT_OVERLAY_END */

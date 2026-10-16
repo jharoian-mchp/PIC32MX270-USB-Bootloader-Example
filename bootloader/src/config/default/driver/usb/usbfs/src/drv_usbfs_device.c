@@ -47,6 +47,8 @@ SUBSTITUTE  GOODS,  TECHNOLOGY,  SERVICES,  OR  ANY  CLAIMS  BY  THIRD   PARTIES
 #include "configuration.h"
 #include "driver/usb/usbfs/drv_usbfs.h"
 #include "driver/usb/usbfs/src/drv_usbfs_local.h"
+/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */
+#include "usb_retirement.h"
 
 /*****************************************************
  * This structure is a pointer to a set of USB Driver
@@ -1010,6 +1012,10 @@ USB_ERROR DRV_USBFS_DEVICE_IRPSubmit
     USB_DEVICE_IRP * irp
 )
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION(USB_ERROR_IRP_QUEUE_FULL);
+#endif
+
     uint8_t endpoint;
     bool interruptWasEnabled = false;
     int32_t direction;
@@ -1246,7 +1252,7 @@ void F_DRV_USBFS_DEVICE_IRPQueueFlush
                 iterator->status = status;
                 if(iterator->callback != NULL)
                 {
-                    iterator->callback((USB_DEVICE_IRP *)iterator);
+                    USB_RETIREMENT_NOTIFY(iterator->callback((USB_DEVICE_IRP *)iterator));
                 }
                 iterator = iterator->next;
             }
@@ -1358,7 +1364,7 @@ USB_ERROR DRV_USBFS_DEVICE_IRPCancel
 
                         if(irpToCancel->callback != NULL)
                         {
-                            irpToCancel->callback((USB_DEVICE_IRP *)irpToCancel);
+                            USB_RETIREMENT_NOTIFY(irpToCancel->callback((USB_DEVICE_IRP *)irpToCancel));
                         }
                     }
 
@@ -1902,7 +1908,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
         if(hDriver->pEventCallBack != NULL)
         {
             /* Send this event to the client */
-            hDriver->pEventCallBack(hDriver->hClientArg, eventType,  (void *)NULL);
+            USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, eventType,  (void *)NULL));
         }
 
         /* Clear the interrupt */
@@ -1944,7 +1950,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
             if(hDriver->pEventCallBack != NULL)
             {
                 /* Send this event to the client */
-                hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_RESUME_DETECT,  (void *)NULL);
+                USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_RESUME_DETECT,  (void *)NULL));
             }
         }
 
@@ -1958,7 +1964,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
             if(hDriver->pEventCallBack != NULL)
             {
                 /* Send this event to the client */
-                hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_RESUME_DETECT,  (void *)NULL);
+                USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_RESUME_DETECT,  (void *)NULL));
             }
 
             /* Clear the interrupt flag and disable it. This event will be enabled
@@ -2005,7 +2011,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
             if(hDriver->pEventCallBack != NULL)
             {
                 /* Send this event to the client */
-                hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_RESET_DETECT,  (void *)NULL);
+                USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_RESET_DETECT,  (void *)NULL));
             }
 
             /* Clear the interrupt flag */
@@ -2022,7 +2028,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
             if(hDriver->pEventCallBack != NULL)
             {
                 /* Send this event to the client */
-                hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_IDLE_DETECT,  (void *)NULL);
+                USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_IDLE_DETECT,  (void *)NULL));
             }
 
             /* Clear the interrupt flag and disable it. This event will be enabled
@@ -2050,7 +2056,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
             if(hDriver->pEventCallBack != NULL)
             {
                 /* Send this event to the client */
-                hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_SOF_DETECT,  (void *)NULL);
+                USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_SOF_DETECT,  (void *)NULL));
             }
 
             /* Clear the interrupt flag */
@@ -2077,7 +2083,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
             if(hDriver->pEventCallBack != NULL)
             {
                 /* Send this event to the client */
-                hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_STALL,  (void *)NULL);
+                USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_STALL,  (void *)NULL));
             }
 
             /* Clear the interrupt flag */
@@ -2099,7 +2105,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
             if(hDriver->pEventCallBack != NULL)
             {
                 /* Send this event to the client */
-                hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_ERROR,  (void *)&errorType);
+                USB_RETIREMENT_NOTIFY(hDriver->pEventCallBack(hDriver->hClientArg, DRV_USBFS_EVENT_ERROR,  (void *)&errorType));
             }
         }
 
@@ -2240,7 +2246,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
                              * driver to move to the next IRP in the queue. */
                             if(irp->callback != NULL)
                             {
-                                irp->callback((USB_DEVICE_IRP *)irp);
+                                USB_RETIREMENT_NOTIFY(irp->callback((USB_DEVICE_IRP *)irp));
                             }
                             processNextIRP = true;
                         }
@@ -2287,7 +2293,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
 
                             if(irp->callback != NULL)
                             {
-                                irp->callback((USB_DEVICE_IRP *)irp);
+                                USB_RETIREMENT_NOTIFY(irp->callback((USB_DEVICE_IRP *)irp));
                             }
                             processNextIRP = true;
                         }
@@ -2346,7 +2352,7 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
                     if(irp->callback != NULL && irp->status != USB_DEVICE_IRP_STATUS_ABORTED)
                     {
                         /* Invoke the callback */
-                        irp->callback((USB_DEVICE_IRP *)irp);
+                        USB_RETIREMENT_NOTIFY(irp->callback((USB_DEVICE_IRP *)irp));
                     }
 
                     if((lastEndpointObj->irpQueue != NULL) && (!(queueWasEmpty)))
@@ -2369,3 +2375,5 @@ void F_DRV_USBFS_DEVICE_Tasks_ISR(DRV_USBFS_OBJ * hDriver)
 }
 
 /* MISRAC 2012 deviation block end */
+
+/* USB_RETIREMENT_OVERLAY_END */
