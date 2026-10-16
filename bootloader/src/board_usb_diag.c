@@ -2,6 +2,7 @@
 #include "board_usb_diag.h"
 #include "definitions.h"
 #include "usb_probe.h"
+#include "usb_restart_owner.h"
 
 #define EXPANDER_ADDRESS 0x22U
 #define REG_IODIR 0x00U
@@ -40,7 +41,11 @@ static uint32_t last_count, milliseconds, mux_since, adc_since, last_sample;
 static uint8_t connect_streak, button_low_streak;
 static uint32_t last_button_sample;
 static USB_DEVICE_HANDLE usb_handle;
+#if !USB_RESTART_DIAGNOSTIC
 static uint8_t hid_idle;
+#else
+static bool owner_initialized,owner_failed;
+#endif
 
 /* This build always stays in diagnostic boot mode, including with an old app
  * still in flash. SW1 later gates enumeration, NOT application handoff.
@@ -61,6 +66,10 @@ static uint32_t TimeGet(void)
 
 static void Detach(void)
 {
+#if USB_RESTART_DIAGNOSTIC
+    /* Owner consumes the qualified failure at end of the board task. */
+    return;
+#else
     if (board_usb_diagnostics.attached)
     {
         bool enabled = EVIC_INT_Disable();
@@ -72,8 +81,10 @@ static void Detach(void)
         ++board_usb_diagnostics.detach_count;
         EVIC_INT_Restore(enabled);
     }
+#endif
 }
 
+#if !USB_RESTART_DIAGNOSTIC
 static USB_DEVICE_HID_EVENT_RESPONSE HIDEvent(
     USB_DEVICE_HID_INDEX index, USB_DEVICE_HID_EVENT event,
     void *data, uintptr_t context)
@@ -133,6 +144,8 @@ static void USBEvent(USB_DEVICE_EVENT event, void *data, uintptr_t context)
             break;
     }
 }
+
+#endif
 
 static void MuxFail(BOARD_USB_FAULT fault, uint32_t now)
 {
@@ -315,7 +328,12 @@ void BOARD_USB_DIAG_Initialize(void)
     milliseconds = mux_since = last_sample = adc_since = 0;
     mux_state = MUX_READ_LATCH;
     mux_pending = adc_pending = false;
-    connect_streak = hid_idle = button_low_streak = 0;
+    connect_streak = button_low_streak = 0;
+#if !USB_RESTART_DIAGNOSTIC
+    hid_idle=0;
+#else
+    owner_initialized=owner_failed=false;
+#endif
     last_button_sample = 0;
     /* Explicit SW1 digital-input state; carrier R18 supplies the pull-up. */
     ANSELBCLR = 1U << 2;
@@ -343,15 +361,39 @@ void BOARD_USB_DIAG_Tasks(void)
         usb_handle = USB_DEVICE_Open(USB_DEVICE_INDEX_0, DRV_IO_INTENT_READWRITE);
         if (usb_handle != USB_DEVICE_HANDLE_INVALID)
         {
+#if USB_RESTART_DIAGNOSTIC
+            owner_initialized=USB_RestartOwnerInit(usb_handle,10000U);
+            board_usb_diagnostics.usb_open=owner_initialized;
+            if(!owner_initialized)
+            {
+                /* Never retry a possibly partial owner initialization. Keep
+                 * its handle/storage until reset, explicitly detached. */
+                USB_DEVICE_Detach(usb_handle);owner_failed=true;
+                board_usb_diagnostics.last_fault=BOARD_USB_FAULT_USB_OPEN;
+            }
+#else
             USB_DEVICE_EventHandlerSet(usb_handle, USBEvent, 0);
             USB_DEVICE_Detach(usb_handle); /* Explicitly start with no D+ pull-up. */
             USB_PROBE_Initialize(usb_handle);
             board_usb_diagnostics.usb_open = true;
+#endif
         }
         else board_usb_diagnostics.last_fault = BOARD_USB_FAULT_USB_OPEN;
     }
     SenseTasks(now);
     MuxTasks(now);
+#if USB_RESTART_DIAGNOSTIC
+    if(owner_failed)return;
+    if(owner_initialized)
+    {
+        USB_RestartOwnerTasks(now,board_usb_diagnostics.cable_present,board_usb_diagnostics.mux_ready);
+        bool attached=usb_restart_owner_diagnostics.attached;
+        if(attached&&!board_usb_diagnostics.attached)++board_usb_diagnostics.attach_count;
+        if(!attached&&board_usb_diagnostics.attached)++board_usb_diagnostics.detach_count;
+        board_usb_diagnostics.attached=attached;
+        board_usb_diagnostics.configured=usb_restart_owner_diagnostics.configured;
+    }
+#else
     if (!board_usb_diagnostics.cable_present || !board_usb_diagnostics.mux_ready)
         Detach();
     else if (!board_usb_diagnostics.attached && board_usb_diagnostics.usb_open)
@@ -366,4 +408,5 @@ void BOARD_USB_DIAG_Tasks(void)
      * versioned read-only queries, never erase/write/reset/session commands. */
     USB_PROBE_Tasks(now);
     USB_DEVICE_Tasks(sysObj.usbDevObject0);
+#endif
 }

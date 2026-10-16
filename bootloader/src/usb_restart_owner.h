@@ -1,13 +1,20 @@
 #ifndef USB_RESTART_OWNER_H
 #define USB_RESTART_OWNER_H
 #include "usb_retirement.h"
+/* Explicit replacement of board USB ownership; OFF in production/default. */
+#ifndef USB_RESTART_DIAGNOSTIC
+#define USB_RESTART_DIAGNOSTIC 0
+#endif
+#if USB_RESTART_DIAGNOSTIC && !USB_RETIREMENT_HOOKS
+#error "USB_RESTART_DIAGNOSTIC requires retirement hooks"
+#endif
 #if USB_RETIREMENT_HOOKS
 #include "definitions.h"
 #include "usb_restart.h"
 typedef struct {
     USB_RESTART_STATE state;
     uint32_t generation,completed_cycles,stale_events,cancel_errors;
-    bool configured,exclusive;
+    bool configured,exclusive,attached;
 } USB_RESTART_OWNER_DIAGNOSTICS;
 extern volatile USB_RESTART_OWNER_DIAGNOSTICS usb_restart_owner_diagnostics;
 /* Uncalled default-off target binding. Caller must stop the old board USB

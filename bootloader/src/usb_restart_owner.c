@@ -128,6 +128,7 @@ void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
          usb_restart_owner_diagnostics.configured=false;}
         USB_PROBE_Tasks(now);USB_DEVICE_Tasks(sysObj.usbDevObject0);
     }
+    usb_restart_owner_diagnostics.attached=attached;
     /* DRAIN uses synchronous cancellation/observations only; OFF_WAIT only
      * reads U1PWRC. No normal task/attach/report calls through retirement. */
 }

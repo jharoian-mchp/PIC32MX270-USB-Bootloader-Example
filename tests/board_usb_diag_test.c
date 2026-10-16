@@ -3,6 +3,16 @@
 #include <string.h>
 #include "definitions.h"
 #include "board_usb_diag.h"
+#if USB_RESTART_DIAGNOSTIC
+#include "usb_restart_owner.h"
+volatile USB_RESTART_OWNER_DIAGNOSTICS usb_restart_owner_diagnostics;
+static unsigned owner_inits,owner_tasks;
+static bool owner_reject;
+bool USB_RestartOwnerInit(USB_DEVICE_HANDLE handle,uint32_t timeout)
+{assert(handle==1&&timeout==10000);++owner_inits;return !owner_reject;}
+void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
+{(void)now;++owner_tasks;usb_restart_owner_diagnostics.attached=cable&&mux;}
+#endif
 
 uint32_t mock_count, ANSELASET, TRISASET, CNPUACLR, CNPDACLR, AD1CON2;
 uint32_t ANSELBCLR, TRISBSET, CNPUBCLR, CNPDBCLR;
@@ -100,6 +110,19 @@ static void Sample(uint16_t v)
 { Advance(10); assert(adc_pending); sample_value=v; adc_ready=true; BOARD_USB_DIAG_Tasks(); }
 int main(void)
 {
+#if USB_RESTART_DIAGNOSTIC
+    ResetIdle(0,255,0,true);owner_reject=false;owner_inits=owner_tasks=0;
+    for(unsigned i=0;i<4;i++){mock_count+=5U*24000U;BOARD_USB_DIAG_Tasks();}
+    assert(owner_inits==1&&owner_tasks>0&&!usb_event&&!attaches&&!usb_tasks);
+    unsigned old=owner_tasks;BOARD_USB_DIAG_Tasks();assert(owner_inits==1&&owner_tasks==old+1);
+    owner_reject=true;owner_inits=owner_tasks=0;ResetIdle(0,255,0,true);
+    for(unsigned i=0;i<4;i++){mock_count+=5U*24000U;BOARD_USB_DIAG_Tasks();}
+    assert(owner_inits==1&&owner_tasks==0&&detaches==1&&!board_usb_diagnostics.usb_open);
+    assert(board_usb_diagnostics.last_fault==BOARD_USB_FAULT_USB_OPEN);
+    BOARD_USB_DIAG_Tasks();assert(owner_inits==1&&owner_tasks==0&&!usb_tasks);
+    puts("PASS: opt-in board delegates USB exclusively and quarantines detached owner-init failure without retry.");
+    return 0;
+#endif
     Reset(0xA5,0xB7,0); MuxReady();
     assert(registers[0x0A]==0xE5 && registers[0]==0x97);
     assert((registers[0x0A]&0x9FU)==(0xA5&0x9FU));

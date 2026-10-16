@@ -21,7 +21,17 @@ BTL_DIR := build/bootloader
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check usb-cancellation-check application bootloader test test-sanitize update-audit
+.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check application bootloader test test-sanitize update-audit
+
+# Compile/link evidence only, NOT a hardware-delivery or update-enabled image.
+bootloader-restart-check:
+	$(MAKE) bootloader BTL_DIR=build/restart-check BTL_WARNINGS="-Wall -Wextra -Os -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Wl,--undefined=USB_RestartOwnerRequest,--undefined=USB_RestartOwnerAck"
+	@"$(XC32_ROOT)/bin/xc32-nm" build/restart-check/bootloader.elf > build/restart-check/symbols.txt
+	@grep -q 'USB_RestartOwnerRequest' build/restart-check/symbols.txt
+	@grep -q 'USB_RestartOwnerAck' build/restart-check/symbols.txt
+	@! grep -Eq 'UPDATE_(Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)|NVM_(RowWrite|PageErase)' build/restart-check/symbols.txt
+	@echo "PASS: single USB owner links within unchanged linker reservation; no hardware delivery/host restart command."
+
 
 usb-cancellation-check:
 	bun tools/usb-retirement-overlay.ts --check
@@ -62,6 +72,8 @@ test:
 	./build/tests/app_led_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/usb_mocks -Ibootloader/src bootloader/src/board_usb_diag.c tests/board_usb_diag_test.c -o build/tests/board_usb_diag_test
 	./build/tests/board_usb_diag_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Itests/usb_owner_mocks -Itests/usb_mocks -Ibootloader/src bootloader/src/board_usb_diag.c tests/board_usb_diag_test.c -o build/tests/board_owner_handover_test
+	./build/tests/board_owner_handover_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src -Itests/usb_mocks bootloader/src/usb_probe.c bootloader/src/update_wire.c bootloader/src/update_protocol.c tests/usb_probe_test.c -o build/tests/usb_probe_test
 	./build/tests/usb_probe_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/usb_restart.c tests/usb_restart_test.c -o build/tests/usb_restart_test

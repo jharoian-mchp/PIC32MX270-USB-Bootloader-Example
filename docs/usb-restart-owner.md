@@ -1,6 +1,6 @@
 # Default-off USB restart owner — board delivery blocked
 
-`usb_restart_owner.c/.h` binds the restart coordinator to target cancellation, drain, power-off, retirement and detached rebuild helpers. **It has no active caller or host restart command.** The enabled link retaining all owner APIs exceeds the existing **32 KB** reservation at both `-O2` and `-Os`. No board test image is delivered; application origin/protection and working diagnostic firmware are unchanged.
+`usb_restart_owner.c/.h` binds the restart coordinator to target cancellation, drain, power-off, retirement and detached rebuild helpers. **It has no active caller or host restart command.** The initial enabled link retaining both old/new USB owners exceeded the **32 KB** reservation. A subsequent [single-owner integration](usb-owner-integration-size.md) now passes the unchanged linker at `-Os`; `-O2` still overflows. No board test image is delivered; application origin/protection and working diagnostic firmware are unchanged.
 
 ## Exclusive owner boundary
 
@@ -47,4 +47,4 @@ Compile/link checks retaining `USB_RestartOwnerInit/Request/Ack/Tasks` with `USB
 
 Do not increase the reservation, move `1D008000`, enable protection bits or program a partial/size-check output to hide this failure. No new HEX is attached. The accepted evidence is source/host tests and target object compilation; a deliverable enabled image has not passed link.
 
-Next remove duplicated old/new USB ownership code or otherwise reduce the integrated read-only restart footprint, review the final owner/transport command and repeat the full enabled link. Only after a complete bounded image, exclusive board-task handover and host callback protocol pass can the [read-only hardware restart phase](nvm-hardware-test-plan.md) be delivered. NVM/protection and uploads remain disabled and separate.
+Duplicated ownership is now compiled out in the opt-in branch and the integrated `-Os` link passes. Next add/review the final read-only owner/transport pause command and repeat its enabled link. Only after a complete bounded image, exclusive board-task handover and host callback protocol pass can the [read-only hardware restart phase](nvm-hardware-test-plan.md) be delivered. NVM/protection and uploads remain disabled and separate.

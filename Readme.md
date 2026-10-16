@@ -87,7 +87,8 @@ tools/
 docs/
   usb-host-probe.md    Active read-only capabilities endpoint and Python hardware test
   host-compatibility.md Vendor host packet findings and recommended manifest extension
-  usb-restart-owner.md Target owner source/mocks; enabled 32KB link blocked, no board image
+  usb-owner-integration-size.md Single USB-owner handover and passing Os32KB link check
+  usb-restart-owner.md Default-off target owner; final host command/board delivery gated
   usb-rebuild-detached.md Opt-in staged USB-only initializer/readiness/reopen tests
   usb-irp-ledger.md Opt-in per-slot reserve/claim/release and real HID submission tests
   usb-cancellation-readiness.md Exact callback tests, invalid-completion guard and initializer gates
@@ -286,3 +287,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-16:** Added defaultOFF USB-only detached rebuild entrypoint beside generated initdata under fifth SHAcheckedoverlay. Requires3retiredlayers/offidle/preparationgeneration, rebuildsdriver/device/EP0, bindscallbacks and reopensonlyprivateReady/detached/IRQmasked/emptyqueues validation. Reviewfixed preflightpoison, uncheckedinterfacecall and earlyhandlepublication; layerattestationtightened. Source/owningpredicates/initializerfaultmocks/ASan/UBSan/enabledXC32linkpass (retainedentrytext30410/data84/bss1596,notboardimage); defaultdiagnosticunchanged, XML40sources. No actualcancel/resumeowner/coordinatorports/hostcommand, oldreferenceprovenance stillunqualified. See docs/usb-rebuild-detached.md. Next targetport/callbackhandoff/read-onlyrestartdiagnostic; NVMupdatesdisabled/no programming.
 
 - **2026-10-16:** Added defaultOFF uncalled USB restart owner with HID+EP0cancel/probecompletiondrain, targetoff/retire/rebuild and generation-tagged ISRrecord/maintransition routes. Reviewfound reset/configflagordering/errorstalestate; fixed regressions, finalfollowupreviewtimedout. Sixteen strictC+16Python/fullsanitizer/ownerXC32object pass; defaultdiagnosticunchanged/XML41sources. Enabled retained-owner link FAILS32KB atO2andOs: no hardwareHEXdelivered, layout/protectionunchanged. Owner stillrequiresexclusiveoldboardtaskhandover/nohostcommand. See docs/usb-restart-owner.md. Next reduce duplicatedownership/integratedfootprint and complete review/link before read-onlyrestartboardtest; uploadsdisabled.
+
+- **2026-10-16:** Added defaultOFF USB_RESTART_DIAGNOSTIC board handover replacing oldUSBcallbacks/attach/probetask path with sole restartowner while retainingSW1/ADC/mux. Reviewfoundownerinitfail silentstranding; explicitdetachedUSB_OPENquarantine/testfix. makebootloader-restart-check Os passesactualunchanged32KB linker text32206/data84/bss1700; O2stilloverflows. Seventeen strictC+16Python/fullsanitizer/defaultbuildpass; baselinefootprintunchanged, nohostpausecommand/testHEXdelivered. Finalownerfollowupreviewtimedout. See docs/usb-owner-integration-size.md; next smallreadonlypausehandler/finalreview+link beforeboarddelivery; updatesdisabled.
