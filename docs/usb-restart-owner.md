@@ -25,7 +25,7 @@ HID callbacks reject the wrong transport generation before touching probe state.
 
 ACK processing excludes interrupts and rejects pending reset/error before authorising fencing. A fresh enumeration reset in READY/CONFIG_WAIT is expected; reset during ACK wait or after established DONE faults the coordinator. A wrong-phase CONFIGURED event does not revive a failed/retiring generation. Late callbacks still require full old-reference drain before software address reuse; context matching is not hardware authentication.
 
-FAILED executes no normal USB task/attach path and does not permit another restart. It is quarantine, not proof of off/idle or freed resources. An actual partial-failure recovery policy and fault-injection hardware test remain required.
+FAILED executes no normal USB task/attach path and does not permit another restart. Final review added explicit detachment before shutdown, clearing configuration/probe state; after any power-off attempt ordinary USB-register access is forbidden and resources remain quarantined. Failure tests cover pending RX retention and off/busy state. It is quarantine, not proof of off/idle or freed resources. An actual partial-failure recovery policy and fault-injection hardware test remain required.
 
 ## Review and tests
 

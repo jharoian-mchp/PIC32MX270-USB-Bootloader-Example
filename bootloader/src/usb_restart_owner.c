@@ -5,6 +5,7 @@
 static USB_RESTART restart;
 static USB_DEVICE_HANDLE handle;
 static bool initialized,attached,configured;
+static bool usb_registers_accessible=true;
 static volatile uint32_t callback_generation,event_flags;
 #define OWNER_RESET 1U
 #define OWNER_CONFIGURED 2U
@@ -51,7 +52,13 @@ static bool CancelDetach(void *c)
 }
 static bool Drained(void *c)
 {(void)c;return USB_PROBE_RetireReady()&&USB_RetirementHidDrained()&&USB_RetirementDeviceDrained()&&USB_RetirementDriverDrained();}
-static bool PowerOff(void *c){(void)c;return USB_RetirementPowerOff();}
+static bool PowerOff(void *c)
+{
+    (void)c;
+    /* After a power-off attempt, do not touch ordinary USB registers even if
+     * the port reports failure. Partial shutdown is not idle proof. */
+    usb_registers_accessible=false;return USB_RetirementPowerOff();
+}
 static bool OffIdle(void *c){(void)c;return USB_RetirementOffIdle();}
 static bool Retire(void *c)
 {(void)c;return USB_RetirementHidRetire()&&USB_RetirementDeviceRetire()&&USB_RetirementDriverRetire();}
@@ -60,7 +67,7 @@ static bool Rebuild(void *c,uint32_t generation)
     (void)c;USB_DEVICE_HANDLE rebuilt=USB_DEVICE_HANDLE_INVALID;
     bool irq=EVIC_INT_Disable();callback_generation=generation;event_flags=0;
     bool ok=USB_RebuildDetached(generation,DeviceEvent,HidEvent,generation,&rebuilt);
-    if(ok){handle=rebuilt;attached=configured=false;USB_PROBE_Initialize(handle);}
+    if(ok){handle=rebuilt;attached=configured=false;usb_registers_accessible=true;USB_PROBE_Initialize(handle);}
     EVIC_INT_Restore(irq);return ok;
 }
 static bool Configured(void *c,uint32_t generation)
@@ -92,12 +99,23 @@ unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint
 }
 void USB_RestartOwnerStatus(uint32_t *ticket,uint32_t *generation)
 {*ticket=pause_ticket;*generation=restart.generation;usb_restart_owner_diagnostics.state=restart.state;}
+static void QuarantineFailed(void)
+{
+    if(restart.state!=USB_RESTART_FAILED)return;
+    USB_PROBE_Configure(false);configured=false;usb_restart_owner_diagnostics.configured=false;
+    /* Pre-shutdown ACK/reset failure must not leave a pull-up advertising an
+     * unserviced device. After power-off/partial rebuild retain all resources
+     * and never access USB registers whose status may be invalid. */
+    if(attached&&usb_registers_accessible){USB_DEVICE_Detach(handle);attached=false;}
+    usb_restart_owner_diagnostics.attached=attached;
+}
 void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now)
 {
     if(!initialized)return;
     bool irq=EVIC_INT_Disable();
     if(event_flags&(OWNER_RESET|OWNER_ERROR))USB_RestartCancel(&restart);
     else USB_RestartAck(&restart,ticket,success,now);
+    QuarantineFailed();
     EVIC_INT_Restore(irq);
 }
 void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
@@ -129,6 +147,7 @@ void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
     }
     USB_RESTART_STATE previous=restart.state;
     USB_RestartPoll(&restart,now);
+    QuarantineFailed();
     if(previous!=USB_RESTART_DONE&&restart.state==USB_RESTART_DONE)++usb_restart_owner_diagnostics.completed_cycles;
     usb_restart_owner_diagnostics.state=restart.state;usb_restart_owner_diagnostics.generation=restart.generation;
     if(restart.state==USB_RESTART_READY||restart.state==USB_RESTART_ACK_WAIT||
@@ -147,6 +166,7 @@ void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
             restart.state==USB_RESTART_CONFIG_WAIT||restart.state==USB_RESTART_DONE))
             USB_DEVICE_Tasks(sysObj.usbDevObject0);
     }
+    QuarantineFailed();
     usb_restart_owner_diagnostics.attached=attached;
     EVIC_INT_Restore(irq);
     /* DRAIN uses synchronous cancellation/observations only; OFF_WAIT only

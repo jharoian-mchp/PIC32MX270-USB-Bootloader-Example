@@ -52,11 +52,30 @@ static void Receive(const uint8_t *p,size_t size,uint32_t now)
     memcpy(rx,wire,n);rx_owned=false;USB_DEVICE_HID_EVENT_DATA_REPORT_RECEIVED d={n,100,0};
     hid_event(0,USB_DEVICE_HID_EVENT_REPORT_RECEIVED,&d,hid_context);USB_RestartOwnerTasks(now,true,true);
 }
-int main(void)
+int main(int argc,char **argv)
 {
     assert(USB_RestartOwnerInit(1,10000));USB_RestartOwnerTasks(0,true,true);
     device_event(USB_DEVICE_EVENT_RESET,NULL,1);device_event(USB_DEVICE_EVENT_CONFIGURED,NULL,1);
     USB_RestartOwnerTasks(10,true,true);USB_RestartOwnerTasks(20,true,true);assert(rx_owned);
+    if(argc>1)
+    {
+        uint8_t retained[64];memcpy(retained,rx,64);uint32_t ticket;
+        assert(USB_RestartOwnerRequest(21,&ticket));
+        unsigned old=tasks;
+        if(strcmp(argv[1],"failed-ack")==0)USB_RestartOwnerAck(ticket,false,22);
+        else if(strcmp(argv[1],"reset-wait")==0)device_event(USB_DEVICE_EVENT_RESET,NULL,1);
+        USB_RestartOwnerTasks(strcmp(argv[1],"expired-ack")==0?10022:22,true,true);
+        assert(usb_restart_owner_diagnostics.state==USB_RESTART_FAILED&&!usb_restart_owner_diagnostics.attached);
+        assert(rx_owned&&memcmp(retained,rx,64)==0&&tasks==old&&poweroffs==0&&rebuilds==0);
+        /* RX remains statically owned until actual completion/reset, never
+         * reused just because the failed owner detached from the host. */
+        USB_DEVICE_HID_EVENT_DATA_REPORT_RECEIVED cancelled={0,100,-1};rx_owned=false;
+        hid_event(0,USB_DEVICE_HID_EVENT_REPORT_RECEIVED,&cancelled,hid_context);
+        assert(USB_PROBE_RetireReady());
+        USB_RestartOwnerTasks(10023,true,true);assert(tasks==old&&poweroffs==0);
+        puts("PASS: failed/expired/reset ACK detaches but retains pending real-probe RX storage until actual completion; no task/rebuild/retry.");
+        return 0;
+    }
     Receive((uint8_t[]){0x66,1,10,0,0,0,1,0,0,0},10,21);assert(tx_owned&&!blocked&&!poweroffs);
     assert(!memcmp(tx,sent,64));tx_owned=false;USB_DEVICE_HID_EVENT_DATA_REPORT_SENT done={64,200,0};
     hid_event(0,USB_DEVICE_HID_EVENT_REPORT_SENT,&done,hid_context);

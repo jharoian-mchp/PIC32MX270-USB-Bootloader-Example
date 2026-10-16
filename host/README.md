@@ -105,7 +105,7 @@ The transport checks version/opcode/request ID, length/layout, frame CRC, report
 
 ## USB-only restart diagnostic (hardware delivery gated)
 
-`usb_restart_diag.py` is a separate STATUS/PAUSE verifier for the opt-in test firmware. It sends a pause once, requires a single unchanged HID path, observed removal and expected ticket/generation/cycle/DONE status after reconnect. PAUSE disconnects USB but performs no flash write. The normal hardware-tested firmware does not support it; **do not run a live restart yet**. See [host/image audit](../docs/usb-restart-host-audit.md). The existing `pic32_hid.py` transport still rejects pause/update commands.
+`usb_restart_diag.py` is a separate STATUS/PAUSE verifier for the opt-in test firmware. It sends a pause once, requires a single unchanged HID path, observed removal and expected ticket/generation/cycle/DONE status after reconnect. PAUSE disconnects USB but performs no flash write. The normal hardware-tested firmware does not support it. An experimental test package now supplies the opt-in image; use only the status-first [controlled board procedure](../docs/usb-restart-board-test.md), with no hardware success assumed. See [host/image audit](../docs/usb-restart-host-audit.md). The existing `pic32_hid.py` transport still rejects pause/update commands.
 
 ## Tests
 
@@ -115,6 +115,6 @@ make test
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s host -v
 ```
 
-Nineteen Python test methods cover frame splits/random chunking, CRC/rejections, HEX normalization/bounds/checksums/EOF/overlap, deterministic package output/no overwrite, request/version/ID/capability mismatches, short reports/timeouts, device selection, close-on-failure, and refusal of destructive opcodes/CLI. C wire tests validate the same capabilities vector; strict XC32 compilation and sanitizer checks pass. Planner tests check maximum-span reconstruction, request-ID overflow, report bounds/padding, no overwrite and refusal to send planned writes. `make test` also executes Python plans through the C framed dispatcher and mocked flash. `make test-sanitize` rebuilds those C tests with ASan/UBSan.
+Twenty Python test methods cover frame splits/random chunking, CRC/rejections, HEX normalization/bounds/checksums/EOF/overlap, deterministic package output/no overwrite, request/version/ID/capability mismatches, short reports/timeouts, device selection, close-on-failure, and refusal of destructive opcodes/CLI. C wire tests validate the same capabilities vector; strict XC32 compilation and sanitizer checks pass. Planner tests check maximum-span reconstruction, request-ID overflow, report bounds/padding, no overwrite and refusal to send planned writes. `make test` also executes Python plans through the C framed dispatcher and mocked flash. `make test-sanitize` rebuilds those C tests with ASan/UBSan.
 
 The Windows [read-only endpoint milestone](../docs/usb-host-probe.md) passed. Next implement/review the target backend, regenerate/relocate the application and integrate write-gated transport/recovery. No current artifact is a working uploader.

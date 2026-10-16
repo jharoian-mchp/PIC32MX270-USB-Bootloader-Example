@@ -10,7 +10,7 @@ static USB_DEVICE_EVENT_HANDLER device_event;
 static USB_DEVICE_HID_EVENT_HANDLER hid_event;
 static uintptr_t device_context,hid_context;
 static bool blocked,off,busy,irq=true;
-static unsigned poweroffs,retires,rebuilds,attaches,tasks,cancels;
+static unsigned poweroffs,retires,rebuilds,attaches,tasks,cancels,detaches;
 static uint32_t mock_gen=1;
 static uint8_t endpoints[4];
 bool EVIC_INT_Disable(void){bool old=irq;irq=false;return old;}
@@ -18,7 +18,7 @@ void EVIC_INT_Restore(bool old){irq=old;}
 void USB_DEVICE_EventHandlerSet(USB_DEVICE_HANDLE h,USB_DEVICE_EVENT_HANDLER cb,uintptr_t ctx){assert(h==1);device_event=cb;device_context=ctx;}
 int USB_DEVICE_HID_EventHandlerSet(int i,USB_DEVICE_HID_EVENT_HANDLER cb,uintptr_t ctx){assert(i==0);hid_event=cb;hid_context=ctx;return 0;}
 void USB_DEVICE_Attach(USB_DEVICE_HANDLE h){assert(h==1&&!off&&!blocked);attaches++;}
-void USB_DEVICE_Detach(USB_DEVICE_HANDLE h){assert(h==1);}
+void USB_DEVICE_Detach(USB_DEVICE_HANDLE h){assert(h==1&&!off);++detaches;}
 int USB_DEVICE_ControlStatus(USB_DEVICE_HANDLE h,int status){(void)h;(void)status;assert(!blocked);return 0;}
 int USB_DEVICE_ControlSend(USB_DEVICE_HANDLE h,void *p,size_t n){(void)h;(void)p;(void)n;assert(!blocked);return 0;}
 int USB_DEVICE_IRPCancelAll(USB_DEVICE_HANDLE h,uint8_t ep){assert(h==1&&blocked&&!irq);endpoints[cancels++%4]=ep;return 0;}
@@ -53,8 +53,28 @@ int main(int argc,char **argv)
     assert(USB_RestartOwnerPause(10,2,1,&ticket)==2);
     assert(USB_RestartOwnerPause(9,1,1,&ticket)==2);
     USB_RestartOwnerAck(ticket+1,true,2);assert(cancels==0);
+    if(argc>1&&(strcmp(argv[1],"failed-ack")==0||strcmp(argv[1],"expired-ack")==0||strcmp(argv[1],"reset-wait")==0))
+    {
+        unsigned before=detaches,oldtasks=tasks;
+        if(strcmp(argv[1],"failed-ack")==0)USB_RestartOwnerAck(ticket,false,3);
+        else if(strcmp(argv[1],"reset-wait")==0)device_event(USB_DEVICE_EVENT_RESET,NULL,1);
+        USB_RestartOwnerTasks(strcmp(argv[1],"expired-ack")==0?102:3,true,true);
+        assert(detaches==before+1&&tasks==oldtasks&&cancels==0&&poweroffs==0);
+        assert(!usb_restart_owner_diagnostics.configured&&!usb_restart_owner_diagnostics.attached&&
+               usb_restart_owner_diagnostics.state==USB_RESTART_FAILED&&!USB_RestartOwnerRequest(103,&ticket));
+        puts("PASS: negative/expired ACK and reset-wait failure detach without flash/shutdown/retry.");return 0;
+    }
     USB_RestartOwnerAck(ticket,true,3);assert(blocked&&cancels==4&&!memcmp(endpoints,(uint8_t[]){1,129,0,128},4));
     unsigned old=tasks;USB_RestartOwnerTasks(4,true,true);assert(poweroffs==1&&tasks==old);
+    if(argc>1&&strcmp(argv[1],"off-failure")==0)
+    {
+        unsigned before=detaches;device_event(USB_DEVICE_EVENT_ERROR,NULL,1);
+        USB_RestartOwnerTasks(5,true,true);
+        assert(off&&busy&&detaches==before&&tasks==old&&rebuilds==0&&
+               usb_restart_owner_diagnostics.state==USB_RESTART_FAILED);
+        USB_RestartOwnerTasks(1000,true,true);assert(detaches==before&&tasks==old&&rebuilds==0);
+        puts("PASS: failure while USB off/busy retains quarantine and avoids ordinary USB-register/task/retire calls.");return 0;
+    }
     USB_RestartOwnerTasks(5,true,true);assert(rebuilds==0);busy=false;
     USB_RestartOwnerTasks(6,true,true);USB_RestartOwnerTasks(7,true,true);USB_RestartOwnerTasks(8,true,true);
     assert(rebuilds==1&&attaches==2&&device_context==2&&hid_context==2);
@@ -74,6 +94,6 @@ int main(int argc,char **argv)
     else device_event(USB_DEVICE_EVENT_RESET,NULL,3);
     old=tasks;USB_RestartOwnerTasks(19,true,true);
     assert(usb_restart_owner_diagnostics.state==USB_RESTART_FAILED&&tasks==old);
-    assert(!usb_restart_owner_diagnostics.configured&&!USB_RestartOwnerRequest(20,&ticket));
+    assert(!usb_restart_owner_diagnostics.configured&&!usb_restart_owner_diagnostics.attached&&!USB_RestartOwnerRequest(20,&ticket));
     puts("PASS: inactive target owner cancels HID+EP0, gates tasks/off-idle/retire/rebuild, routes generation callbacks and repeated resets/fault quarantine; mocked stack APIs only.");return 0;
 }

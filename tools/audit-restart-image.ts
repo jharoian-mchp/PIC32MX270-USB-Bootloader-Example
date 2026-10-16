@@ -6,7 +6,12 @@ import {readFileSync,writeFileSync} from "node:fs";
 import {resolve} from "node:path";
 process.chdir(resolve(import.meta.dir,".."));
 function check(ok:boolean,message:string):asserts ok{if(!ok)throw Error(message);}
-function physical(v:number):number {return v>=0x80000000?(v&0x1FFFFFFF)>>>0:v;}
+function physical(v:number):number {
+    check(v>=0&&v<=0xFFFFFFFF,"address outside 32-bit range");
+    if(v<0x80000000)return v;
+    check(v<0xC0000000,"unsupported MIPS address segment");
+    return (v&0x1FFFFFFF)>>>0; // Only direct-mapped KSEG0/KSEG1.
+}
 function allowed(a:number,n:number):boolean {
     return (a>=0x1D000000&&a+n<=0x1D008000)||(a>=0x1FC00000&&a+n<=0x1FC004AC)||
            (a>=0x1FC00BF0&&a+n<=0x1FC00C00);
@@ -28,7 +33,7 @@ function hexMemory(path:string):Map<number,number>{
 try{
     const elfPath=process.argv[2]??"build/restart-check/bootloader.elf";
     const hexPath=elfPath.replace(/\.elf$/,".hex");const elf=readFileSync(elfPath);
-    check(elf.subarray(0,7).equals(Buffer.from([127,69,76,70,1,1,1])),"expected ELF32 little-endian");
+    check(elf.length>=52&&elf.subarray(0,7).equals(Buffer.from([127,69,76,70,1,1,1])),"expected ELF32 little-endian");
     check(elf.readUInt16LE(18)===8,"expected MIPS machine");
     const memory=hexMemory(hexPath),baseline=hexMemory("build/bootloader/bootloader.hex");
     // XC32's loadable ._debug_exception is an orphaned 44-byte return stub
@@ -41,8 +46,15 @@ try{
     for(let i=0;i<count;i++){
         const at=offset+i*size;if(elf.readUInt32LE(at)!==1)continue;
         const file=elf.readUInt32LE(at+4),vaddr=elf.readUInt32LE(at+8),paddr=physical(elf.readUInt32LE(at+12)),n=elf.readUInt32LE(at+16);
+        const memoryBytes=elf.readUInt32LE(at+20);
+        check(n<=memoryBytes&&file+n<=elf.length,"ELF load file range/size invalid");
+        if(vaddr>=0xA0000000&&vaddr<0xA0010000){
+            check(vaddr+memoryBytes<=0xA0010000,"RAM exceeds target");
+            continue; // RAM data is initialized via flash .dinit, not burned at PA0.
+        }
+        check(physical(vaddr)===paddr,"ELF virtual/physical Flash mapping mismatch");
+        check(allowed(paddr,n)&&allowed(paddr,memoryBytes),`ELF unsafe load span ${paddr.toString(16)}+${n}`);
         if(!n)continue;
-        if(vaddr>=0xA0000000&&vaddr<0xA0010000){check(vaddr+elf.readUInt32LE(at+20)<=0xA0010000,"RAM exceeds target");continue;} // RAM data is initialized via flash .dinit, not burned at PA0.check(file+n<=elf.length&&allowed(paddr,n),`ELF unsafe load span ${paddr.toString(16)}+${n}`);
         // XC32 HEX omits ELF segment alignment holes. Every delivered byte
         // must match its load segment; missing loadable section data is checked
         // below using section-to-segment file offsets, not padding holes.
@@ -57,8 +69,9 @@ try{
     for(let i=0;i<shcount;i++){
         const s=shoff+i*shsize,type=elf.readUInt32LE(s+4),flags=elf.readUInt32LE(s+8),file=elf.readUInt32LE(s+16),n=elf.readUInt32LE(s+20);
         if(type===8||!(flags&2)||!n)continue; // NOBITS/nonallocated/debug are not delivered.
+        check(file+n<=elf.length,"ELF section file range invalid");
         const vaddr=elf.readUInt32LE(s+12);
-        if(vaddr>=0xA0000000&&vaddr<0xA0010000)continue; // RAM initialization lives in .dinit.
+        if(vaddr>=0xA0000000&&vaddr<0xA0010000){check(vaddr+n<=0xA0010000,"RAM section exceeds target");continue;} // RAM initialization lives in .dinit.
         let covered=false;
         for(let k=0;k<count;k++){
             const p=offset+k*size;if(elf.readUInt32LE(p)!==1)continue;
@@ -83,7 +96,7 @@ try{
     const symbols=nm.stdout.toString();
     check(/^bfc00480\s+\w\s+__DbgExecReturn$/m.test(symbols),"expected XC32 debug-return stub location missing");
     for(const name of ["USB_RestartOwnerRequest","USB_RestartOwnerAck"])
-        check(new RegExp(`\\b${name}$`,"m").test(symbols),`required linked ${name} missing`);
+        check(new RegExp(`^[0-9a-fA-F]+\\s+[Tt]\\s+${name}$`,"m").test(symbols),`required defined code symbol ${name} missing`);
     check(!/\b(?:UPDATE_(?:Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)\w*|NVM_(?:RowWrite|PageErase|WordWrite)|run_Application)\b/.test(symbols),"linked update/NVM write/handoff entrypoint");
     const hash=(bytes:Uint8Array)=>new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
     const result={elf:elfPath,hex:hexPath,elf_sha256:hash(elf),hex_sha256:hash(readFileSync(hexPath)),hex_bytes:memory.size,segments,config,

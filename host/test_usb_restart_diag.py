@@ -85,6 +85,25 @@ class RestartDiagnostic(unittest.TestCase):
                              clock=clock, sleep=clock.sleep)
             self.assertLessEqual(module.pauses, 1)
             self.assertTrue(all(d.closed for d in module.devices))
+    def test_blocking_call_overrun_never_reports_success(self):
+        for slow_write in (True, False):
+            module = Module()
+            clock = Clock()
+            class Slow(Device):
+                def write(self, report):
+                    count = super().write(report)
+                    if slow_write:
+                        clock.now += 2
+                    return count
+                def read(self, size, timeout):
+                    data = super().read(size, timeout)
+                    if not slow_write:
+                        clock.now += 2
+                    return data
+            with self.assertRaisesRegex(host.HostError, "deadline exceeded"):
+                diag.exchange(Slow(module), diag.payload(diag.STATUS, 1), 1, clock)
+            self.assertEqual(module.sent, [diag.STATUS])
+
     def test_allowlist_envelope_and_deadline(self):
         for opcode in (2, 3, 5, 0x62, 0x63, 0x64, 0x70):
             with self.assertRaises(host.HostError):

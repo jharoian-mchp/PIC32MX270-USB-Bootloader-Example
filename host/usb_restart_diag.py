@@ -45,12 +45,16 @@ def exchange(device, request, timeout=2.0, clock=time.monotonic):
             raise host.HostError("diagnostic deadline exhausted before write; no retry")
         if device.write(report) != 65:
             raise host.HostError("short diagnostic HID write; outcome unknown")
+        if clock() >= deadline:
+            raise host.HostError("diagnostic deadline exceeded during write; outcome unknown")
         decoder = host.FrameDecoder()
         for _ in range(512):
             remaining = deadline - clock()
             if remaining <= 0:
                 break
             data = bytes(device.read(64, max(1, min(100, int(remaining * 1000)))))
+            if clock() >= deadline:
+                raise host.HostError("diagnostic deadline exceeded during read; outcome unknown")
             if not data:
                 continue
             if len(data) > 64:
@@ -65,6 +69,8 @@ def exchange(device, request, timeout=2.0, clock=time.monotonic):
                 ticket, generation, cycles, state = BODY.unpack(body)
                 if not generation or state > 8:
                     raise host.HostError("invalid diagnostic generation/state")
+                if clock() >= deadline:
+                    raise host.HostError("diagnostic deadline exceeded decoding response; outcome unknown")
                 return {"ticket": ticket, "generation": generation, "completed_cycles": cycles, "state": state}
     except host.HostError:
         raise
