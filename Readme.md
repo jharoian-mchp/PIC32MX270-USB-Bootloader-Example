@@ -87,6 +87,7 @@ tools/
 docs/
   usb-host-probe.md    Active read-only capabilities endpoint and Python hardware test
   host-compatibility.md Vendor host packet findings and recommended manifest extension
+  usb-restart-host-audit.md Single-send host verifier/linked ELF-HEX audit; board delivery gated
   usb-pause-diagnostic.md Opt-in USB-only pause/status and completed-send authority
   usb-owner-integration-size.md Single USB-owner handover and passing Os32KB link check
   usb-restart-owner.md Default-off target owner; final host command/board delivery gated
@@ -292,3 +293,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-16:** Added defaultOFF USB_RESTART_DIAGNOSTIC board handover replacing oldUSBcallbacks/attach/probetask path with sole restartowner while retainingSW1/ADC/mux. Reviewfoundownerinitfail silentstranding; explicitdetachedUSB_OPENquarantine/testfix. makebootloader-restart-check Os passesactualunchanged32KB linker text32206/data84/bss1700; O2stilloverflows. Seventeen strictC+16Python/fullsanitizer/defaultbuildpass; baselinefootprintunchanged, nohostpausecommand/testHEXdelivered. Finalownerfollowupreviewtimedout. See docs/usb-owner-integration-size.md; next smallreadonlypausehandler/finalreview+link beforeboarddelivery; updatesdisabled.
 
 - **2026-10-16:** Added optin USB-onlyPAUSE66 andSTATUS67/framed21byte replies; newrequest bindsfulltimelyTXcompletion torestartticket, exactreplaynoextraauthority. Tests short/late/cancel/resetfailures plus realprobe->owner->mockoff/rebuild/status; same-task RX/device scheduling afterfence fixed. Reviewfound event-snapshotrace; oneglobalowner criticalsection+pendingeventchecks fix, followupconfirmed. NineteenC+16Python/fullsanitizer/defaultbuildpass. CommandexceededOs margin; optin -Os-flto integratedsame32KB nowlinks (text29041/data84/bss1736 preliminary), defaulttext26670 unchanged. No hostreconnectutility or approvedHEX yet; docs/usb-pause-diagnostic.md. Next hostticket/generation/reconnecttests and finalimageLTOaudit beforeboarddelivery; flashupdatesdisabled.
+
+- **2026-10-16:** Added separate hostSTATUS/PAUSEsingle-send reconnectverifier requiringoneboard/samepath/removal/ticketgen-cycle+1/DONE, noautomaticresend onACKloss. Hostreviewdeadlineissuefixed,19Python tests nowpass with19C/sanitizers. Added final ELF/HEXspan/sectionbyte/configbaseline/symbol/hash audit plusnegativecorruptiontests; accountsXC32RAMdinit/padding andloadabledebugreturnstubtail490..4AC onlybaselinesame. Artifactauditpass, defaultfirmwareunchanged/protectionOFF. Finalhost/imageindependentreviewtimedout; noHEXapprovedattached, docs/usb-restart-host-audit.md. Next finalLTOowner/imageapproval+controlledhashedboardprocedure beforetestdelivery; uploadsdisabled.

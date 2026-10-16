@@ -21,7 +21,10 @@ BTL_DIR := build/bootloader
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check application bootloader test test-sanitize update-audit
+.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
+
+restart-image-audit: bootloader bootloader-restart-check
+	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts
 
 # Compile/link evidence only, NOT a hardware-delivery or update-enabled image.
 bootloader-restart-check:

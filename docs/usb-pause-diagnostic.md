@@ -1,6 +1,6 @@
 # Opt-in USB pause request and completion authority
 
-The opt-in restart diagnostic now accepts a compact **USB-only pause** packet and status query. The default firmware still handles CAPABILITIES only. No erase/program/update session endpoint is connected, and no board image is delivered in this stage; matching host reconnect checks and controlled board qualification remain open.
+The opt-in restart diagnostic now accepts a compact **USB-only pause** packet and status query. The default firmware still handles CAPABILITIES only. No erase/program/update session endpoint is connected, and no board image is delivered in this stage; matching [host reconnect checks/image audit](usb-restart-host-audit.md) now exist; final independent review and controlled board qualification remain open.
 
 ## Packets
 
@@ -44,6 +44,6 @@ A full pause/probe-owner review attempt timed out. Bounded ACK/replay review rai
 
 The new command exceeded the previous integrated `-Os` margin. The opt-in `make bootloader-restart-check` now uses **`-Os -flto`** while keeping the original 32KB linker/application origin. It links at text29041/data84/bss1736 for the checked source; final results must be regenerated after any change. Default `-O2` build retains text26670/data80/bss1568 and its old read-only endpoint behavior. No reservation/protection bits changed.
 
-LTO changes final code generation; object-only checks do not qualify all optimized integrated paths. No update/NVM backend is linked into this diagnostic. Before delivering a HEX, complete the host pause/status/reconnect utility, verify final linked symbols/sections/HEX/configuration/hash and review exact owner/transport behavior under LTO. Run the controlled Windows/PICkit read-only restart plan, including cable/MCLR/power-cycle faults, only with explicit test instructions and a tested recovery image.
+LTO changes final code generation; object-only checks do not qualify all optimized integrated paths. No update/NVM backend is linked into this diagnostic. The host verifier and linked artifact audit now exist. Before delivering a HEX, complete final independent owner/image review and controlled programming instructions, verifying linked symbols/sections/HEX/configuration/hash and exact owner/transport behavior under LTO. Run the controlled Windows/PICkit read-only restart plan, including cable/MCLR/power-cycle faults, only with explicit test instructions and a tested recovery image.
 
 No new HEX is attached or programming requested now. Uploads remain disabled. See [single-owner integration](usb-owner-integration-size.md), [retirement contracts](usb-retirement-hooks.md) and [hardware gates](nvm-hardware-test-plan.md).

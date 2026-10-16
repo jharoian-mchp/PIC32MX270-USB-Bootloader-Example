@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""Flash-read-only USB restart diagnostic. PAUSE disconnects USB deliberately.
+
+No flash/update/reset-to-app commands or retries. Requires the opt-in firmware;
+this is a controlled test, not reset-safe authentication or update resumption.
+"""
+import argparse
+import json
+import secrets
+import struct
+import sys
+import time
+
+import pic32_hid as host
+
+PAUSE = 0x66
+STATUS = 0x67
+BODY = struct.Struct("<IIIB")
+
+
+def payload(opcode, request_id, generation=None):
+    if type(request_id) is not int or not 1 <= request_id <= 0xFFFFFFFF:
+        raise host.HostError("request ID must be 1..0xFFFFFFFF")
+    if opcode == STATUS and generation is None:
+        return host.REQUEST_HEADER.pack(opcode, 1, request_id)
+    if opcode == PAUSE and type(generation) is int and 1 <= generation <= 0xFFFFFFFF:
+        return host.REQUEST_HEADER.pack(opcode, 1, request_id) + struct.pack("<I", generation)
+    raise host.HostError("diagnostic transport permits only STATUS and generation-bound PAUSE")
+
+
+def exchange(device, request, timeout=2.0, clock=time.monotonic):
+    if not 0.1 <= timeout <= 30 or len(request) not in (6, 10):
+        raise host.HostError("invalid diagnostic timeout/envelope")
+    op, version, request_id = host.REQUEST_HEADER.unpack_from(request)
+    generation = struct.unpack_from("<I", request, 6)[0] if len(request) == 10 else None
+    if version != 1 or request != payload(op, request_id, generation):
+        raise host.HostError("invalid diagnostic envelope")
+    deadline = clock() + timeout
+    report = b"\0" + host.encode_frame(request).ljust(64, b"\0")
+    if len(report) != 65:
+        raise host.HostError("diagnostic request must fit one report")
+    # Exactly one transmission. A write/read error may still mean PAUSE ran.
+    try:
+        if clock() >= deadline:
+            raise host.HostError("diagnostic deadline exhausted before write; no retry")
+        if device.write(report) != 65:
+            raise host.HostError("short diagnostic HID write; outcome unknown")
+        decoder = host.FrameDecoder()
+        for _ in range(512):
+            remaining = deadline - clock()
+            if remaining <= 0:
+                break
+            data = bytes(device.read(64, max(1, min(100, int(remaining * 1000)))))
+            if not data:
+                continue
+            if len(data) > 64:
+                raise host.HostError("oversized diagnostic response report")
+            response, used = decoder.feed(data)
+            if response is not None:
+                if any(data[used:]):
+                    raise host.HostError("non-padding after diagnostic frame")
+                body = host.parse_response(response, op, request_id)
+                if len(body) != BODY.size:
+                    raise host.HostError("invalid diagnostic response length")
+                ticket, generation, cycles, state = BODY.unpack(body)
+                if not generation or state > 8:
+                    raise host.HostError("invalid diagnostic generation/state")
+                return {"ticket": ticket, "generation": generation, "completed_cycles": cycles, "state": state}
+    except host.HostError:
+        raise
+    except Exception as exc:
+        raise host.HostError(f"diagnostic HID error: {exc}; outcome unknown") from exc
+    raise host.HostError("diagnostic response timeout; no retry, outcome unknown")
+
+
+def open_device(module, path):
+    device = module.device()
+    try:
+        device.open_path(path)
+    except Exception as exc:
+        device.close()
+        raise host.HostError(f"diagnostic open failed: {exc}") from exc
+    return device
+
+
+def status(module, path_hex=None, timeout=2.0):
+    selected = host.select_device(host.candidates(module), path_hex)
+    device = open_device(module, selected["path"])
+    try:
+        return exchange(device, payload(STATUS, secrets.randbelow(0xFFFFFFFF) + 1), timeout)
+    finally:
+        device.close()
+
+
+def restart(module, request_id, path_hex=None, timeout=2.0, reconnect_timeout=15.0,
+            clock=time.monotonic, sleep=time.sleep):
+    if not 1 <= reconnect_timeout <= 30:
+        raise host.HostError("reconnect timeout must be 1..30 seconds")
+    # Single-board policy intentionally cannot be bypassed by --path-hex.
+    listed = host.candidates(module)
+    if len(listed) != 1:
+        raise host.HostError("restart test requires exactly one board, even with --path-hex")
+    selected = host.select_device(listed, path_hex)
+    path = selected["path"]
+    device = open_device(module, path)
+    uncertainty = None
+    try:
+        before = exchange(device, payload(STATUS, secrets.randbelow(0xFFFFFFFF) + 1), timeout, clock)
+        if before["state"] not in (0, 7) or any(before[key] == 0xFFFFFFFF for key in
+                                                ("ticket", "generation", "completed_cycles")):
+            raise host.HostError("device not ready or counters exhausted; no pause sent")
+        pause = payload(PAUSE, request_id, before["generation"])
+        deadline = clock() + reconnect_timeout
+        try:
+            remaining = deadline - clock()
+            if remaining < 0.1:
+                raise host.HostError("reconnect deadline exhausted before PAUSE; no resend")
+            ack = exchange(device, pause, min(timeout, remaining), clock)
+        except host.HostError as exc:
+            # Deliberate loss of interface can race the reply. NEVER resend.
+            uncertainty = str(exc)
+        else:
+            if ack != {"ticket": before["ticket"] + 1, "generation": before["generation"],
+                        "completed_cycles": before["completed_cycles"], "state": 1}:
+                raise host.HostError("pause acceptance mismatch; stop, outcome unknown")
+    finally:
+        device.close()
+    removed = False
+    for _ in range(600):
+        if clock() >= deadline:
+            break
+        listed = host.candidates(module)
+        if len(listed) > 1 or (listed and listed[0].get("path") != path):
+            raise host.HostError("ambiguous or changed HID path; no automatic reselection/retry")
+        if not listed:
+            removed = True
+        elif removed:
+            # Opens/status failure is uncertainty, not a second pause attempt.
+            remaining = deadline - clock()
+            if remaining < 0.1:
+                break
+            new = open_device(module, path)
+            try:
+                remaining = deadline - clock()
+                if remaining < 0.1:
+                    raise host.HostError("reconnect deadline exhausted during open")
+                after = exchange(new, payload(STATUS, secrets.randbelow(0xFFFFFFFF) + 1),
+                                 min(timeout, remaining), clock)
+            finally:
+                new.close()
+            expected = {"ticket": before["ticket"] + 1, "generation": before["generation"] + 1,
+                        "completed_cycles": before["completed_cycles"] + 1, "state": 7}
+            if clock() > deadline:
+                raise host.HostError("reconnect deadline exceeded during status exchange")
+            if after != expected:
+                raise host.HostError("reconnect identity/outcome mismatch; no retry or update resume")
+            return {"before": before, "after": after, "removed_observed": True,
+                    "path": path.hex(), "pause_response_uncertainty": uncertainty,
+                    "warning": "Controlled no-MCU-reset test only; counters are not boot authentication."}
+        sleep(0.05)
+    raise host.HostError("removal/reconnect not verified before deadline; no retry, outcome unknown")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=("status", "restart"))
+    parser.add_argument("--path-hex")
+    parser.add_argument("--timeout", type=float, default=2)
+    parser.add_argument("--reconnect-timeout", type=float, default=15)
+    parser.add_argument("--request-id", type=lambda value: int(value, 0))
+    parser.add_argument("--confirm-usb-disconnect", action="store_true")
+    args = parser.parse_args()
+    try:
+        if args.command == "restart" and (not args.confirm_usb_disconnect or args.request_id is None):
+            raise host.HostError("restart requires --request-id and --confirm-usb-disconnect")
+        module = host.hid_module()
+        result = status(module, args.path_hex, args.timeout) if args.command == "status" else restart(
+            module, args.request_id, args.path_hex, args.timeout, args.reconnect_timeout)
+        print(json.dumps(result, indent=2, sort_keys=True))
+    except (host.HostError, OSError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
