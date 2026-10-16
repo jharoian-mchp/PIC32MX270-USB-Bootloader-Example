@@ -52,7 +52,7 @@ Inspected source locations:
 
 Before implementation, trace every device/HID/IRP close, callback and instance allocation in the generated stack. Define cancel/close/device deinit/driver deinit ordering, final pending-transfer acknowledgements, polling ownership and when mutex/buffer storage may be released. Once USBPWR=0/USBBUSY=1, avoid other USB register access until idle. The owner must block `BOARD_USB_DIAG_Tasks` attach/reconfiguration and relevant interrupts while restarting; normal diagnostics currently keep servicing USB. A generation/handle design must reject late callbacks after reinitialisation without dropping completion needed to release a live buffer.
 
-Teardown and reconnect must be independently source-reviewed and measured on target. This document does not assert the listed APIs alone establish a safe restart.
+The [USB restart audit/inactive read-only coordinator](usb-restart-audit.md) now records the stack trace and required all-path fence/drain/off-idle/retire/init order. Independent source review and mock ordering tests exist; real target ports and measurement do not. The listed APIs alone do not establish a safe restart.
 
 ## Bounded storage and throughput
 

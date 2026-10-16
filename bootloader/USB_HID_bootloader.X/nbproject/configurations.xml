@@ -17,6 +17,7 @@
       <itemPath>../src/update_nvm_port.h</itemPath>
       <itemPath>../src/update_wire.h</itemPath>
       <itemPath>../src/usb_probe.h</itemPath>
+      <itemPath>../src/usb_restart.h</itemPath>
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">
           <logicalFolder name="bootloader" displayName="bootloader" projectFiles="true">
@@ -275,6 +276,7 @@
       <itemPath>../src/update_nvm.c</itemPath>
       <itemPath>../src/update_wire.c</itemPath>
       <itemPath>../src/usb_probe.c</itemPath>
+      <itemPath>../src/usb_restart.c</itemPath>
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">
           <logicalFolder name="bootloader" displayName="bootloader" projectFiles="true">
