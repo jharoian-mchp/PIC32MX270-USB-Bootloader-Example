@@ -21,7 +21,11 @@ BTL_DIR := build/bootloader
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check nvm-codegen-check application bootloader test test-sanitize update-audit
+.PHONY: toolchain-check nvm-codegen-check usb-restart-audit application bootloader test test-sanitize update-audit
+
+# Reproduces selected generated restart ownership gaps; not target approval.
+usb-restart-audit:
+	HOST_CC="$(HOST_CC)" bun tools/audit-usb-restart.ts
 
 nvm-codegen-check:
 	XC32_ROOT="$(XC32_ROOT)" PIC32MX_DFP_ROOT="$(PIC32MX_DFP_ROOT)" bun tools/check-nvm-codegen.ts
@@ -73,6 +77,7 @@ test:
 	./build/tests/update_link_dispatch_test
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s host -v
 	bun tools/check-nvm-codegen.ts --selftest
+	HOST_CC="$(HOST_CC)" bun tools/audit-usb-restart.ts
 
 # Rebuild all mock tests with sanitizers, including Python-plan -> C integration.
 test-sanitize:
