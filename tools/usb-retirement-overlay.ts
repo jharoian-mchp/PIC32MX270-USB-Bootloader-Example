@@ -16,6 +16,15 @@ const bases:Record<string,string>={
 const hooks: Record<string,string>={
 "usb/src/usb_device_hid.c": `
 #if USB_RETIREMENT_HOOKS
+bool USB_RetirementHidCompletionValid(const void *pointer,bool transmit)
+{
+    uintptr_t p=(uintptr_t)pointer,base=(uintptr_t)&gUSBDeviceHIDIRP[0];
+    if(p<base||p-base>=sizeof(gUSBDeviceHIDIRP)||(p-base)%sizeof(gUSBDeviceHIDIRP[0])!=0U)return false;
+    const USB_DEVICE_IRP *irp=(const USB_DEVICE_IRP *)pointer;
+    if(irp->userData>=USB_DEVICE_HID_INSTANCES_NUMBER||irp->status>USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)return false;
+    const USB_DEVICE_HID_INSTANCE *hid=&gUsbDeviceHidInstance[irp->userData];
+    return transmit?hid->currentTxQueueSize!=0U:hid->currentRxQueueSize!=0U;
+}
 bool USB_RetirementHidDrained(void)
 {
     if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle())return false;
@@ -126,6 +135,13 @@ const guards:Record<string,[string,string][]>={
 "usb/src/usb_device.c":[["USB_DEVICE_ControlSend","USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED"],["USB_DEVICE_ControlReceive","USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED"],["USB_DEVICE_ControlStatus","USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED"]],
 "driver/usb/usbfs/src/drv_usbfs_device.c":[["DRV_USBFS_DEVICE_IRPSubmit","USB_ERROR_IRP_QUEUE_FULL"]],
 };
+const completions:[string,string,boolean][]=[
+["F_USB_DEVICE_HID_ReportReceiveCallBack","irpRx",false],
+["F_USB_DEVICE_HID_ReportSendCallBack","irpTx",true],
+];
+function completionGuard(pointer:string,transmit:boolean):string {
+    return `\n#if USB_RETIREMENT_HOOKS\n    if(!USB_RetirementHidCompletionValid(${pointer},${transmit?"true":"false"}))\n    {USB_RetirementFault();return;}\n#endif\n`;
+}
 try {
     const changes:{path:string,text:string}[]=[];
     for(const rel of new Set([...Object.keys(hooks),...Object.keys(guards)])) {
@@ -138,6 +154,7 @@ try {
             text=text.replace('\n/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */\n#include "usb_retirement.h"','');
             for(const [,result] of guards[rel]??[])text=text.replace(`\n#if USB_RETIREMENT_HOOKS\n    USB_RETIREMENT_ADMISSION(${result});\n#endif\n`,'');
             text=text.replace(/USB_RETIREMENT_NOTIFY\(([^;]+)\);/g,(_,call)=>`${call};`);
+            if(rel.endsWith("usb_device_hid.c"))for(const[,pointer,transmit]of completions)text=text.replace(completionGuard(pointer,transmit),"");
         }
         const hash=new Bun.CryptoHasher("sha256").update(text).digest("hex");
         if(hash!==bases[rel])throw Error(`generated base changed: ${rel}; review/update overlay hashes before applying`);
@@ -149,6 +166,9 @@ try {
             const at=functionOpening(text,name);
             const guard=`\n#if USB_RETIREMENT_HOOKS\n    USB_RETIREMENT_ADMISSION(${result});\n#endif\n`;
             text=text.slice(0,at)+guard+text.slice(at);
+        }
+        if(rel.endsWith("usb_device_hid.c"))for(const[name,pointer,transmit]of completions){
+            const at=functionOpening(text,name);text=text.slice(0,at)+completionGuard(pointer,transmit)+text.slice(at);
         }
         // Count all lowest-layer callback/event dispatches. Call expressions
         // span lines but have no nested function argument parentheses today.

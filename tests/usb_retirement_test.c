@@ -14,12 +14,14 @@ void mock_restore(uint32_t value){irq=value!=0;}
 #define USB_DEVICE_INSTANCES_NUMBER 1U
 #define DRV_USBFS_INSTANCES_NUMBER 1U
 #define DRV_USBFS_ENDPOINTS_NUMBER 2U
-#define USB_DEVICE_IRP_STATUS_COMPLETED_SHORT 1U
+#define USB_DEVICE_IRP_STATUS_COMPLETED_SHORT 1
 #define USB_DEVICE_IRP_STATUS_SETUP 2U
 #define USBFS_UOWN 0x80U
 #define USBFS_STALL_SET 0x04U
-static struct {unsigned status;uintptr_t data;} gUSBDeviceHIDIRP[2];
-static struct {unsigned currentTxQueueSize,currentRxQueueSize;uintptr_t callback;} gUsbDeviceHidInstance[1];
+typedef struct {int status;uintptr_t data,userData;} USB_DEVICE_IRP;
+static USB_DEVICE_IRP gUSBDeviceHIDIRP[2];
+typedef struct {unsigned currentTxQueueSize,currentRxQueueSize;uintptr_t callback;} USB_DEVICE_HID_INSTANCE;
+static USB_DEVICE_HID_INSTANCE gUsbDeviceHidInstance[1];
 typedef struct {struct {unsigned status;} irpEp0Rx,irpEp0Tx;uintptr_t callback;} USB_DEVICE_OBJ;
 static USB_DEVICE_OBJ usbDeviceInstance[1];
 typedef union {uint8_t byte[8];uint32_t word[2];} DRV_USBFS_BDT_ENTRY;

@@ -23,6 +23,8 @@ Guards wrap HID send/receive/event-handler replacement/descriptor initialization
 
 Thirteen driver IRP/event callback dispatch sites are counted, including flush/abort paths. Existing callbacks are **not dropped merely because the fence is set**: cancellation must still complete ownership release. Callback count blocks drain/retirement until return. A callback wrapper is accounting, not a late-generation routing gate. The future transport owner must also prevent reset/task/reconfiguration and ensure old callback sources are quiescent before retirement; there is no new callback-dispatch cancellation policy here.
 
+A subsequent opt-in HID completion guard rejects invalid/misaligned pool pointers, invalid instances/status and zero direction counts, poisoning the gate before the generated callback can underflow. It does not provide per-IRP exactly-once or generation identity: a stale pool entry can pass when another same-direction transfer remains. [Cancellation/initializer readiness tests](usb-cancellation-readiness.md) record that limitation; thaw stays unavailable.
+
 The trusted owning driver sets a power-off authorization latch only after IRQ-excluded full drain checks and module disable. Retirement requires that latch, the fence, no admitted APIs/callbacks and off/idle status. Each final drain check plus private reset is IRQ-excluded. There is no thaw API: submissions stay fenced until a separately reviewed replacement initializer/generation design is implemented. Do not bypass the gate to make current enumeration work after retirement.
 
 ## Drain and retirement hooks
@@ -44,4 +46,4 @@ The gate/core and owning-hook bodies pass mock tests for admitted-API fence reje
 
 `make usb-retirement-check` compiles all five enabled target files with XC32 and runs those mocks. `make test`/`test-sanitize` add hook checks, alongside fourteen existing C executables, exact-source audit and 16 Python methods. Default `make bootloader` stays text26670/data80/bss1568; inactive hook/controller/update symbols are absent. Shared MPLAB XML lists 39 C sources. No hardware programming performed.
 
-Next review/test full cancellation and late-event paths with the real stack, implement replacement USB-only initialization without reopening admission prematurely, then bind a **read-only** restart diagnostic and qualify it on target. NVM/protection/application/update gates remain separate. This step does not complete the target restart checklist item.
+Selected generated queue-flush/HID callbacks now have executable tests. Next implement/review per-IRP completion identity and full late-event paths, then implement replacement USB-only initialization without reopening admission prematurely, then bind a **read-only** restart diagnostic and qualify it on target. NVM/protection/application/update gates remain separate. This step does not complete the target restart checklist item.

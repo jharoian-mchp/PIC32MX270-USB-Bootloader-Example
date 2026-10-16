@@ -5,6 +5,10 @@
 static volatile bool fenced,poisoned,power_off_authorized;
 static volatile uint32_t callbacks,admissions;
 bool USB_RetirementBlocked(void){return fenced||poisoned;}
+void USB_RetirementFault(void)
+{
+    uint32_t irq=__builtin_disable_interrupts();poisoned=true;__builtin_mtc0(12,0,irq);
+}
 bool USB_RetirementFence(void)
 {
     uint32_t irq=__builtin_disable_interrupts();

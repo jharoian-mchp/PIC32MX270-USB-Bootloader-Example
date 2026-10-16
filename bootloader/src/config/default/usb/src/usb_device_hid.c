@@ -278,6 +278,11 @@ void F_USB_DEVICE_HID_InitializeByDescriptorType
 
 void F_USB_DEVICE_HID_ReportSendCallBack(USB_DEVICE_IRP * irpTx)
 {
+#if USB_RETIREMENT_HOOKS
+    if(!USB_RetirementHidCompletionValid(irpTx,true))
+    {USB_RetirementFault();return;}
+#endif
+
     /* This function is called when a Report Send IRP has
      * terminated */
     USB_DEVICE_HID_INDEX iHID = irpTx->userData;
@@ -556,6 +561,11 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_TransferCancel
 
 void F_USB_DEVICE_HID_ReportReceiveCallBack(USB_DEVICE_IRP * irpRx)
 {
+#if USB_RETIREMENT_HOOKS
+    if(!USB_RetirementHidCompletionValid(irpRx,false))
+    {USB_RetirementFault();return;}
+#endif
+
     SYS_MODULE_INDEX iHID = (uint16_t)irpRx->userData;
     USB_DEVICE_HID_INSTANCE * thisHIDInstance = &gUsbDeviceHidInstance[iHID];
     USB_DEVICE_HID_EVENT_DATA_REPORT_RECEIVED reportReceivedData;
@@ -1035,6 +1045,15 @@ USB_DEVICE_HID_RESULT USB_DEVICE_HID_EventHandlerSet
 
 
 #if USB_RETIREMENT_HOOKS
+bool USB_RetirementHidCompletionValid(const void *pointer,bool transmit)
+{
+    uintptr_t p=(uintptr_t)pointer,base=(uintptr_t)&gUSBDeviceHIDIRP[0];
+    if(p<base||p-base>=sizeof(gUSBDeviceHIDIRP)||(p-base)%sizeof(gUSBDeviceHIDIRP[0])!=0U)return false;
+    const USB_DEVICE_IRP *irp=(const USB_DEVICE_IRP *)pointer;
+    if(irp->userData>=USB_DEVICE_HID_INSTANCES_NUMBER||irp->status>USB_DEVICE_IRP_STATUS_COMPLETED_SHORT)return false;
+    const USB_DEVICE_HID_INSTANCE *hid=&gUsbDeviceHidInstance[irp->userData];
+    return transmit?hid->currentTxQueueSize!=0U:hid->currentRxQueueSize!=0U;
+}
 bool USB_RetirementHidDrained(void)
 {
     if(!USB_RetirementBlocked()||!USB_RetirementCallbacksIdle())return false;

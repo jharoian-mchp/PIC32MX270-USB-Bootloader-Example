@@ -13,6 +13,8 @@ bool USB_RetirementFence(void);
 bool USB_RetirementCallbacksIdle(void); /* Also no admitted API calls. */
 void USB_RetirementCallbackEnter(void);
 void USB_RetirementCallbackLeave(void);
+void USB_RetirementFault(void); /* Quarantine invalid/stale completion. */
+bool USB_RetirementHidCompletionValid(const void *irp,bool transmit);
 bool USB_RetirementAdmissionBegin(void);
 void USB_RetirementAdmissionEnd(void);
 /* Latch is set only by a successful reviewed driver power-off hook. Fence is

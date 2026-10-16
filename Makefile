@@ -21,7 +21,11 @@ BTL_DIR := build/bootloader
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check application bootloader test test-sanitize update-audit
+.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check usb-cancellation-check application bootloader test test-sanitize update-audit
+
+usb-cancellation-check:
+	bun tools/usb-retirement-overlay.ts --check
+	HOST_CC="$(HOST_CC)" bun tools/test-usb-cancellation.ts
 
 usb-retirement-check:
 	bun tools/usb-retirement-overlay.ts --check
@@ -87,6 +91,7 @@ test:
 	HOST_CC="$(HOST_CC)" bun tools/audit-usb-restart.ts
 	bun tools/usb-retirement-overlay.ts --check
 	HOST_CC="$(HOST_CC)" bun tools/test-usb-retirement.ts
+	HOST_CC="$(HOST_CC)" bun tools/test-usb-cancellation.ts
 
 # Rebuild all mock tests with sanitizers, including Python-plan -> C integration.
 test-sanitize:
