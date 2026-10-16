@@ -1,6 +1,6 @@
 # Single-owner restart integration and size check
 
-The opt-in read-only restart build now replaces the old board USB callback/attach/task path at compile time. `make bootloader-restart-check` links with the unchanged **32 KB** bootloader linker at **`-Os`**. **No host pause command or approved board test image exists yet.** Default firmware and protection/application layout stay unchanged.
+The opt-in read-only restart build now replaces the old board USB callback/attach/task path at compile time. `make bootloader-restart-check` links with the unchanged **32 KB** bootloader linker at **`-Os`**. A subsequent [opt-in pause/status handler](usb-pause-diagnostic.md) now exists and uses -Os/-flto to fit. **No matching host reconnect utility or approved board test image exists yet.** Default firmware and protection/application layout stay unchanged.
 
 ## Explicit board handover
 
@@ -45,4 +45,4 @@ This target selects the single-owner flags/`-Os`, retains request/ACK APIs for l
 
 Independent bounded handover review found the silent owner-init failure path; it was fixed and tested. The review verified only the supplied board/owner sources and did not certify retirement/probe internals. A final follow-up owner review timed out; full final owner/host-command approval remains open.
 
-Next add/test the small read-only pause request and its completed-send ticket authority, fit it within the same linker, complete final owner/transport review and deliver explicit Windows/PICkit restart instructions with a verified image hash. Then run repeated restart, cable/reset faults and generation checks on the board. NVM/protection/application/upload work stays gated separately. **No reprogramming is requested for this size/handover stage.**
+The small pause handler and completed-send authority are now tested, with the same linker under -Os/-flto. Next add/test matching host reconnect checks and complete final owner/transport review and deliver explicit Windows/PICkit restart instructions with a verified image hash. Then run repeated restart, cable/reset faults and generation checks on the board. NVM/protection/application/upload work stays gated separately. **No reprogramming is requested for this size/handover stage.**

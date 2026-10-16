@@ -10,6 +10,7 @@ static volatile uint32_t callback_generation,event_flags;
 #define OWNER_CONFIGURED 2U
 #define OWNER_ERROR 4U
 static uint8_t idle_rate;
+static uint32_t pause_id,pause_generation,pause_ticket;
 volatile USB_RESTART_OWNER_DIAGNOSTICS usb_restart_owner_diagnostics;
 static USB_DEVICE_HID_EVENT_RESPONSE HidEvent(USB_DEVICE_HID_INDEX index,USB_DEVICE_HID_EVENT event,void *data,uintptr_t context)
 {
@@ -81,6 +82,16 @@ bool USB_RestartOwnerRequest(uint32_t now,uint32_t *ticket)
     if(!initialized||!configured||event_flags!=0U)return false;
     return USB_RestartRequest(&restart,now,ticket);
 }
+unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint32_t *ticket)
+{
+    if(ticket==NULL||id==0U)return 2;
+    if(id==pause_id)
+    {if(generation!=pause_generation)return 2;*ticket=pause_ticket;return 1;}
+    if(id<pause_id||generation!=restart.generation||!USB_RestartOwnerRequest(now,ticket))return 2;
+    pause_id=id;pause_generation=generation;pause_ticket=*ticket;return 0;
+}
+void USB_RestartOwnerStatus(uint32_t *ticket,uint32_t *generation)
+{*ticket=pause_ticket;*generation=restart.generation;usb_restart_owner_diagnostics.state=restart.state;}
 void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now)
 {
     if(!initialized)return;
@@ -92,7 +103,9 @@ void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now)
 void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
 {
     if(!initialized)return;
-    bool irq=EVIC_INT_Disable();uint32_t events=event_flags;event_flags=0;EVIC_INT_Restore(irq);
+    /* Hold the single-core global IRQ fence through event application and
+     * scheduling. A new ISR reset cannot race an old CONFIGURED snapshot. */
+    bool irq=EVIC_INT_Disable();uint32_t events=event_flags;event_flags=0;
     if(events&OWNER_RESET)
     {
         USB_PROBE_Configure(false);configured=false;usb_restart_owner_diagnostics.configured=false;
@@ -126,9 +139,16 @@ void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
         else if((!cable||!mux)&&attached)
         {USB_PROBE_Configure(false);USB_DEVICE_Detach(handle);attached=false;configured=false;
          usb_restart_owner_diagnostics.configured=false;}
-        USB_PROBE_Tasks(now);USB_DEVICE_Tasks(sysObj.usbDevObject0);
+        if((event_flags&(OWNER_RESET|OWNER_ERROR))==0U)USB_PROBE_Tasks(now);
+        /* Successful pause send completion can fence/detach inside probe
+         * Tasks. Recheck before any device task can queue EP0 work. */
+        if((event_flags&(OWNER_RESET|OWNER_ERROR))==0U&&
+           (restart.state==USB_RESTART_READY||restart.state==USB_RESTART_ACK_WAIT||
+            restart.state==USB_RESTART_CONFIG_WAIT||restart.state==USB_RESTART_DONE))
+            USB_DEVICE_Tasks(sysObj.usbDevObject0);
     }
     usb_restart_owner_diagnostics.attached=attached;
+    EVIC_INT_Restore(irq);
     /* DRAIN uses synchronous cancellation/observations only; OFF_WAIT only
      * reads U1PWRC. No normal task/attach/report calls through retirement. */
 }

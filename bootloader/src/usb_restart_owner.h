@@ -26,6 +26,11 @@ bool USB_RestartOwnerRequest(uint32_t now,uint32_t *ticket);
 /* Caller confirms full LOCAL read-only pause response completed. No on-wire
  * restart opcode or report delivery is implemented by this owner. */
 void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now);
+/* Diagnostic opcode66 adapter: 0=new pause, 1=exact latest retry (no new
+ * completion authority), 2=rejected. IDs increase, no wrap. Cache survives
+ * USB-only rebuild, not MCU reset. Output is separate caller storage. */
+unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint32_t *ticket);
+void USB_RestartOwnerStatus(uint32_t *ticket,uint32_t *generation);
 void USB_RestartOwnerTasks(uint32_t now,bool cable_present,bool mux_ready);
 #endif
 #endif

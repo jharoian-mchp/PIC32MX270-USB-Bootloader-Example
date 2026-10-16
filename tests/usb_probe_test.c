@@ -1,8 +1,18 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "usb_probe.h"
+#include "../bootloader/src/usb_probe.h"
 #include "update_wire.h"
+#include "usb_restart_owner.h"
+#if USB_RESTART_DIAGNOSTIC
+volatile USB_RESTART_OWNER_DIAGNOSTICS usb_restart_owner_diagnostics;
+static unsigned pause_requests,ack_success,ack_failure;
+unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint32_t *ticket)
+{(void)now;if(id==0||generation!=1)return 2;++pause_requests;*ticket=7;return 0;}
+void USB_RestartOwnerStatus(uint32_t *ticket,uint32_t *generation){*ticket=7;*generation=1;}
+void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now)
+{(void)now;assert(ticket==7);if(success)++ack_success;else ++ack_failure;}
+#endif
 static bool interrupts=true,rx_owned,tx_owned,reject_rx,reject_tx,cancel_fail;
 static bool live_rx_error,live_tx_error;
 static uint8_t *rx,*tx;
@@ -40,6 +50,9 @@ static void Reset(void)
 {
     rx_owned=tx_owned=reject_rx=reject_tx=cancel_fail=false;
     live_rx_error=live_tx_error=false;receives=sends=cancels=0;
+#if USB_RESTART_DIAGNOSTIC
+    pause_requests=ack_success=ack_failure=0;
+#endif
     USB_PROBE_Initialize(1);USB_PROBE_Configure(true);USB_PROBE_Tasks(0);USB_PROBE_Tasks(10);
     assert(rx_owned&&receives==1);
 }
@@ -77,8 +90,30 @@ int main(void)
     assert(!memcmp(frame.bytes+8,"PKBL",4));for(size_t i=used;i<64;i++)assert(sent[i]==0);
     assert(!rx_owned);Sent(13);assert(rx_owned&&usb_probe_diagnostics.responses==1);
 
+#if USB_RESTART_DIAGNOSTIC
+    Reset();uint8_t pause[]={0x66,1,1,0,0,0,1,0,0,0};
+    assert(UPDATE_FrameEncode(pause,sizeof(pause),wire,sizeof(wire),&n));Deliver(wire,n,11);
+    assert(tx_owned&&pause_requests==1&&!ack_success&&!ack_failure);Sent(12);assert(ack_success==1);
+    Reset();assert(UPDATE_FrameEncode(pause,sizeof(pause),wire,sizeof(wire),&n));Deliver(wire,n,11);
+    tx_owned=false;USB_DEVICE_HID_EVENT_DATA_REPORT_SENT short_send={63,th,0};
+    USB_PROBE_Event(USB_DEVICE_HID_EVENT_REPORT_SENT,&short_send);USB_PROBE_Tasks(12);assert(!ack_success&&ack_failure==1);
+    Reset();assert(UPDATE_FrameEncode(pause,sizeof(pause),wire,sizeof(wire),&n));Deliver(wire,n,11);
+    USB_PROBE_Configure(false);USB_PROBE_Tasks(12);assert(!ack_success&&ack_failure==1);
+    Reset();assert(UPDATE_FrameEncode(pause,sizeof(pause),wire,sizeof(wire),&n));Deliver(wire,n,11);
+    USB_PROBE_Tasks(1011);USB_PROBE_Tasks(1012);assert(!ack_success&&ack_failure==1);
+    Reset();assert(UPDATE_FrameEncode(pause,sizeof(pause),wire,sizeof(wire),&n));Deliver(wire,n,11);
+    Sent(1012);assert(!ack_success&&ack_failure==1); /* Late success before timeout polling. */
+    Reset();n=Query(wire,0x67,1,55);Deliver(wire,n,11);
+    UPDATE_FRAME reply;UPDATE_FrameReset(&reply);size_t consumed;
+    assert(UPDATE_FrameFeed(&reply,sent,64,&consumed)==UPDATE_FRAME_READY&&reply.length==21&&reply.bytes[0]==0xE7);
+    Sent(12);assert(!ack_success&&!ack_failure&&!pause_requests);
+#endif
     /* Every destructive/legacy request is rejected, no response or operations. */
-    for(unsigned op=0;op<256;op++)if(op!=0x60)
+    for(unsigned op=0;op<256;op++)if(op!=0x60
+#if USB_RESTART_DIAGNOSTIC
+        &&op!=0x67
+#endif
+    )
     {
         Reset();n=Query(wire,(uint8_t)op,1,1);Deliver(wire,n,11);
         assert(!tx_owned&&!sends&&usb_probe_diagnostics.rejected==1);

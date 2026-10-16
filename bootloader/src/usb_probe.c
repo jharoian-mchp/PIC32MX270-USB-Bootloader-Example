@@ -1,6 +1,7 @@
 /* Read-only query receiver. Never dispatches legacy/update/session commands. */
 #include "usb_probe.h"
 #include "update_wire.h"
+#include "usb_restart_owner.h"
 #include <string.h>
 #define REPORT_SIZE 64U
 #define FRAME_TIMEOUT_MS 1000U
@@ -18,6 +19,30 @@ static volatile size_t rx_length;
 static volatile USB_DEVICE_HID_RESULT rx_status, tx_status;
 static bool response_ready, frame_timed, send_timed, cancel_attempted;
 static uint32_t frame_since, send_since, retry_since;
+#if USB_RESTART_DIAGNOSTIC
+static uint32_t pause_completion_ticket,task_now;
+static bool tx_full;
+static uint32_t Get32(const uint8_t *p)
+{return (uint32_t)p[0]|((uint32_t)p[1]<<8)|((uint32_t)p[2]<<16)|((uint32_t)p[3]<<24);}
+static void Put32(uint8_t *p,uint32_t v){for(unsigned i=0;i<4;i++)p[i]=(uint8_t)(v>>(8U*i));}
+static bool DiagnosticReply(const uint8_t *p,size_t n,uint8_t *out,size_t *length)
+{
+    if(n<6U||p[1]!=1U||Get32(p+2)==0U)return false;
+    uint32_t ticket=0,generation=0;
+    if(p[0]==0x66U&&n==10U)
+    {
+        unsigned status=USB_RestartOwnerPause(Get32(p+2),Get32(p+6),task_now,&ticket);
+        if(status==2U)return false;
+        if(status==0U)pause_completion_ticket=ticket;
+    }
+    else if(p[0]!=0x67U||n!=6U)return false;
+    USB_RestartOwnerStatus(&ticket,&generation);
+    out[0]=(uint8_t)(p[0]|0x80U);out[1]=1;out[2]=0;out[3]=0;
+    Put32(out+4,Get32(p+2));Put32(out+8,ticket);Put32(out+12,generation);
+    Put32(out+16,usb_restart_owner_diagnostics.completed_cycles);
+    out[20]=(uint8_t)usb_restart_owner_diagnostics.state;*length=21U;return true;
+}
+#endif
 
 void USB_PROBE_Initialize(USB_DEVICE_HANDLE handle)
 {
@@ -27,11 +52,14 @@ void USB_PROBE_Initialize(USB_DEVICE_HANDLE handle)
     rx_complete=tx_complete=false;reset_requested=true;
     response_ready=frame_timed=send_timed=cancel_attempted=false;
     retry_since=0;UPDATE_FrameReset(&frame);
+#if USB_RESTART_DIAGNOSTIC
+    pause_completion_ticket=0;tx_full=false;
+#endif
 }
 void USB_PROBE_Configure(bool configured)
 {
     usb_probe_diagnostics.active=configured;
-    reset_requested=true; /* Main owns frame/buffer mutation. */
+    reset_requested=true; /* Main owns frame/buffer mutation and ACK decisions. */
 }
 void USB_PROBE_Event(USB_DEVICE_HID_EVENT event,void *data)
 {
@@ -45,7 +73,11 @@ void USB_PROBE_Event(USB_DEVICE_HID_EVENT event,void *data)
     {
         USB_DEVICE_HID_EVENT_DATA_REPORT_SENT *r=data;
         if(usb_probe_diagnostics.tx_pending&&r->handle==tx_handle)
-        {tx_status=r->status;tx_complete=true;}
+        {tx_status=r->status;tx_complete=true;
+#if USB_RESTART_DIAGNOSTIC
+         tx_full=r->length==REPORT_SIZE;
+#endif
+        }
     }
 }
 
@@ -70,6 +102,17 @@ static void CompletionTasks(void)
         tx_complete=false;usb_probe_diagnostics.tx_pending=false;
         if(tx_status==USB_DEVICE_HID_RESULT_OK)++usb_probe_diagnostics.responses;
         else ++usb_probe_diagnostics.tx_errors;
+#if USB_RESTART_DIAGNOSTIC
+        if(pause_completion_ticket!=0U)
+        {
+            uint32_t ticket=pause_completion_ticket;pause_completion_ticket=0;
+            /* CompletionTasks runs with GLOBAL interrupts excluded. OwnerAck
+             * checks queued reset/error in that same nested critical section,
+             * then fences/cancels; no ISR gap between decision and fencing. */
+            USB_RestartOwnerAck(ticket,tx_status==USB_DEVICE_HID_RESULT_OK&&tx_full&&!cancel_attempted&&!reset_requested&&
+                                send_timed&&(uint32_t)(task_now-send_since)<SEND_TIMEOUT_MS,task_now);
+        }
+#endif
         response_ready=send_timed=cancel_attempted=false;
     }
     if(rx_complete&&(reset_requested||!usb_probe_diagnostics.active))
@@ -86,6 +129,9 @@ bool USB_PROBE_RetireReady(void)
 void USB_PROBE_Tasks(uint32_t now)
 {
     bool enabled=EVIC_INT_Disable();
+#if USB_RESTART_DIAGNOSTIC
+    task_now=now;
+#endif
     CompletionTasks();
     if(reset_requested)
     {
@@ -93,6 +139,10 @@ void USB_PROBE_Tasks(uint32_t now)
         UPDATE_FrameReset(&frame);frame_timed=false;
         if(usb_probe_diagnostics.rx_pending||usb_probe_diagnostics.tx_pending)
         {EVIC_INT_Restore(enabled);return;}
+#if USB_RESTART_DIAGNOSTIC
+        if(pause_completion_ticket!=0U)
+        {uint32_t ticket=pause_completion_ticket;pause_completion_ticket=0;USB_RestartOwnerAck(ticket,false,task_now);}
+#endif
         response_ready=send_timed=cancel_attempted=false;
         reset_requested=false;retry_since=now;
     }
@@ -111,9 +161,16 @@ void USB_PROBE_Tasks(uint32_t now)
             {
                 bool trailing=false;for(size_t i=consumed;i<rx_length;i++)if(rx_buffer[i])trailing=true;
                 UPDATE_WIRE_QUERY query;uint8_t payload[28];size_t length=0,wire_length=0;
+#if USB_RESTART_DIAGNOSTIC
+                bool valid=!trailing&&UPDATE_WireQuery(frame.bytes,frame.length,&query)&&
+                           UPDATE_WireCapabilities(&query,payload,sizeof(payload),&length);
+                if(!valid&&!trailing)valid=DiagnosticReply(frame.bytes,frame.length,payload,&length);
+                if(!valid||!UPDATE_FrameEncode(payload,length,tx_buffer,sizeof(tx_buffer),&wire_length))
+#else
                 if(trailing||!UPDATE_WireQuery(frame.bytes,frame.length,&query)||
                    !UPDATE_WireCapabilities(&query,payload,sizeof(payload),&length)||
                    !UPDATE_FrameEncode(payload,length,tx_buffer,sizeof(tx_buffer),&wire_length))
+#endif
                     ++usb_probe_diagnostics.rejected;
                 else
                 {
@@ -144,7 +201,14 @@ void USB_PROBE_Tasks(uint32_t now)
                     if(USB_DEVICE_IRPCancelAll(usb_handle,0x81U)!=USB_ERROR_NONE)
                         ++usb_probe_diagnostics.cancel_errors;
                 }
-                else response_ready=send_timed=false;
+                else
+                {
+#if USB_RESTART_DIAGNOSTIC
+                    if(pause_completion_ticket!=0U)
+                    {uint32_t ticket=pause_completion_ticket;pause_completion_ticket=0;USB_RestartOwnerAck(ticket,false,task_now);}
+#endif
+                    response_ready=send_timed=false;
+                }
             }
         }
         else if(!usb_probe_diagnostics.tx_pending&&(uint32_t)(now-retry_since)>=RETRY_MS)
@@ -161,7 +225,11 @@ void USB_PROBE_Tasks(uint32_t now)
             }
         }
     }
-    else if(!usb_probe_diagnostics.rx_pending&&(uint32_t)(now-retry_since)>=RETRY_MS)
+    else if(
+#if USB_RESTART_DIAGNOSTIC
+        usb_probe_diagnostics.active&&!reset_requested&&
+#endif
+        !usb_probe_diagnostics.rx_pending&&(uint32_t)(now-retry_since)>=RETRY_MS)
     {
         rx_complete=false;usb_probe_diagnostics.rx_pending=true;
         rx_handle=USB_DEVICE_HID_TRANSFER_HANDLE_INVALID;

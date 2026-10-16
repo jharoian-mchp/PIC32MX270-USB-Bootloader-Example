@@ -25,7 +25,7 @@ BTL_WARNINGS ?= -Wall -Wextra
 
 # Compile/link evidence only, NOT a hardware-delivery or update-enabled image.
 bootloader-restart-check:
-	$(MAKE) bootloader BTL_DIR=build/restart-check BTL_WARNINGS="-Wall -Wextra -Os -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Wl,--undefined=USB_RestartOwnerRequest,--undefined=USB_RestartOwnerAck"
+	$(MAKE) bootloader BTL_DIR=build/restart-check BTL_WARNINGS="-Wall -Wextra -Os -flto -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Wl,--undefined=USB_RestartOwnerRequest,--undefined=USB_RestartOwnerAck"
 	@"$(XC32_ROOT)/bin/xc32-nm" build/restart-check/bootloader.elf > build/restart-check/symbols.txt
 	@grep -q 'USB_RestartOwnerRequest' build/restart-check/symbols.txt
 	@grep -q 'USB_RestartOwnerAck' build/restart-check/symbols.txt
@@ -76,6 +76,10 @@ test:
 	./build/tests/board_owner_handover_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src -Itests/usb_mocks bootloader/src/usb_probe.c bootloader/src/update_wire.c bootloader/src/update_protocol.c tests/usb_probe_test.c -o build/tests/usb_probe_test
 	./build/tests/usb_probe_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Itests/usb_owner_mocks -Ibootloader/src -Itests/usb_mocks bootloader/src/usb_probe.c bootloader/src/update_wire.c bootloader/src/update_protocol.c tests/usb_probe_test.c -o build/tests/usb_pause_test
+	./build/tests/usb_pause_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Itests/usb_owner_mocks -Ibootloader/src -Itests/usb_mocks bootloader/src/usb_probe.c bootloader/src/update_wire.c bootloader/src/update_protocol.c bootloader/src/usb_restart_owner.c bootloader/src/usb_restart.c tests/usb_pause_owner_test.c -o build/tests/usb_pause_owner_test
+	./build/tests/usb_pause_owner_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/usb_restart.c tests/usb_restart_test.c -o build/tests/usb_restart_test
 	./build/tests/usb_restart_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/usb_irp_ledger.c tests/usb_irp_ledger_test.c -o build/tests/usb_irp_ledger_test

@@ -48,7 +48,10 @@ int main(int argc,char **argv)
     USB_RestartOwnerTasks(0,true,true);assert(!usb_restart_owner_diagnostics.configured);
     device_event(USB_DEVICE_EVENT_RESET,NULL,1);device_event(USB_DEVICE_EVENT_CONFIGURED,NULL,1);
     USB_RestartOwnerTasks(0,true,true);assert(usb_restart_owner_diagnostics.configured);
-    uint32_t ticket;assert(USB_RestartOwnerRequest(1,&ticket)&&ticket==1);
+    uint32_t ticket;assert(USB_RestartOwnerPause(10,1,1,&ticket)==0&&ticket==1);
+    assert(USB_RestartOwnerPause(10,1,1,&ticket)==1&&ticket==1);
+    assert(USB_RestartOwnerPause(10,2,1,&ticket)==2);
+    assert(USB_RestartOwnerPause(9,1,1,&ticket)==2);
     USB_RestartOwnerAck(ticket+1,true,2);assert(cancels==0);
     USB_RestartOwnerAck(ticket,true,3);assert(blocked&&cancels==4&&!memcmp(endpoints,(uint8_t[]){1,129,0,128},4));
     unsigned old=tasks;USB_RestartOwnerTasks(4,true,true);assert(poweroffs==1&&tasks==old);
