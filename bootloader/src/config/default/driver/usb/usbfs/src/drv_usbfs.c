@@ -643,7 +643,19 @@ bool USB_RetirementDriverRetire(void)
         memset(gDrvUSBGroup[i].gDrvUSBEndpoints,0,sizeof(gDrvUSBGroup[i].gDrvUSBEndpoints));
         memset(d,0,sizeof(*d));
     }
+    USB_RetirementLayerRetired(USB_RETIREMENT_LAYER_DRIVER);
     __builtin_mtc0(12,0,irq);return true;
+}
+bool USB_RetirementDriverReplacementReady(void)
+{
+    DRV_USBFS_OBJ *d=&gDrvUSBGroup[0].gDrvUSBObj;
+    if(!USB_RetirementPreparing()||!d->inUse||!d->isOpened||d->status!=SYS_STATUS_READY||
+       d->pEventCallBack==NULL||d->isAttached||d->inInterruptContext||d->endpointTable==NULL||d->pBDT==NULL||
+       EVIC_SourceIsEnabled((INT_SOURCE)d->interruptSource)||
+       (U1PWRC&_U1PWRC_USBBUSY_MASK)!=0U||(U1CON&_U1CON_USBEN_MASK)!=0U)return false;
+    for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL)return false;
+    for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)if((d->pBDT[e].byte[0]&USBFS_UOWN)!=0U)return false;
+    return true;
 }
 #endif
 

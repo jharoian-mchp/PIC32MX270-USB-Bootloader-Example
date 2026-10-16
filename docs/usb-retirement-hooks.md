@@ -25,7 +25,7 @@ Thirteen driver IRP/event callback dispatch sites are counted, including flush/a
 
 A subsequent opt-in HID completion guard rejects invalid/misaligned pool pointers, invalid instances/status and zero direction counts, poisoning the gate before the generated callback can underflow. It does not provide per-IRP exactly-once or generation identity: a stale pool entry can pass when another same-direction transfer remains. [Cancellation/initializer readiness tests](usb-cancellation-readiness.md) record that limitation; thaw stays unavailable.
 
-The trusted owning driver sets a power-off authorization latch only after IRQ-excluded full drain checks and module disable. Retirement requires that latch, the fence, no admitted APIs/callbacks and off/idle status. Each final drain check plus private reset is IRQ-excluded. There is no thaw API: submissions stay fenced until a separately reviewed replacement initializer/generation design is implemented. Do not bypass the gate to make current enumeration work after retirement.
+The trusted owning driver sets a power-off authorization latch only after IRQ-excluded full drain checks and module disable. Retirement requires that latch, the fence, no admitted APIs/callbacks and off/idle status. Each final drain check plus private reset is IRQ-excluded. A subsequent [detached rebuild entrypoint](usb-rebuild-detached.md) adds guarded preparation/readiness/reopen after all layers retire. It remains opt-in/unconnected; no unconditional thaw exists. Do not bypass the gate to make current enumeration work after retirement.
 
 ## Drain and retirement hooks
 

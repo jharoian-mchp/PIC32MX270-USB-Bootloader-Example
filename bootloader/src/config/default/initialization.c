@@ -46,6 +46,8 @@
 #include "configuration.h"
 #include "definitions.h"
 #include "device.h"
+/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */
+#include "usb_retirement.h"
 
 
 // ****************************************************************************
@@ -247,3 +249,36 @@ void SYS_Initialize ( void* data )
 
     /* MISRAC 2023 deviation block end */
 }
+
+
+#if USB_RETIREMENT_HOOKS
+#include "usb_rebuild.h"
+bool USB_RebuildDetached(uint32_t generation,USB_DEVICE_EVENT_HANDLER device_callback,
+                         USB_DEVICE_HID_EVENT_HANDLER hid_callback,uintptr_t context,USB_DEVICE_HANDLE *handle)
+{
+    if(handle==NULL||device_callback==NULL||hid_callback==NULL)return false;
+    uint32_t irq=__builtin_disable_interrupts();
+    if(!USB_RetirementPrepare(generation)){__builtin_mtc0(12,0,irq);return false;}
+    bool ok=true;USB_DEVICE_HANDLE rebuilt=USB_DEVICE_HANDLE_INVALID;
+    if(ok)
+    {
+        sysObj.drvUSBFSObject=DRV_USBFS_Initialize(DRV_USBFS_INDEX_0,(SYS_MODULE_INIT *)&drvUSBFSInit);
+        ok=sysObj.drvUSBFSObject!=SYS_MODULE_OBJ_INVALID;
+    }
+    if(ok)
+    {
+        sysObj.usbDevObject0=USB_DEVICE_Initialize(USB_DEVICE_INDEX_0,(SYS_MODULE_INIT *)&usbDevInitData);
+        ok=sysObj.usbDevObject0!=SYS_MODULE_OBJ_INVALID;
+    }
+    if(ok)
+    {
+        USB_DEVICE_Tasks(sysObj.usbDevObject0); /* Opens driver only; no normal driver task/attach. */
+        ok=USB_RetirementBindDevice(device_callback,context,&rebuilt)&&USB_RetirementBindHid(hid_callback,context)&&
+           USB_RetirementReopen(generation);
+    }
+    if(!ok)USB_RetirementFault();else *handle=rebuilt;
+    __builtin_mtc0(12,0,irq);return ok;
+}
+#endif
+
+/* USB_RETIREMENT_OVERLAY_END */

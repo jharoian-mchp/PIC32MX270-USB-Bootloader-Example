@@ -53,4 +53,4 @@ This stage supplies no replacement initializer or generation-safe reopen policy;
 
 The delegated submission-error trace timed out; parent inspected the exact driver path. Independent ledger/overlay review identified the reservation race, fixed and confirmed as above. No complete initializer/reopen/hardware qualification is claimed.
 
-Next implement/review the staged USB-only initializer and old-reference/generation transition before thaw/target restart binding. Continue to keep [NVM/protection hardware tests](nvm-hardware-test-plan.md) and application regeneration/relocation as separate gates. No reprogramming is requested.
+The [opt-in detached USB-only initializer](usb-rebuild-detached.md) now supplies preparation/readiness/reopen checks with source/mock tests. Next implement/review the target cancellation/old-reference/generation handoff and coordinator binding before a board restart. Continue to keep [NVM/protection hardware tests](nvm-hardware-test-plan.md) and application regeneration/relocation as separate gates. No reprogramming is requested.

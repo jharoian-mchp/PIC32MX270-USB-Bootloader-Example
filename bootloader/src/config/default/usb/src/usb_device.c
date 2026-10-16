@@ -3538,7 +3538,26 @@ bool USB_RetirementDeviceRetire(void)
     if(!USB_RetirementRetirementAuthorized()||!USB_RetirementDeviceDrained())
     {__builtin_mtc0(12,0,irq);return false;}
     memset(usbDeviceInstance,0,sizeof(usbDeviceInstance));
+    USB_RetirementLayerRetired(USB_RETIREMENT_LAYER_DEVICE);
     __builtin_mtc0(12,0,irq);return true;
+}
+bool USB_RetirementBindDevice(USB_DEVICE_EVENT_HANDLER callback,uintptr_t context,USB_DEVICE_HANDLE *handle)
+{
+    if(!USB_RetirementPreparing()||callback==NULL||handle==NULL)return false;
+    USB_DEVICE_OBJ *d=&usbDeviceInstance[0];
+    if(d->usbDeviceInstanceState!=SYS_STATUS_READY||d->usbCDHandle==DRV_HANDLE_INVALID||
+       d->driverInterface==NULL||d->driverInterface->eventHandlerSet==NULL)return false;
+    d->inUse=true;d->clientState=USB_DEVICE_CLIENT_STATUS_READY;d->callBackFunc=callback;d->context=context;
+    d->driverInterface->eventHandlerSet(d->usbCDHandle,(uintptr_t)d,&F_USB_DEVICE_EventHandler);
+    *handle=(USB_DEVICE_HANDLE)d;return true;
+}
+bool USB_RetirementDeviceReplacementReady(void)
+{
+    USB_DEVICE_OBJ *d=&usbDeviceInstance[0];
+    return USB_RetirementPreparing()&&d->usbDeviceInstanceState==SYS_STATUS_READY&&d->taskState==USB_DEVICE_TASK_STATE_RUNNING&&
+        d->inUse&&d->callBackFunc!=NULL&&d->ptrMasterDescTable!=NULL&&d->driverInterface!=NULL&&
+        d->usbDeviceStatusStruct.usbDeviceState==USB_DEVICE_STATE_DETACHED&&d->irpEp0Rx.status<=USB_DEVICE_IRP_STATUS_SETUP&&
+        d->irpEp0Tx.status<=USB_DEVICE_IRP_STATUS_SETUP;
 }
 #endif
 

@@ -26,8 +26,18 @@ static inline void USB_RetirementHidCallbackCleanup(USB_RETIREMENT_HID_CALLBACK_
 {if(scope->irp!=NULL)USB_RetirementHidRelease(scope->irp);}
 bool USB_RetirementAdmissionBegin(void);
 void USB_RetirementAdmissionEnd(void);
-/* Latch is set only by a successful reviewed driver power-off hook. Fence is
- * one-shot today; no thaw/reopen until a replacement initializer is reviewed. */
+/* Reopen is opt-in and permitted only after all retired layers, a one-use
+ * preparation lease and independently validated detached replacement state. */
+#define USB_RETIREMENT_LAYER_HID 1U
+#define USB_RETIREMENT_LAYER_DEVICE 2U
+#define USB_RETIREMENT_LAYER_DRIVER 4U
+void USB_RetirementLayerRetired(unsigned layer);
+bool USB_RetirementPrepare(uint32_t generation);
+bool USB_RetirementPreparing(void);
+bool USB_RetirementReopen(uint32_t generation);
+bool USB_RetirementHidReplacementReady(void);
+bool USB_RetirementDeviceReplacementReady(void);
+bool USB_RetirementDriverReplacementReady(void);
 void USB_RetirementPowerOffAuthorized(void);
 bool USB_RetirementRetirementAuthorized(void);
 typedef struct { bool admitted; } USB_RETIREMENT_ADMISSION_SCOPE;

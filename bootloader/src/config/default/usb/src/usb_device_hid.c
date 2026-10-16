@@ -1139,7 +1139,20 @@ bool USB_RetirementHidRetire(void)
     memset(usb_retirement_slots,0,sizeof(usb_retirement_slots));
     memset(gUSBDeviceHIDIRP,0,sizeof(gUSBDeviceHIDIRP));
     memset(gUsbDeviceHidInstance,0,sizeof(gUsbDeviceHidInstance));
+    USB_RetirementLayerRetired(USB_RETIREMENT_LAYER_HID);
     __builtin_mtc0(12,0,irq);return true;
+}
+bool USB_RetirementBindHid(USB_DEVICE_HID_EVENT_HANDLER callback,uintptr_t context)
+{
+    if(!USB_RetirementPreparing()||callback==NULL||!USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))return false;
+    gUsbDeviceHidInstance[0].appCallBack=callback;gUsbDeviceHidInstance[0].userData=context;return true;
+}
+bool USB_RetirementHidReplacementReady(void)
+{
+    if(!USB_RetirementPreparing()||!gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized||
+       !USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))return false;
+    return gUsbDeviceHidInstance[0].appCallBack!=NULL&&gUsbDeviceHidInstance[0].currentTxQueueSize==0U&&
+           gUsbDeviceHidInstance[0].currentRxQueueSize==0U;
 }
 #endif
 

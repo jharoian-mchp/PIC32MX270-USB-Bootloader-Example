@@ -30,7 +30,7 @@ usb-cancellation-check:
 usb-retirement-check:
 	bun tools/usb-retirement-overlay.ts --check
 	@mkdir -p build/retirement-hooks
-	@set -e; for f in bootloader/src/usb_retirement.c bootloader/src/config/default/usb/src/usb_device.c bootloader/src/config/default/usb/src/usb_device_hid.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs_device.c; do \
+	@set -e; for f in bootloader/src/usb_retirement.c bootloader/src/config/default/initialization.c bootloader/src/config/default/usb/src/usb_device.c bootloader/src/config/default/usb/src/usb_device_hid.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs.c bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs_device.c; do \
 	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O2 -DUSB_RETIREMENT_HOOKS=1 -Ibootloader/src -Ibootloader/src/config/default -c "$$f" -o "build/retirement-hooks/$$(basename "$$f" .c).o"; done
 	HOST_CC="$(HOST_CC)" bun tools/test-usb-retirement.ts
 
@@ -95,6 +95,7 @@ test:
 	HOST_CC="$(HOST_CC)" bun tools/test-usb-retirement.ts
 	HOST_CC="$(HOST_CC)" bun tools/test-usb-cancellation.ts
 	HOST_CC="$(HOST_CC)" bun tools/test-usb-hid-submission.ts
+	HOST_CC="$(HOST_CC)" bun tools/test-usb-rebuild.ts
 
 # Rebuild all mock tests with sanitizers, including Python-plan -> C integration.
 test-sanitize:

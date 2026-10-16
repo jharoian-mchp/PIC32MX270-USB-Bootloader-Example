@@ -19,6 +19,7 @@
       <itemPath>../src/usb_probe.h</itemPath>
       <itemPath>../src/usb_restart.h</itemPath>
       <itemPath>../src/usb_retirement.h</itemPath>
+      <itemPath>../src/usb_rebuild.h</itemPath>
       <itemPath>../src/usb_irp_ledger.h</itemPath>
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">

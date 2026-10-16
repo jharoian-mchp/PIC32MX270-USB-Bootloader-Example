@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include "usb_retirement.h"
 #include "xc.h"
+/* Reopening is outside this selected callback harness; fail closed. */
+bool USB_RetirementHidReplacementReady(void){return false;}
+bool USB_RetirementDeviceReplacementReady(void){return false;}
+bool USB_RetirementDriverReplacementReady(void){return false;}
 uint32_t U1PWRC=1;
 static bool irq=true;
 uint32_t mock_disable(void){uint32_t old=irq;irq=false;return old;}
