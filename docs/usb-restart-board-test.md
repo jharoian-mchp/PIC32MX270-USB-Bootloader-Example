@@ -2,18 +2,24 @@
 
 This procedure evaluates the first opt-in USB restart image on the reported **PIC32MX270F256D A1** board. The image performs USB teardown/re-enumeration only; **firmware upload, erase/program commands, application handoff and protection changes remain disabled**. Hardware restart is untested until you report these results.
 
+## Replacement after initial enumeration failure — 2026-10-17
+
+The original `usb-restart-evaluation-fba5883` package is **superseded**. The user confirmed IPE programming and SW1 held during power cycling, but `list` returned no device. Source inspection and a new readiness-dependent regression reproduced a startup deadlock: the opt-in board path tried Open before the device layer became READY and never ran its required opening Tasks pass.
+
+The replacement runs device-layer bootstrap tasks only while the handle is invalid, after the SW1 gate. After Open/owner initialization, the owner retains exclusive USB scheduling. Tests now cover delayed readiness and owner-init failure; hardware enumeration is still unverified. **On this replacement, stop after initial list/probe/STATUS and send those results. Do not run PAUSE until separately confirmed.** The later pause instructions remain reference for a subsequent authorised phase.
+
 ## Delivered images and recovery
 
 Use the supplied **prebuilt experimental HEX**, not a normal Clean/Build: the normal MPLAB project keeps restart flags OFF. Both images use XC32 v6.00, DFP1.7.380 and the unchanged 32KB reservation/application origin1D008000.
 
 | File | Purpose | SHA-256 |
 |---|---|---|
-| `usb-restart-experimental.hex` | Opt-in USB-only pause/status evaluation | `a9e473bac44c031876c3a1f9c5e755d51cabcbc4f0629380a33cc49eed8c813a` |
+| `usb-restart-experimental.hex` | Opt-in USB-only pause/status evaluation | `7dc4de0fbc53dec3f24da64e3e96a742427e51ade0b6890181379b409ed9e535` |
 | `usb-probe-recovery.hex` | Default CAPABILITIES-only diagnostic recovery | `8e5a8451e43cdb4ee96b80f34ce5e3a5e166ba619ade144468c02a1de056d14c` |
 
 The package includes exact ELF/HEX audit evidence, both HEX files, host Python scripts, HID requirements, this procedure and checksums. Keep it separate from old firmware exports. Neither image is an application updater or the standalone LED application.
 
-The experimental linked image is text29249/data88/bss1736; the canonical linker passes. Both images have identical local configuration words:
+The replacement experimental linked image is text29265/data88/bss1736; the canonical linker passes. Both images have identical local configuration words:
 
 ```text
 DEVCFG3 FFFFFFFF   DEVCFG2 FFF97AFA
@@ -74,7 +80,7 @@ The regular probe must return the previously agreed protocol1/max510/origin1D008
 
 ## 3. One controlled USB-only pause
 
-Only after step2 passes, with no cable/power/MCLR changes. **Do not press SW1 or assert MCLR during either clean PAUSE cycle.**
+**Do not run this phase on the replacement until the initial outputs have been reviewed and you receive confirmation.** Then, only after step2 passes, with no cable/power/MCLR changes. **Do not press SW1 or assert MCLR during either clean PAUSE cycle.**
 
 ```powershell
 & $PY .\usb_restart_diag.py restart --request-id 100 --confirm-usb-disconnect --timeout 2 --reconnect-timeout 15

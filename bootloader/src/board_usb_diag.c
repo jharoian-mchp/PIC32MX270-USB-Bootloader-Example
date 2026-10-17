@@ -358,6 +358,12 @@ void BOARD_USB_DIAG_Tasks(void)
         return; /* No USB task/open/mux setup in normal safe-idle startup. */
     if (usb_handle == USB_DEVICE_HANDLE_INVALID)
     {
+#if USB_RESTART_DIAGNOSTIC
+        /* Initial device layer is BUSY/OPENING after SYS_Initialize. Advance
+         * only that bootstrap until Open can succeed; owner has not started
+         * yet. Once the handle is valid, only owner schedules USB tasks. */
+        USB_DEVICE_Tasks(sysObj.usbDevObject0);
+#endif
         usb_handle = USB_DEVICE_Open(USB_DEVICE_INDEX_0, DRV_IO_INTENT_READWRITE);
         if (usb_handle != USB_DEVICE_HANDLE_INVALID)
         {

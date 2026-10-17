@@ -7,7 +7,8 @@
 #include "usb_restart_owner.h"
 volatile USB_RESTART_OWNER_DIAGNOSTICS usb_restart_owner_diagnostics;
 static unsigned owner_inits,owner_tasks;
-static bool owner_reject;
+static bool owner_reject,device_layer_ready;
+static unsigned opening_task_passes;
 bool USB_RestartOwnerInit(USB_DEVICE_HANDLE handle,uint32_t timeout)
 {assert(handle==1&&timeout==10000);++owner_inits;return !owner_reject;}
 void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
@@ -55,13 +56,25 @@ bool ADC_ResultIsReady(void) { return adc_ready; }
 uint32_t ADC_ResultGet(int b) { assert(b == 0 && adc_pending && adc_ready); adc_pending = adc_ready = false; return sample_value; }
 void ADC_Initialize(void) { adc_pending = adc_ready = false; ++adc_resets; }
 USB_DEVICE_HANDLE USB_DEVICE_Open(int i, int intent)
-{ assert(i==0 && intent==3); return fail_open ? USB_DEVICE_HANDLE_INVALID : 1U; }
+{
+    assert(i==0 && intent==3);
+#if USB_RESTART_DIAGNOSTIC
+    if(!device_layer_ready)return USB_DEVICE_HANDLE_INVALID;
+#endif
+    return fail_open ? USB_DEVICE_HANDLE_INVALID : 1U;
+}
 void USB_DEVICE_EventHandlerSet(USB_DEVICE_HANDLE h, USB_DEVICE_EVENT_HANDLER cb, uintptr_t c)
 { assert(h==1 && c==0); usb_event=cb; }
 void USB_DEVICE_Attach(USB_DEVICE_HANDLE h)
 { assert(h==1 && !enabled); ++attaches; }
 void USB_DEVICE_Detach(USB_DEVICE_HANDLE h) { assert(h==1); ++detaches; }
-void USB_DEVICE_Tasks(uintptr_t o) { (void)o; ++usb_tasks; }
+void USB_DEVICE_Tasks(uintptr_t o)
+{
+    (void)o;++usb_tasks;
+#if USB_RESTART_DIAGNOSTIC
+    if(usb_tasks>=opening_task_passes)device_layer_ready=true;
+#endif
+}
 int USB_DEVICE_HID_EventHandlerSet(int i, USB_DEVICE_HID_EVENT_HANDLER cb, uintptr_t c)
 { assert(i==0 && c==0); hid_event=cb; return 0; }
 int USB_DEVICE_ControlStatus(USB_DEVICE_HANDLE h, int s) { assert(h==1 && s==0); return 0; }
@@ -72,6 +85,9 @@ static void ResetIdle(uint8_t latch, uint8_t dir, uint32_t initial_count, bool p
     mock_count=initial_count; bus_busy=reject_bus=fail_open=adc_pending=adc_ready=false;
     error=I2C_ERROR_NONE; aborts=submits=attaches=detaches=usb_tasks=adc_resets=0;
     usb_event=NULL; hid_event=NULL; memset(registers,0,sizeof(registers));
+#if USB_RESTART_DIAGNOSTIC
+    device_layer_ready=false;opening_task_passes=1;
+#endif
     registers[0x0A]=latch; registers[0]=dir;
     mock_button_high=!pressed;
     BOARD_USB_DIAG_Initialize(); BOARD_USB_DIAG_Tasks();
@@ -113,14 +129,21 @@ int main(void)
 #if USB_RESTART_DIAGNOSTIC
     ResetIdle(0,255,0,true);owner_reject=false;owner_inits=owner_tasks=0;
     for(unsigned i=0;i<4;i++){mock_count+=5U*24000U;BOARD_USB_DIAG_Tasks();}
-    assert(owner_inits==1&&owner_tasks>0&&!usb_event&&!attaches&&!usb_tasks);
-    unsigned old=owner_tasks;BOARD_USB_DIAG_Tasks();assert(owner_inits==1&&owner_tasks==old+1);
+    assert(device_layer_ready&&owner_inits==1&&owner_tasks>0&&!usb_event&&!attaches&&usb_tasks==1);
+    unsigned old=owner_tasks;BOARD_USB_DIAG_Tasks();assert(owner_inits==1&&owner_tasks==old+1&&usb_tasks==1);
+    /* Driver opening may need several task passes; no owner until ready. */
+    owner_inits=owner_tasks=0;ResetIdle(0,255,0,true);opening_task_passes=3;
+    for(unsigned i=0;i<4;i++){mock_count+=5U*24000U;BOARD_USB_DIAG_Tasks();}
+    assert(usb_tasks==1&&!device_layer_ready&&!owner_inits&&!owner_tasks);
+    BOARD_USB_DIAG_Tasks();assert(usb_tasks==2&&!owner_inits);
+    BOARD_USB_DIAG_Tasks();assert(usb_tasks==3&&owner_inits==1&&owner_tasks==1);
+    BOARD_USB_DIAG_Tasks();assert(usb_tasks==3&&owner_inits==1&&owner_tasks==2);
     owner_reject=true;owner_inits=owner_tasks=0;ResetIdle(0,255,0,true);
     for(unsigned i=0;i<4;i++){mock_count+=5U*24000U;BOARD_USB_DIAG_Tasks();}
     assert(owner_inits==1&&owner_tasks==0&&detaches==1&&!board_usb_diagnostics.usb_open);
     assert(board_usb_diagnostics.last_fault==BOARD_USB_FAULT_USB_OPEN);
-    BOARD_USB_DIAG_Tasks();assert(owner_inits==1&&owner_tasks==0&&!usb_tasks);
-    puts("PASS: opt-in board delegates USB exclusively and quarantines detached owner-init failure without retry.");
+    BOARD_USB_DIAG_Tasks();assert(owner_inits==1&&owner_tasks==0&&usb_tasks==1);
+    puts("PASS: opt-in device-layer readiness bootstrap, delayed open, exclusive owner handover and detached init-failure quarantine without retry.");
     return 0;
 #endif
     Reset(0xA5,0xB7,0); MuxReady();
