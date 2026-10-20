@@ -8,6 +8,14 @@ The original `usb-restart-evaluation-fba5883` package is **superseded**. The use
 
 The replacement runs device-layer bootstrap tasks only while the handle is invalid, after the SW1 gate. After Open/owner initialization, the owner retains exclusive USB scheduling. Tests now cover delayed readiness and owner-init failure; hardware enumeration is still unverified. **On this replacement, stop after initial list/probe/STATUS and send those results. Do not run PAUSE until separately confirmed.** The later pause instructions remain reference for a subsequent authorised phase.
 
+## Recovery control and PICkit5 observation — 2026-10-20
+
+The user reported no current HID interface with either image while PICkit5 was connected to the board. Historical Windows entries alone did not establish enumeration. After removing PICkit5 from the board and repeating SW1/MCLR, Windows and HIDAPI both found the **recovery** firmware at `04D8:003C`; its capabilities probe passed with protocol1/max510/origin1D008000/end1D03FC00/128row/1024erase.
+
+The user then reported that reconnecting PICkit5 to the board caused the Windows removal sound and appeared to assert MCLR. This is consistent with programmer/reset interaction, but MCLR voltage and the exact IPE tool setting have not been measured/confirmed. Do not treat the sound alone as proof of electrical reset assertion.
+
+For the pending experimental check, program the supplied `2c91a8e` HEX through IPE, then disconnect PICkit5 **from the board** after programming finishes, preserving board power and jumpers. Repeat SW1/MCLR and run initial list/probe/STATUS only. Do not change programmer reset options speculatively or run PAUSE before those outputs are reviewed. Recovery success does not qualify experimental startup or USB-only restart.
+
 ## Delivered images and recovery
 
 Use the supplied **prebuilt experimental HEX**, not a normal Clean/Build: the normal MPLAB project keeps restart flags OFF. Both images use XC32 v6.00, DFP1.7.380 and the unchanged 32KB reservation/application origin1D008000.
