@@ -16,6 +16,12 @@ The user then reported that reconnecting PICkit5 to the board caused the Windows
 
 For the pending experimental check, program the supplied `2c91a8e` HEX through IPE, then disconnect PICkit5 **from the board** after programming finishes, preserving board power and jumpers. Repeat SW1/MCLR and run initial list/probe/STATUS only. Do not change programmer reset options speculatively or run PAUSE before those outputs are reviewed. Recovery success does not qualify experimental startup or USB-only restart.
 
+## Experimental initial checks passed — 2026-10-20
+
+The user supplied successful `list`, capabilities `probe` and diagnostic `status` output for the replacement experimental setup after the recovery control and PICkit5-disconnection steps. HIDAPI reports `04D8:003C`, interface0, usageFF00/1. Capabilities match protocol1/max510/origin1D008000/end1D03FC00/row128/erase1024; STATUS is ticket0/generation1/completed_cycles0/state0.
+
+The initial-output gate is satisfied. The next authorised step is **one clean USB-only PAUSE with request ID100**, using the currently running image and keeping PICkit5 disconnected from the board. Do not touch SW1, MCLR, power or the USB cable during that cycle. Report the restart and post-probe/STATUS outputs before another cycle or fault scenario. USB restart itself is not yet hardware-verified; no NVM/protection tests or updates are authorised.
+
 ## Delivered images and recovery
 
 Use the supplied **prebuilt experimental HEX**, not a normal Clean/Build: the normal MPLAB project keeps restart flags OFF. Both images use XC32 v6.00, DFP1.7.380 and the unchanged 32KB reservation/application origin1D008000.
