@@ -22,6 +22,12 @@ The user supplied successful `list`, capabilities `probe` and diagnostic `status
 
 The initial-output gate is satisfied. The next authorised step is **one clean USB-only PAUSE with request ID100**, using the currently running image and keeping PICkit5 disconnected from the board. Do not touch SW1, MCLR, power or the USB cable during that cycle. Report the restart and post-probe/STATUS outputs before another cycle or fault scenario. USB restart itself is not yet hardware-verified; no NVM/protection tests or updates are authorised.
 
+## First PAUSE failed — 2026-10-20
+
+The user sent the authorised PAUSE ID100. The host returned `removal/reconnect not verified before deadline; no retry, outcome unknown`. Windows made a removal sound; subsequent list was empty and STATUS could not find the interface. Initial startup/probing passed, but USB-only reconnection **failed this evaluation**. The failed phase and whether full-response success or an error/timeout caused detachment are not observable from these host outputs.
+
+**No further PAUSE or higher-ID retry is authorised.** The current firmware has no host-visible off-phase diagnostics. The completed transaction and read-only checks permit recovery only: keep PICkit5 disconnected, hold SW1 through a controlled MCLR/reset, release after at least100ms, then list/probe/STATUS. If startup does not return, use the supplied recovery HEX with PICkit5 and disconnect it from the board after programming. Record results. Firmware uploads, protection changes, second-cycle and interrupted-pause fault tests remain blocked pending diagnosis. Do not weaken drain/off-idle checks based on this symptom alone.
+
 ## Delivered images and recovery
 
 Use the supplied **prebuilt experimental HEX**, not a normal Clean/Build: the normal MPLAB project keeps restart flags OFF. Both images use XC32 v6.00, DFP1.7.380 and the unchanged 32KB reservation/application origin1D008000.
@@ -92,7 +98,9 @@ Expected initial status after reset/configuration:
 
 The regular probe must return the previously agreed protocol1/max510/origin1D008000/end1D03FC00/128row/1024erase layout. **Stop here if enumeration, probe or STATUS fails.** Capture terminal output and diagnostics; do not force PAUSE by retrying IDs.
 
-## 3. One controlled USB-only pause
+## 3. One controlled USB-only pause — suspended after first failure
+
+**This phase and the second-cycle phase below are no longer authorised for the current evaluation image after the 2026-10-20 failure. Keep them as historical procedure; use recovery/read-only checks only pending confirmation.**
 
 **Do not run this phase on the replacement until the initial outputs have been reviewed and you receive confirmation.** Then, only after step2 passes, with no cable/power/MCLR changes. **Do not press SW1 or assert MCLR during either clean PAUSE cycle.**
 
