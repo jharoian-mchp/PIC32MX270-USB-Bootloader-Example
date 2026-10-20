@@ -28,6 +28,12 @@ The user sent the authorised PAUSE ID100. The host returned `removal/reconnect n
 
 **No further PAUSE or higher-ID retry is authorised.** The current firmware has no host-visible off-phase diagnostics. The completed transaction and read-only checks permit recovery only: keep PICkit5 disconnected, hold SW1 through a controlled MCLR/reset, release after at least100ms, then list/probe/STATUS. If startup does not return, use the supplied recovery HEX with PICkit5 and disconnect it from the board after programming. Record results. Firmware uploads, protection changes, second-cycle and interrupted-pause fault tests remain blocked pending diagnosis. Do not weaken drain/off-idle checks based on this symptom alone.
 
+## Startup recovery passed after failed PAUSE — 2026-10-20
+
+After the requested SW1/MCLR recovery, the user supplied successful list/probe/STATUS again: the expected HID interface, unchanged capabilities and ticket0/generation1/completed_cycles0/state0. Startup recovery passes for this run. These reset counters do **not** establish that the failed USB-only rebuild completed; the volatile stopped-phase evidence has been lost.
+
+Do not repeat PAUSE on the current image. The next engineering step is source-level diagnosis and retained phase/failure instrumentation before considering another explicitly authorised evaluation. No new firmware, protection setting or hardware fault test is requested by this recovery result.
+
 ## Delivered images and recovery
 
 Use the supplied **prebuilt experimental HEX**, not a normal Clean/Build: the normal MPLAB project keeps restart flags OFF. Both images use XC32 v6.00, DFP1.7.380 and the unchanged 32KB reservation/application origin1D008000.
