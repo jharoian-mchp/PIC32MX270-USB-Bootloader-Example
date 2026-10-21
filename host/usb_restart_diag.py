@@ -17,7 +17,32 @@ PAUSE = 0x66
 STATUS = 0x67
 PREVIOUS = 0x68
 BODY = struct.Struct("<IIIB")
-PREVIOUS_BODY = struct.Struct("<IIIBBBBBB")
+PREVIOUS_BODY = struct.Struct("<IIIBBBBBBI")
+REBUILD_STAGES = ("NONE", "INPUT", "PREPARE", "DRIVER_INIT", "DEVICE_INIT", "DEVICE_OPEN",
+                  "BIND_DEVICE", "BIND_HID", "REOPEN", "HID_READY", "DEVICE_READY", "DRIVER_READY", "COMPLETE")
+READINESS = {
+    0: (), 5: (), 12: (),
+    8: ("not_preparing", "generation_mismatch"),
+    9: ("not_preparing", "mutex_uninitialized", "ledger_pending", "callback_missing", "tx_count", "rx_count"),
+    10: ("not_preparing", "not_ready", "task_not_running", "client_not_open", "callback_missing", "descriptor_missing",
+         "interface_missing", "not_detached", "ep0_rx_pending", "ep0_tx_pending"),
+    11: ("not_preparing", "not_in_use", "not_open", "not_ready", "callback_missing", "attached", "in_isr",
+         "endpoint_table_missing", "bdt_missing", "irq_enabled", "usb_busy", "usb_enable", "queue_pending", "bdt_owned"),
+}
+
+
+def decode_rebuild_detail(detail):
+    stage, rejected, observation = detail & 255, (detail >> 8) & 65535, (detail >> 24) & 7
+    if detail & 0xF8000000 or stage >= len(REBUILD_STAGES):
+        raise host.HostError("invalid retained rebuild detail")
+    labels = READINESS.get(stage, ("call_rejected",))
+    if rejected & ~((1 << len(labels)) - 1) or (rejected and rejected & (rejected - 1)):
+        raise host.HostError("invalid first-rejection mask")
+    return {"step": REBUILD_STAGES[stage], "first_rejected": next(
+        (name for bit, name in enumerate(labels) if rejected & (1 << bit)), None),
+        "rejected_mask": rejected, "observation_bits": observation,
+        "note": "First failed check only; untested later conditions and unsampled registers are not passes."}
+
 CHECKPOINTS = ("NONE", "FENCE", "CANCEL", "DRAIN", "POWER_OFF", "OFF_IDLE", "RETIRE", "REBUILD", "CONFIGURED")
 PHASES = ("READY", "ACK_WAIT", "DRAIN", "OFF_WAIT", "RETIRE", "INIT", "CONFIG_WAIT", "DONE", "FAILED")
 FAULTS = ("NONE", "TIMEOUT", "ACK", "FENCE", "CANCEL", "POWER_OFF", "OFF_IDLE", "DRAIN", "RETIRE", "INIT", "EXTERNAL")
@@ -72,14 +97,16 @@ def exchange(device, request, timeout=2.0, clock=time.monotonic):
                 if op == PREVIOUS:
                     if len(body) != PREVIOUS_BODY.size:
                         raise host.HostError("invalid previous-record response length")
-                    ticket, generation, time_ms, state, phase, fault, evidence, valid, checkpoint = PREVIOUS_BODY.unpack(body)
+                    ticket, generation, time_ms, state, phase, fault, evidence, valid, checkpoint, detail = PREVIOUS_BODY.unpack(body)
                     if state > 8 or phase > 8 or fault >= len(FAULTS) or checkpoint >= len(CHECKPOINTS) or valid not in (0, 1) or (valid and (not ticket or not generation)):
                         raise host.HostError("invalid retained diagnostic record")
+                    rebuild = decode_rebuild_detail(detail)
                     if clock() >= deadline:
                         raise host.HostError("deadline exceeded decoding retained record")
                     return {"valid": bool(valid), "ticket": ticket, "generation": generation,
                             "time_ms": time_ms, "state": PHASES[state], "phase": PHASES[phase],
                             "fault": FAULTS[fault], "checkpoint": CHECKPOINTS[checkpoint], "evidence_bits": evidence,
+                            "rebuild": rebuild,
                             "warning": "Retained SRAM evidence only; not reset-safe identity or restart permission."}
                 if len(body) != BODY.size:
                     raise host.HostError("invalid diagnostic response length")

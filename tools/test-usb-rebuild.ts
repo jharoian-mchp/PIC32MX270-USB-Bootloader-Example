@@ -9,6 +9,6 @@ try{
     for(;at<text.length&&depth;at++){if(text[at]==="{")depth++;else if(text[at]==="}")depth--;}
     if(start<0||depth)throw Error("rebuildmissing");writeFileSync(dir+"/rebuild.inc",text.slice(start,at));
     const cc=(process.env.HOST_CC??"cc").trim().split(/\s+/);
-    const compile=Bun.spawnSync([...cc,"-std=c11","-O2","-Wall","-Wextra","-Werror","-I"+dir,"tests/usb_rebuild_test.c","-o",dir+"/test"],{stdout:"inherit",stderr:"inherit"});if(compile.exitCode)throw Error("compile");
+    const compile=Bun.spawnSync([...cc,"-std=c11","-O2","-Wall","-Wextra","-Werror","-DUSB_RETIREMENT_HOOKS=1","-Ibootloader/src","-I"+dir,"tests/usb_rebuild_test.c","-o",dir+"/test"],{stdout:"inherit",stderr:"inherit"});if(compile.exitCode)throw Error("compile");
     const run=Bun.spawnSync([dir+"/test"],{stdout:"inherit",stderr:"inherit"});if(run.exitCode)throw Error("test");
 }catch(error){console.error(String(error));process.exit(1);}

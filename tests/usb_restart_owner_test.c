@@ -25,6 +25,10 @@ static bool blocked,off,busy,irq=true;
 static unsigned poweroffs,retires,rebuilds,attaches,tasks,cancels,detaches;
 static uint32_t mock_gen=1;
 static uint8_t endpoints[4];
+static void (*detail_observer)(uint32_t);
+void USB_RetirementDetailObserver(void (*observer)(uint32_t)){detail_observer=observer;}
+void USB_RetirementDetail(USB_REBUILD_DETAIL_STAGE stage,uint16_t rejected,uint8_t observation)
+{if(detail_observer)detail_observer((uint32_t)stage|((uint32_t)rejected<<8)|((uint32_t)observation<<24));}
 bool EVIC_INT_Disable(void){bool old=irq;irq=false;return old;}
 void EVIC_INT_Restore(bool old){irq=old;}
 void USB_DEVICE_EventHandlerSet(USB_DEVICE_HANDLE h,USB_DEVICE_EVENT_HANDLER cb,uintptr_t ctx){assert(h==1);device_event=cb;device_context=ctx;}
@@ -51,7 +55,12 @@ bool USB_RetirementHidRetire(void){assert(off&&!busy&&blocked);retires++;return 
 bool USB_RetirementDeviceRetire(void){assert(off&&!busy&&blocked);retires++;return true;}
 bool USB_RetirementDriverRetire(void){assert(off&&!busy&&blocked);retires++;return true;}
 bool USB_RebuildDetached(uint32_t generation,USB_DEVICE_EVENT_HANDLER dev,USB_DEVICE_HID_EVENT_HANDLER hid,uintptr_t context,USB_DEVICE_HANDLE *handle)
-{assert(off&&!busy&&blocked&&!irq&&retires%3==0&&generation==mock_gen+1&&context==generation&&usb_restart_owner_diagnostics.checkpoint==USB_RESTART_PORT_REBUILD);VerifyJournalCheckpoint(USB_RESTART_PORT_REBUILD);mock_gen=generation;off=blocked=false;rebuilds++;device_event=dev;hid_event=hid;device_context=hid_context=context;*handle=1;return true;}
+{assert(off&&!busy&&blocked&&!irq&&retires%3==0&&generation==mock_gen+1&&context==generation&&usb_restart_owner_diagnostics.checkpoint==USB_RESTART_PORT_REBUILD);VerifyJournalCheckpoint(USB_RESTART_PORT_REBUILD);
+USB_RetirementDetail(USB_REBUILD_DETAIL_DRIVER_READY,1024U,3U);
+#if USB_RESTART_OWNER_INTERNAL_TEST
+USB_RESTART_RECORD snapshot;assert(USB_RestartJournalRead(&restart_journal,&snapshot)&&snapshot.detail==(11U|(1024U<<8)|(3U<<24)));
+#endif
+mock_gen=generation;off=blocked=false;rebuilds++;device_event=dev;hid_event=hid;device_context=hid_context=context;*handle=1;return true;}
 int main(int argc,char **argv)
 {
     assert(!USB_RestartOwnerInit(USB_DEVICE_HANDLE_INVALID,100));assert(USB_RestartOwnerInit(1,100));

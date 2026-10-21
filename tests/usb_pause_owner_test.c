@@ -13,6 +13,7 @@ static bool blocked,off,busy,irq=true,rx_owned,tx_owned;
 static unsigned poweroffs,retires,rebuilds,attaches,tasks,cancels;
 static uint32_t mock_gen=1;
 static uint8_t *rx,*tx,sent[64];
+void USB_RetirementDetailObserver(void (*observer)(uint32_t)){(void)observer;}
 bool EVIC_INT_Disable(void){bool old=irq;irq=false;return old;}
 void EVIC_INT_Restore(bool old){irq=old;}
 void USB_DEVICE_EventHandlerSet(USB_DEVICE_HANDLE h,USB_DEVICE_EVENT_HANDLER cb,uintptr_t ctx){assert(h==1);device_event=cb;device_context=ctx;}

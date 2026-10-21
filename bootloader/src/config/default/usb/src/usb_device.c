@@ -3554,10 +3554,18 @@ bool USB_RetirementBindDevice(USB_DEVICE_EVENT_HANDLER callback,uintptr_t contex
 bool USB_RetirementDeviceReplacementReady(void)
 {
     USB_DEVICE_OBJ *d=&usbDeviceInstance[0];
-    return USB_RetirementPreparing()&&d->usbDeviceInstanceState==SYS_STATUS_READY&&d->taskState==USB_DEVICE_TASK_STATE_RUNNING&&
-        d->inUse&&d->callBackFunc!=NULL&&d->ptrMasterDescTable!=NULL&&d->driverInterface!=NULL&&
-        d->usbDeviceStatusStruct.usbDeviceState==USB_DEVICE_STATE_DETACHED&&d->irpEp0Rx.status<=USB_DEVICE_IRP_STATUS_SETUP&&
-        d->irpEp0Tx.status<=USB_DEVICE_IRP_STATUS_SETUP;
+    uint16_t rejected=0;
+    if(!USB_RetirementPreparing())rejected=1U;
+    else if(d->usbDeviceInstanceState!=SYS_STATUS_READY)rejected=2U;
+    else if(d->taskState!=USB_DEVICE_TASK_STATE_RUNNING)rejected=4U;
+    else if(!d->inUse)rejected=8U;
+    else if(d->callBackFunc==NULL)rejected=16U;
+    else if(d->ptrMasterDescTable==NULL)rejected=32U;
+    else if(d->driverInterface==NULL)rejected=64U;
+    else if(d->usbDeviceStatusStruct.usbDeviceState!=USB_DEVICE_STATE_DETACHED)rejected=128U;
+    else if(d->irpEp0Rx.status>USB_DEVICE_IRP_STATUS_SETUP)rejected=256U;
+    else if(d->irpEp0Tx.status>USB_DEVICE_IRP_STATUS_SETUP)rejected=512U;
+    USB_RetirementDetail(USB_REBUILD_DETAIL_DEVICE_READY,rejected,0);return rejected==0U;
 }
 #endif
 

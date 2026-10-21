@@ -1149,10 +1149,14 @@ bool USB_RetirementBindHid(USB_DEVICE_HID_EVENT_HANDLER callback,uintptr_t conte
 }
 bool USB_RetirementHidReplacementReady(void)
 {
-    if(!USB_RetirementPreparing()||!gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized||
-       !USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))return false;
-    return gUsbDeviceHidInstance[0].appCallBack!=NULL&&gUsbDeviceHidInstance[0].currentTxQueueSize==0U&&
-           gUsbDeviceHidInstance[0].currentRxQueueSize==0U;
+    uint16_t rejected=0;
+    if(!USB_RetirementPreparing())rejected=1U;
+    else if(!gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized)rejected=2U;
+    else if(!USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))rejected=4U;
+    else if(gUsbDeviceHidInstance[0].appCallBack==NULL)rejected=8U;
+    else if(gUsbDeviceHidInstance[0].currentTxQueueSize!=0U)rejected=16U;
+    else if(gUsbDeviceHidInstance[0].currentRxQueueSize!=0U)rejected=32U;
+    USB_RetirementDetail(USB_REBUILD_DETAIL_HID_READY,rejected,0);return rejected==0U;
 }
 #endif
 

@@ -9,6 +9,18 @@
 #define USB_RETIREMENT_HOOKS 0
 #endif
 #if USB_RETIREMENT_HOOKS
+typedef enum {
+    USB_REBUILD_DETAIL_NONE=0,USB_REBUILD_DETAIL_INPUT,USB_REBUILD_DETAIL_PREPARE,
+    USB_REBUILD_DETAIL_DRIVER,USB_REBUILD_DETAIL_DEVICE,USB_REBUILD_DETAIL_OPEN,
+    USB_REBUILD_DETAIL_BIND_DEVICE,USB_REBUILD_DETAIL_BIND_HID,USB_REBUILD_DETAIL_REOPEN,
+    USB_REBUILD_DETAIL_HID_READY,USB_REBUILD_DETAIL_DEVICE_READY,USB_REBUILD_DETAIL_DRIVER_READY,
+    USB_REBUILD_DETAIL_COMPLETE
+} USB_REBUILD_DETAIL_STAGE;
+/* Diagnostic-only detail word: stage8 | rejected-mask16 | observation3.
+ * Observer must be a non-reentrant evidence-only RAM writer; caller holds IRQ
+ * exclusion. Register before rebuild; no permission/phase decisions use it. */
+void USB_RetirementDetailObserver(void (*observer)(uint32_t));
+void USB_RetirementDetail(USB_REBUILD_DETAIL_STAGE stage,uint16_t rejected,uint8_t observation);
 bool USB_RetirementBlocked(void);
 bool USB_RetirementFence(void);
 bool USB_RetirementCallbacksIdle(void); /* Also no admitted API calls. */

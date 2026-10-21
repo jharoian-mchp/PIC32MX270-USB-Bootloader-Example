@@ -11,9 +11,9 @@ int main(void)
     assert(read.sequence==1&&read.state==USB_RESTART_DRAIN&&read.checkpoint==USB_RESTART_PORT_DRAIN);
     USB_RESTART_JOURNAL first=j;
     USB_RESTART_RECORD b={.ticket=1,.generation=1,.time_ms=10020,.state=USB_RESTART_FAILED,
-        .phase=USB_RESTART_DRAIN,.fault=USB_RESTART_FAULT_TIMEOUT,.checkpoint=USB_RESTART_PORT_DRAIN,.evidence=4};
+        .phase=USB_RESTART_DRAIN,.fault=USB_RESTART_FAULT_TIMEOUT,.checkpoint=USB_RESTART_PORT_DRAIN,.detail=11U|(1024U<<8)|(3U<<24),.evidence=4};
     assert(USB_RestartJournalWrite(&j,&b)&&USB_RestartJournalRead(&j,&read));
-    assert(read.sequence==2&&read.state==USB_RESTART_FAILED&&read.phase==USB_RESTART_DRAIN&&read.fault==USB_RESTART_FAULT_TIMEOUT);
+    assert(read.sequence==2&&read.state==USB_RESTART_FAILED&&read.phase==USB_RESTART_DRAIN&&read.fault==USB_RESTART_FAULT_TIMEOUT&&read.detail==b.detail);
     /* Simulated reset preserves validated RAM but has no operation authority. */
     USB_RESTART_JOURNAL preserved=j;assert(USB_RestartJournalRead(&preserved,&read)&&read.ticket==1);
     /* Every prefix of the new slot remains uncommitted, older slot survives. */
@@ -31,6 +31,8 @@ int main(void)
     memset(&j,0xA5,sizeof(j));assert(!USB_RestartJournalRead(&j,&read));
     assert(USB_RestartJournalWrite(&j,&a));a.state=(USB_RESTART_STATE)-1;
     assert(!USB_RestartJournalWrite(&j,&a));
+    a.state=USB_RESTART_DRAIN;a.detail=13U;assert(!USB_RestartJournalWrite(&j,&a));
+    a.detail=0xF8000000U;assert(!USB_RestartJournalWrite(&j,&a));
     assert(!USB_RestartJournalRead(NULL,&read)&&!USB_RestartJournalRead(&j,NULL));
     puts("PASS: retained SRAM journal slot CRC/commit/complement, torn/corrupt record fallback, reset simulation and invalid states; no flash or resume authority.");return 0;
 }

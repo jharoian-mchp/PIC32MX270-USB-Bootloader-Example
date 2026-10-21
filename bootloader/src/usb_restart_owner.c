@@ -13,10 +13,12 @@ static bool previous_record_valid,runtime_record_valid;
 static USB_RESTART_RECORD runtime_record;
 static uint8_t wait_evidence;
 static USB_RESTART_CHECKPOINT checkpoint;
-static uint32_t owner_now;
+static uint32_t owner_now,rebuild_detail;
 static void RecordPhase(uint32_t now);
 static void PortEnter(USB_RESTART_CHECKPOINT port)
-{checkpoint=port;usb_restart_owner_diagnostics.checkpoint=port;RecordPhase(owner_now);}
+{checkpoint=port;rebuild_detail=0;usb_restart_owner_diagnostics.checkpoint=port;RecordPhase(owner_now);}
+static void DetailChanged(uint32_t detail)
+{rebuild_detail=detail;RecordPhase(owner_now);}
 static USB_RESTART restart;
 static USB_DEVICE_HANDLE handle;
 static bool initialized,attached,configured;
@@ -107,6 +109,7 @@ bool USB_RestartOwnerInit(USB_DEVICE_HANDLE initial,uint32_t timeout)
     (void)USB_DEVICE_HID_EventHandlerSet(USB_DEVICE_HID_INDEX_0,HidEvent,1);
     bool journal_irq=EVIC_INT_Disable();
     previous_record_valid=USB_RestartJournalRead(&restart_journal,&previous_record);
+    rebuild_detail=0;USB_RetirementDetailObserver(DetailChanged);
     EVIC_INT_Restore(journal_irq);
     USB_DEVICE_Detach(handle);USB_PROBE_Initialize(handle);return true;
 }
@@ -139,10 +142,10 @@ static void RecordPhase(uint32_t now)
     uint8_t evidence=wait_evidence;
     USB_RESTART_RECORD record={.ticket=restart.ticket,.generation=restart.generation,.time_ms=now,
         .state=restart.state,.phase=restart.state==USB_RESTART_FAILED?restart.failure_phase:restart.state,
-        .fault=restart.fault,.checkpoint=checkpoint,.evidence=evidence};
+        .fault=restart.fault,.checkpoint=checkpoint,.detail=rebuild_detail,.evidence=evidence};
     if(runtime_record_valid&&runtime_record.ticket==record.ticket&&runtime_record.generation==record.generation&&
        runtime_record.state==record.state&&runtime_record.phase==record.phase&&runtime_record.fault==record.fault&&
-       runtime_record.evidence==record.evidence&&runtime_record.checkpoint==record.checkpoint)return;
+       runtime_record.evidence==record.evidence&&runtime_record.checkpoint==record.checkpoint&&runtime_record.detail==record.detail)return;
     if(USB_RestartJournalWrite(&restart_journal,&record)){runtime_record=record;runtime_record_valid=true;}
 }
 static void QuarantineFailed(void)

@@ -41,7 +41,7 @@ static bool DiagnosticReply(const uint8_t *p,size_t n,uint8_t *out,size_t *lengt
         out[0]=0xE8;out[1]=1;out[2]=0;out[3]=0;Put32(out+4,Get32(p+2));
         Put32(out+8,r.ticket);Put32(out+12,r.generation);Put32(out+16,r.time_ms);
         out[20]=(uint8_t)r.state;out[21]=(uint8_t)r.phase;out[22]=(uint8_t)r.fault;out[23]=r.evidence;
-        out[24]=valid?1U:0U;out[25]=(uint8_t)r.checkpoint;*length=26;return true;
+        out[24]=valid?1U:0U;out[25]=(uint8_t)r.checkpoint;Put32(out+26,r.detail);*length=30;return true;
     }
     else if(p[0]!=0x67U||n!=6U)return false;
     USB_RestartOwnerStatus(&ticket,&generation);
@@ -168,7 +168,13 @@ void USB_PROBE_Tasks(uint32_t now)
             if(status==UPDATE_FRAME_READY)
             {
                 bool trailing=false;for(size_t i=consumed;i<rx_length;i++)if(rx_buffer[i])trailing=true;
-                UPDATE_WIRE_QUERY query;uint8_t payload[28];size_t length=0,wire_length=0;
+                UPDATE_WIRE_QUERY query;
+#if USB_RESTART_DIAGNOSTIC
+                uint8_t payload[30];
+#else
+                uint8_t payload[28];
+#endif
+                size_t length=0,wire_length=0;
 #if USB_RESTART_DIAGNOSTIC
                 bool valid=!trailing&&UPDATE_WireQuery(frame.bytes,frame.length,&query)&&
                            UPDATE_WireCapabilities(&query,payload,sizeof(payload),&length);

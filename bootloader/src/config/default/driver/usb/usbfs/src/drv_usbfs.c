@@ -649,13 +649,33 @@ bool USB_RetirementDriverRetire(void)
 bool USB_RetirementDriverReplacementReady(void)
 {
     DRV_USBFS_OBJ *d=&gDrvUSBGroup[0].gDrvUSBObj;
-    if(!USB_RetirementPreparing()||!d->inUse||!d->isOpened||d->status!=SYS_STATUS_READY||
-       d->pEventCallBack==NULL||d->isAttached||d->inInterruptContext||d->endpointTable==NULL||d->pBDT==NULL||
-       EVIC_SourceIsEnabled((INT_SOURCE)d->interruptSource)||
-       (U1PWRC&_U1PWRC_USBBUSY_MASK)!=0U||(U1CON&_U1CON_USBEN_MASK)!=0U)return false;
-    for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL)return false;
-    for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)if((d->pBDT[e].byte[0]&USBFS_UOWN)!=0U)return false;
-    return true;
+    uint16_t rejected=0;uint8_t observation=0;
+    if(!USB_RetirementPreparing())rejected=1U;
+    else if(!d->inUse)rejected=2U;
+    else if(!d->isOpened)rejected=4U;
+    else if(d->status!=SYS_STATUS_READY)rejected=8U;
+    else if(d->pEventCallBack==NULL)rejected=16U;
+    else if(d->isAttached)rejected=32U;
+    else if(d->inInterruptContext)rejected=64U;
+    else if(d->endpointTable==NULL)rejected=128U;
+    else if(d->pBDT==NULL)rejected=256U;
+    else if(EVIC_SourceIsEnabled((INT_SOURCE)d->interruptSource))rejected=512U;
+    else
+    {
+        uint32_t power=U1PWRC;
+        observation=((power&_U1PWRC_USBPWR_MASK)!=0U?1U:0U)|((power&_U1PWRC_USBBUSY_MASK)!=0U?2U:0U);
+        if((power&_U1PWRC_USBBUSY_MASK)!=0U)rejected=1024U;
+        else
+        {
+            if((U1CON&_U1CON_USBEN_MASK)!=0U){rejected=2048U;observation|=4U;}
+            else
+            {
+                for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL){rejected=4096U;break;}
+                if(rejected==0U)for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)if((d->pBDT[e].byte[0]&USBFS_UOWN)!=0U){rejected=8192U;break;}
+            }
+        }
+    }
+    USB_RetirementDetail(USB_REBUILD_DETAIL_DRIVER_READY,rejected,observation);return rejected==0U;
 }
 #endif
 

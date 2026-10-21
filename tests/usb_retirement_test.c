@@ -35,7 +35,8 @@ typedef struct {void (*eventHandlerSet)(uintptr_t,uintptr_t,void (*)(void));} IN
 #define _U1CON_USBEN_MASK 1U
 uint32_t U1CON;
 typedef unsigned INT_SOURCE;
-static bool EVIC_SourceIsEnabled(INT_SOURCE source){(void)source;return false;}
+static bool irq_source_enabled;
+static bool EVIC_SourceIsEnabled(INT_SOURCE source){(void)source;return irq_source_enabled;}
 static void F_USB_DEVICE_EventHandler(void){}
 static void Callback(void){}
 static void SetHandler(uintptr_t handle,uintptr_t context,void(*cb)(void)){assert(handle&&context&&cb);}
@@ -52,6 +53,8 @@ static void PLIB_USB_Disable(uintptr_t id){(void)id;assert(!irq);U1PWRC=8;powero
 static void DRV_USBFS_Deinitialize(unsigned index)
 {assert(index==0&&U1PWRC==0);deinit++;gDrvUSBGroup[0].gDrvUSBObj.inUse=false;}
 #include "hooks.inc"
+static uint32_t observed_detail;
+static void ObserveDetail(uint32_t detail){observed_detail=detail;}
 static bool Guarded(bool early)
 {
     USB_RETIREMENT_ADMISSION(false);
@@ -61,6 +64,7 @@ static bool Guarded(bool early)
 }
 int main(void)
 {
+    USB_RetirementDetailObserver(ObserveDetail);
     U1PWRC=1;assert(!USB_RetirementBlocked());
     assert(Guarded(true)&&Guarded(false));assert(USB_RetirementCallbacksIdle());
     assert(USB_RetirementHidReserve(&gUSBDeviceHIDIRP[0],false));
@@ -101,8 +105,16 @@ int main(void)
     assert(!USB_RetirementBindDevice(Callback,123,&handle));interface.eventHandlerSet=SetHandler;
     assert(USB_RetirementBindDevice(Callback,123,&handle));
     assert(USB_RetirementBindHid(Callback,123));gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized=true;
-    U1PWRC=1;U1CON=1;assert(!USB_RetirementReopen(2));U1CON=0;
-    assert(!USB_RetirementReopen(3));assert(USB_RetirementReopen(2)&&!USB_RetirementBlocked());
+    U1PWRC=1;U1CON=1;assert(!USB_RetirementReopen(2));
+    assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==2048U);
+    U1CON=0;U1PWRC=9;assert(!USB_RetirementReopen(2));
+    assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==1024U&&(observed_detail>>24)==3U);
+    U1PWRC=1;irq_source_enabled=true;assert(!USB_RetirementReopen(2));
+    assert(((observed_detail>>8)&65535U)==512U&&(observed_detail>>24)==0U);
+    irq_source_enabled=false;
+    assert(!USB_RetirementReopen(3));assert((observed_detail&255U)==USB_REBUILD_DETAIL_REOPEN&&((observed_detail>>8)&65535U)==2U);
+    assert(USB_RetirementReopen(2)&&!USB_RetirementBlocked());
+    assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==0U);
     assert(USB_RetirementAdmissionBegin());USB_RetirementAdmissionEnd();assert(!USB_RetirementReopen(2));
     assert(USB_RetirementFence());assert(!USB_RetirementPrepare(2));
     USB_RetirementCallbackLeave();assert(USB_RetirementBlocked()&&!USB_RetirementFence()); /* underflow poisons */

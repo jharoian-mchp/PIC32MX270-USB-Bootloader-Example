@@ -15,7 +15,7 @@ typedef enum {
     USB_RESTART_PORT_RETIRE,USB_RESTART_PORT_REBUILD,USB_RESTART_PORT_CONFIGURED
 } USB_RESTART_CHECKPOINT;
 typedef struct {
-    uint32_t sequence,ticket,generation,time_ms;
+    uint32_t sequence,ticket,generation,time_ms,detail;
     USB_RESTART_STATE state,phase;
     USB_RESTART_FAULT fault;
     USB_RESTART_CHECKPOINT checkpoint;

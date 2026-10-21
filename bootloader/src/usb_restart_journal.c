@@ -16,12 +16,12 @@ static bool Slot(const USB_RESTART_JOURNAL *j,unsigned index,USB_RESTART_RECORD 
 {
     uint32_t w[USB_RESTART_JOURNAL_WORDS];
     for(unsigned i=0;i<USB_RESTART_JOURNAL_WORDS;i++)w[i]=j->slot[index][i];
-    if(w[11]!=COMMIT||w[0]!=MAGIC||w[1]!=2U||w[2]==0U||w[3]!=~w[2]||
-       w[10]!=Checksum(w)||w[8]>USB_RESTART_PORT_CONFIGURED||w[9]!=0U||w[4]==0U||w[5]==0U)return false;
+    if(w[11]!=COMMIT||w[0]!=MAGIC||w[1]!=3U||w[2]==0U||w[3]!=~w[2]||
+       w[10]!=Checksum(w)||w[8]>USB_RESTART_PORT_CONFIGURED||(w[9]&0xF8000000U)!=0U||(w[9]&255U)>12U||w[4]==0U||w[5]==0U)return false;
     uint32_t status=w[7];
     if((status&255U)>USB_RESTART_FAILED||((status>>8)&255U)>USB_RESTART_FAILED||
        ((status>>16)&255U)>USB_RESTART_FAULT_EXTERNAL)return false;
-    *out=(USB_RESTART_RECORD){.sequence=w[2],.ticket=w[4],.generation=w[5],.time_ms=w[6],
+    *out=(USB_RESTART_RECORD){.sequence=w[2],.ticket=w[4],.generation=w[5],.time_ms=w[6],.detail=w[9],
         .state=(USB_RESTART_STATE)(status&255U),.phase=(USB_RESTART_STATE)((status>>8)&255U),
         .fault=(USB_RESTART_FAULT)((status>>16)&255U),.checkpoint=(USB_RESTART_CHECKPOINT)w[8],
         .evidence=(uint8_t)(status>>24)};
@@ -39,12 +39,12 @@ bool USB_RestartJournalRead(const USB_RESTART_JOURNAL *j,USB_RESTART_RECORD *out
 bool USB_RestartJournalWrite(USB_RESTART_JOURNAL *j,const USB_RESTART_RECORD *r)
 {
     if(j==NULL||r==NULL||(unsigned)r->state>USB_RESTART_FAILED||(unsigned)r->phase>USB_RESTART_FAILED||
-       (unsigned)r->fault>USB_RESTART_FAULT_EXTERNAL||(unsigned)r->checkpoint>USB_RESTART_PORT_CONFIGURED||r->generation==0U||r->ticket==0U)return false;
+       (unsigned)r->fault>USB_RESTART_FAULT_EXTERNAL||(unsigned)r->checkpoint>USB_RESTART_PORT_CONFIGURED||(r->detail&0xF8000000U)!=0U||(r->detail&255U)>12U||r->generation==0U||r->ticket==0U)return false;
     USB_RESTART_RECORD old;int latest=Latest(j,&old);
     if(latest>=0&&old.sequence==UINT32_MAX)return false; /* No sequence wrap. */
     unsigned slot=latest==0?1U:0U;uint32_t sequence=latest<0?1U:old.sequence+1U;
-    uint32_t w[USB_RESTART_JOURNAL_WORDS]={MAGIC,2U,sequence,~sequence,r->ticket,r->generation,r->time_ms,
-        (uint32_t)r->state|((uint32_t)r->phase<<8)|((uint32_t)r->fault<<16)|((uint32_t)r->evidence<<24),(uint32_t)r->checkpoint,0,0,COMMIT};
+    uint32_t w[USB_RESTART_JOURNAL_WORDS]={MAGIC,3U,sequence,~sequence,r->ticket,r->generation,r->time_ms,
+        (uint32_t)r->state|((uint32_t)r->phase<<8)|((uint32_t)r->fault<<16)|((uint32_t)r->evidence<<24),(uint32_t)r->checkpoint,r->detail,0,COMMIT};
     w[10]=Checksum(w);j->slot[slot][11]=0;
     for(unsigned i=0;i<11;i++)j->slot[slot][i]=w[i];
     /* Compiler ordering protects the volatile transaction. On target, caller

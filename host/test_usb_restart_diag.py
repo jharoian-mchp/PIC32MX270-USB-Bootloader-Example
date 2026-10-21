@@ -27,7 +27,7 @@ class Device:
             state = (1, 2, 1, 7) if not self.module.wrong else (1, 1, 0, 0)
         else:
             state = (0, 1, 0, 0)
-        body = diag.PREVIOUS_BODY.pack(1, 1, 10020, 8, 2, 1, 4, 1, 3) if op == diag.PREVIOUS else diag.BODY.pack(*state)
+        body = diag.PREVIOUS_BODY.pack(1, 1, 10020, 8, 2, 1, 4, 1, 3, 0) if op == diag.PREVIOUS else diag.BODY.pack(*state)
         response = host.RESPONSE_HEADER.pack(op | 0x80, version, 0, 0, request_id) + body
         self.response = host.encode_frame(response).ljust(64, b"\0")
         return 65
@@ -113,6 +113,17 @@ class RestartDiagnostic(unittest.TestCase):
         self.assertEqual((result["phase"], result["fault"], result["checkpoint"]), ("DRAIN", "TIMEOUT", "DRAIN"))
         self.assertEqual(module.pauses, 0)
         self.assertEqual(module.sent, [diag.PREVIOUS])
+
+    def test_rebuild_detail_is_first_rejection_not_permission(self):
+        detail = 11 | (1024 << 8) | (3 << 24)
+        parsed = diag.decode_rebuild_detail(detail)
+        self.assertEqual((parsed["step"], parsed["first_rejected"], parsed["observation_bits"]), ("DRIVER_READY", "usb_busy", 3))
+        for stage in (0, 5, 12):
+            self.assertIsNone(diag.decode_rebuild_detail(stage)["first_rejected"])
+        for invalid in (13, 0xF8000000, 11 | (3 << 8), 9 | (1024 << 8),
+                        0 | (1 << 8), 5 | (1 << 8), 12 | (1 << 8)):
+            with self.assertRaises(host.HostError):
+                diag.decode_rebuild_detail(invalid)
 
     def test_allowlist_envelope_and_deadline(self):
         for opcode in (2, 3, 5, 0x62, 0x63, 0x64, 0x70):

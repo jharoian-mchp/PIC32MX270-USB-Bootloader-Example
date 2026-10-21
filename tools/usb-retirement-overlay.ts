@@ -93,10 +93,14 @@ bool USB_RetirementBindHid(USB_DEVICE_HID_EVENT_HANDLER callback,uintptr_t conte
 }
 bool USB_RetirementHidReplacementReady(void)
 {
-    if(!USB_RetirementPreparing()||!gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized||
-       !USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))return false;
-    return gUsbDeviceHidInstance[0].appCallBack!=NULL&&gUsbDeviceHidInstance[0].currentTxQueueSize==0U&&
-           gUsbDeviceHidInstance[0].currentRxQueueSize==0U;
+    uint16_t rejected=0;
+    if(!USB_RetirementPreparing())rejected=1U;
+    else if(!gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized)rejected=2U;
+    else if(!USB_IrpDrained(usb_retirement_slots,USB_DEVICE_HID_QUEUE_DEPTH_COMBINED))rejected=4U;
+    else if(gUsbDeviceHidInstance[0].appCallBack==NULL)rejected=8U;
+    else if(gUsbDeviceHidInstance[0].currentTxQueueSize!=0U)rejected=16U;
+    else if(gUsbDeviceHidInstance[0].currentRxQueueSize!=0U)rejected=32U;
+    USB_RetirementDetail(USB_REBUILD_DETAIL_HID_READY,rejected,0);return rejected==0U;
 }
 #endif
 `,
@@ -134,10 +138,18 @@ bool USB_RetirementBindDevice(USB_DEVICE_EVENT_HANDLER callback,uintptr_t contex
 bool USB_RetirementDeviceReplacementReady(void)
 {
     USB_DEVICE_OBJ *d=&usbDeviceInstance[0];
-    return USB_RetirementPreparing()&&d->usbDeviceInstanceState==SYS_STATUS_READY&&d->taskState==USB_DEVICE_TASK_STATE_RUNNING&&
-        d->inUse&&d->callBackFunc!=NULL&&d->ptrMasterDescTable!=NULL&&d->driverInterface!=NULL&&
-        d->usbDeviceStatusStruct.usbDeviceState==USB_DEVICE_STATE_DETACHED&&d->irpEp0Rx.status<=USB_DEVICE_IRP_STATUS_SETUP&&
-        d->irpEp0Tx.status<=USB_DEVICE_IRP_STATUS_SETUP;
+    uint16_t rejected=0;
+    if(!USB_RetirementPreparing())rejected=1U;
+    else if(d->usbDeviceInstanceState!=SYS_STATUS_READY)rejected=2U;
+    else if(d->taskState!=USB_DEVICE_TASK_STATE_RUNNING)rejected=4U;
+    else if(!d->inUse)rejected=8U;
+    else if(d->callBackFunc==NULL)rejected=16U;
+    else if(d->ptrMasterDescTable==NULL)rejected=32U;
+    else if(d->driverInterface==NULL)rejected=64U;
+    else if(d->usbDeviceStatusStruct.usbDeviceState!=USB_DEVICE_STATE_DETACHED)rejected=128U;
+    else if(d->irpEp0Rx.status>USB_DEVICE_IRP_STATUS_SETUP)rejected=256U;
+    else if(d->irpEp0Tx.status>USB_DEVICE_IRP_STATUS_SETUP)rejected=512U;
+    USB_RetirementDetail(USB_REBUILD_DETAIL_DEVICE_READY,rejected,0);return rejected==0U;
 }
 #endif
 `,
@@ -197,13 +209,33 @@ bool USB_RetirementDriverRetire(void)
 bool USB_RetirementDriverReplacementReady(void)
 {
     DRV_USBFS_OBJ *d=&gDrvUSBGroup[0].gDrvUSBObj;
-    if(!USB_RetirementPreparing()||!d->inUse||!d->isOpened||d->status!=SYS_STATUS_READY||
-       d->pEventCallBack==NULL||d->isAttached||d->inInterruptContext||d->endpointTable==NULL||d->pBDT==NULL||
-       EVIC_SourceIsEnabled((INT_SOURCE)d->interruptSource)||
-       (U1PWRC&_U1PWRC_USBBUSY_MASK)!=0U||(U1CON&_U1CON_USBEN_MASK)!=0U)return false;
-    for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL)return false;
-    for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)if((d->pBDT[e].byte[0]&USBFS_UOWN)!=0U)return false;
-    return true;
+    uint16_t rejected=0;uint8_t observation=0;
+    if(!USB_RetirementPreparing())rejected=1U;
+    else if(!d->inUse)rejected=2U;
+    else if(!d->isOpened)rejected=4U;
+    else if(d->status!=SYS_STATUS_READY)rejected=8U;
+    else if(d->pEventCallBack==NULL)rejected=16U;
+    else if(d->isAttached)rejected=32U;
+    else if(d->inInterruptContext)rejected=64U;
+    else if(d->endpointTable==NULL)rejected=128U;
+    else if(d->pBDT==NULL)rejected=256U;
+    else if(EVIC_SourceIsEnabled((INT_SOURCE)d->interruptSource))rejected=512U;
+    else
+    {
+        uint32_t power=U1PWRC;
+        observation=((power&_U1PWRC_USBPWR_MASK)!=0U?1U:0U)|((power&_U1PWRC_USBBUSY_MASK)!=0U?2U:0U);
+        if((power&_U1PWRC_USBBUSY_MASK)!=0U)rejected=1024U;
+        else
+        {
+            if((U1CON&_U1CON_USBEN_MASK)!=0U){rejected=2048U;observation|=4U;}
+            else
+            {
+                for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL){rejected=4096U;break;}
+                if(rejected==0U)for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)if((d->pBDT[e].byte[0]&USBFS_UOWN)!=0U){rejected=8192U;break;}
+            }
+        }
+    }
+    USB_RetirementDetail(USB_REBUILD_DETAIL_DRIVER_READY,rejected,observation);return rejected==0U;
 }
 #endif
 `,
@@ -213,27 +245,47 @@ bool USB_RetirementDriverReplacementReady(void)
 bool USB_RebuildDetached(uint32_t generation,USB_DEVICE_EVENT_HANDLER device_callback,
                          USB_DEVICE_HID_EVENT_HANDLER hid_callback,uintptr_t context,USB_DEVICE_HANDLE *handle)
 {
-    if(handle==NULL||device_callback==NULL||hid_callback==NULL)return false;
     uint32_t irq=__builtin_disable_interrupts();
-    if(!USB_RetirementPrepare(generation)){__builtin_mtc0(12,0,irq);return false;}
+    USB_RetirementDetail(USB_REBUILD_DETAIL_INPUT,0,0);
+    if(handle==NULL||device_callback==NULL||hid_callback==NULL)
+    {USB_RetirementDetail(USB_REBUILD_DETAIL_INPUT,1,0);__builtin_mtc0(12,0,irq);return false;}
+    USB_RetirementDetail(USB_REBUILD_DETAIL_PREPARE,0,0);
+    if(!USB_RetirementPrepare(generation)){USB_RetirementDetail(USB_REBUILD_DETAIL_PREPARE,1,0);__builtin_mtc0(12,0,irq);return false;}
     bool ok=true;USB_DEVICE_HANDLE rebuilt=USB_DEVICE_HANDLE_INVALID;
     if(ok)
     {
+        USB_RetirementDetail(USB_REBUILD_DETAIL_DRIVER,0,0);
         sysObj.drvUSBFSObject=DRV_USBFS_Initialize(DRV_USBFS_INDEX_0,(SYS_MODULE_INIT *)&drvUSBFSInit);
         ok=sysObj.drvUSBFSObject!=SYS_MODULE_OBJ_INVALID;
+        if(!ok)USB_RetirementDetail(USB_REBUILD_DETAIL_DRIVER,1,0);
     }
     if(ok)
     {
+        USB_RetirementDetail(USB_REBUILD_DETAIL_DEVICE,0,0);
         sysObj.usbDevObject0=USB_DEVICE_Initialize(USB_DEVICE_INDEX_0,(SYS_MODULE_INIT *)&usbDevInitData);
         ok=sysObj.usbDevObject0!=SYS_MODULE_OBJ_INVALID;
+        if(!ok)USB_RetirementDetail(USB_REBUILD_DETAIL_DEVICE,1,0);
     }
     if(ok)
     {
+        USB_RetirementDetail(USB_REBUILD_DETAIL_OPEN,0,0);
         USB_DEVICE_Tasks(sysObj.usbDevObject0); /* Opens driver only; no normal driver task/attach. */
-        ok=USB_RetirementBindDevice(device_callback,context,&rebuilt)&&USB_RetirementBindHid(hid_callback,context)&&
-           USB_RetirementReopen(generation);
+        USB_RetirementDetail(USB_REBUILD_DETAIL_BIND_DEVICE,0,0);
+        ok=USB_RetirementBindDevice(device_callback,context,&rebuilt);
+        if(!ok)USB_RetirementDetail(USB_REBUILD_DETAIL_BIND_DEVICE,1,0);
     }
-    if(!ok)USB_RetirementFault();else *handle=rebuilt;
+    if(ok)
+    {
+        USB_RetirementDetail(USB_REBUILD_DETAIL_BIND_HID,0,0);
+        ok=USB_RetirementBindHid(hid_callback,context);
+        if(!ok)USB_RetirementDetail(USB_REBUILD_DETAIL_BIND_HID,1,0);
+    }
+    if(ok)
+    {
+        USB_RetirementDetail(USB_REBUILD_DETAIL_REOPEN,0,0);
+        ok=USB_RetirementReopen(generation); /* Readiness predicates record exact rejected bit. */
+    }
+    if(!ok)USB_RetirementFault();else {*handle=rebuilt;USB_RetirementDetail(USB_REBUILD_DETAIL_COMPLETE,0,0);}
     __builtin_mtc0(12,0,irq);return ok;
 }
 #endif

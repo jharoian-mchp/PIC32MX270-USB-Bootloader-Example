@@ -5,6 +5,13 @@
 static volatile bool fenced,poisoned,power_off_authorized;
 static volatile uint32_t callbacks,admissions;
 static uint32_t retired_layers,generation=1,preparing_generation;
+static void (*detail_observer)(uint32_t);
+void USB_RetirementDetailObserver(void (*observer)(uint32_t))
+{detail_observer=observer;}
+void USB_RetirementDetail(USB_REBUILD_DETAIL_STAGE stage,uint16_t rejected,uint8_t observation)
+{
+    if(detail_observer!=NULL)detail_observer((uint32_t)stage|((uint32_t)rejected<<8)|((uint32_t)(observation&7U)<<24));
+}
 bool USB_RetirementBlocked(void){return fenced||poisoned;}
 void USB_RetirementFault(void)
 {
@@ -46,6 +53,7 @@ bool USB_RetirementPrepare(uint32_t next)
     uint32_t irq=__builtin_disable_interrupts();
     bool ok=USB_RetirementRetirementAuthorized()&&retired_layers==7U&&next!=0U&&next>generation;
     if(ok)preparing_generation=next;
+    USB_RetirementDetail(USB_REBUILD_DETAIL_PREPARE,ok?0U:1U,0);
     __builtin_mtc0(12,0,irq);return ok;
 }
 bool USB_RetirementPreparing(void)
@@ -53,8 +61,10 @@ bool USB_RetirementPreparing(void)
 bool USB_RetirementReopen(uint32_t next)
 {
     uint32_t irq=__builtin_disable_interrupts();
-    bool ok=USB_RetirementPreparing()&&next==preparing_generation&&
-        USB_RetirementHidReplacementReady()&&USB_RetirementDeviceReplacementReady()&&USB_RetirementDriverReplacementReady();
+    bool ok=false;
+    if(!USB_RetirementPreparing())USB_RetirementDetail(USB_REBUILD_DETAIL_REOPEN,1U,0);
+    else if(next!=preparing_generation)USB_RetirementDetail(USB_REBUILD_DETAIL_REOPEN,2U,0);
+    else ok=USB_RetirementHidReplacementReady()&&USB_RetirementDeviceReplacementReady()&&USB_RetirementDriverReplacementReady();
     if(ok){generation=next;preparing_generation=0;retired_layers=0;power_off_authorized=false;fenced=false;}
     __builtin_mtc0(12,0,irq);return ok;
 }
