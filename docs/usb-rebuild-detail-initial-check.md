@@ -67,6 +67,8 @@ If programming, enumeration or any query fails, capture the exact output and sto
 
 ## Verified before delivery
 
+Archive SHA-256: `328b16e1229cd25e24aabed49cf32c0e94b7c42acbbc93a5f369dfc0efb71f34` (75308 bytes). Its nine entries passed ZIP CRC, staged/extracted byte equality, all checksums and manifest hashes. Extracted host tests, CLI help, valid:false defaults, first-rejection decoding and old26-byte refusal passed offline with no board access. Packaged `START-HERE.md` is the procedure from `0dd04d516f935229549cb4e1a82fea1aee6eaa46`; this later verification record does not alter its scope.
+
 Strict tests, ASan/UBSan, generated overlay/XC32 checks and the linked ELF/HEX/configuration/startup audit passed; negative artifact regressions reject corrupt/missing bytes and unsafe load/initialisation metadata. A bounded owner/journal/observer/parser review found no concrete must-fix. Offline compatibility checks reject valid-CRC older-schema records and the old26-byte PREVIOUS reply. Matching extracted scripts and archive checksums are verified before attachment.
 
 These checks do not establish actual USB-only restart, electrical SRAM retention through power loss/programming or every reset, or arbitrary LTO instruction safety. Existing initial enumeration and powered-MCLR retention evidence applies to the previous image; report this image's initial results before any further test.
