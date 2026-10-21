@@ -1,6 +1,6 @@
 # Rebuild-detail diagnostic — initial read-only checks
 
-The schema-3 PAUSE100 trial did not verify reconnect and post-list was empty at 2026-10-21 04:21. **The single-trial permission is spent. No resend, higher-ID retry or second cycle is authorised.** Programming/initial checks and the dated PAUSE authorisation below are historical. The next bounded action is one powered SW1/MCLR recovery and read-only retained-evidence capture, defined below; no reprogramming, power loss or fault tests.
+The schema-3 PAUSE100 failed; powered SW1/MCLR recovery restored HID and captured **DRIVER_READY / irq_enabled / mask512** at 2026-10-21 04:33. [Source diagnosis and limits](usb-rebuild-irq-diagnosis.md) identify the callback-registration/source-mask mismatch. **Both the single trial and recovery are complete. No resend, higher ID, second cycle, reset or reprogramming is authorised.** Leave the board recovered/read-only; the dated instructions below are historical.
 
 The previous 18384b2 PAUSE100 failed at INIT/REBUILD. Powered SW1/MCLR recovery restored HID and recovered its retained record. The exact failing sub-step is unknown. This replacement adds evidence recording without changing the restart safety predicates. It has not fixed or qualified USB-only restart. Uploads, NVM writes, application handoff and protection changes stay disabled.
 
@@ -67,7 +67,15 @@ After reviewing the failure report, the bounded next action is **one controlled 
 
 PREVIOUS is a boot-captured snapshot; this reset attempts to expose the last validated current-trial journal. Capture it before considering any other trial. A valid record provides historical stage/rejection observations only; valid:false leaves the firmware failure unknown. Fresh live STATUS ticket0/generation1/cycles0/state0 after recovery is startup evidence, not successful USB-only restart. Retention for this schema-3 image and this recovery has not yet been observed.
 
-No PAUSE/resend/higher ID, uploads, NVM/protection changes or electrical faults are authorised. Recovery results are pending; this procedure does not establish that recovery succeeded.
+No PAUSE/resend/higher ID, uploads, NVM/protection changes or electrical faults are authorised. Recovery results were pending at this 04:21 instruction cutoff; the later result follows.
+
+## Recovery and retained first rejection — 2026-10-21 04:33
+
+The user returned the expected single vendor HID interface, normal capabilities and live STATUS ticket0/generation1/cycles0/state0. PREVIOUS validated ticket1/attempted generation2/time_ms415322/stateFAILED/phaseINIT/faultINIT/checkpointREBUILD/evidence0, with rebuild stepDRIVER_READY/first_rejectedirq_enabled/rejected_mask512/observation_bits0.
+
+The initializer returned false because the driver-ready guard saw its USB interrupt source enabled. Global CPU interrupt exclusion does not clear that source bit. The guard stopped before U1PWRC/U1CON observations and queue/BDT checks; zero observations are not passing hardware values. The [exact generated callback-registration trace and offline reproduction](usb-rebuild-irq-diagnosis.md) support the source-mask mismatch without changing any predicate.
+
+HID recovery and schema-3 retained-evidence capture passed for this reported powered SW1/MCLR sequence. Live generation1 is fresh startup; the failed attempted generation2 did not complete reopening. Power-loss/programming/general-reset retention remains unqualified. Keep PICkit5 disconnected and preserve external power/settings. No repeat PAUSE/reset/reprogramming or new package/trial is authorised.
 
 ## Package and compatibility
 
