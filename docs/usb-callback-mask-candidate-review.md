@@ -41,6 +41,10 @@ Direct inspection of `USB_RebuildDetached()` closes that coverage question: Reop
 
 No passing source or artifact check establishes USBBUSY, USBEN, later queues/BDT readiness, pending-interrupt timing or USB re-enumeration after this candidate's rebuild. The older failed trial's zero observations were unsampled hardware registers, not passes. Powered MCLR retention was observed for the delivered image; broader reset/power/programming preservation is unqualified.
 
+## Subsequent initial-only approval — 05:03
+
+The user subsequently approved preparing the matching callback-mask package for programming and initial list/probe/STATUS/PREVIOUS only. The [initial-check procedure](usb-callback-mask-initial-check.md) defines the later limited scope. No PAUSE or fault test is authorised. The earlier no-package/no-board-approval statements describe this review's cutoff.
+
 ## Requirements for a separately approved package
 
 A future package needs explicit preparation/delivery approval, matching candidate firmware and schema-3 host scripts in a new directory, the known recovery HEX, an audit of the actual packaged ELF/HEX, source/procedure identification, manifest and checksums. Verify ZIP entries, extracted bytes and host tests before attachment. Do not mix candidate HEX with older package manifests or instructions.

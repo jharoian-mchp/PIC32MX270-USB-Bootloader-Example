@@ -1,0 +1,87 @@
+# Callback-mask diagnostic — initial read-only checks
+
+Only programming the supplied callback-mask diagnostic and the initial `list`, `probe`, `status` and `previous` checks are authorised by the user's 2026-10-21 05:03 approval. **Do not run `restart`/PAUSE, resend ID100, use a higher PAUSE ID or perform fault tests.** Stop and report after these initial checks even if all pass.
+
+The previous `bae3050` image failed at DRIVER_READY/irq_enabled512 and was recovered with powered SW1/MCLR. This replacement defers callback registration's interrupt enables until admitted attachment, preserving the readiness guard. It has passed source tests and local artifact review; actual USB-only restart and later readiness predicates are still hardware-unqualified. Uploads, NVM writes, application handoff and protection changes remain disabled.
+
+## Package and images
+
+Package: `usb-callback-mask-a57fef3.zip`. Extract into a **new directory**, separate from all older packages. Use only its scripts and HEX files; do not substitute a normal MPLAB Clean/Build image.
+
+| File | Purpose | SHA-256 |
+|---|---|---|
+| `usb-callback-mask.hex` | Callback-mask diagnostic | `f9dd06c6f176bf33db1c8b85639b2e3e49498b3e379d35d8e5ae00f2f35a06fd` |
+| `usb-probe-recovery.hex` | Known capabilities-only recovery | `8e5a8451e43cdb4ee96b80f34ce5e3a5e166ba619ade144468c02a1de056d14c` |
+
+Firmware/host source: `a57fef3615db38a267ef467d9f5b793f8bd9bc78`. The manifest identifies the procedure commit separately. Matching Python scripts, requirements, linked-image audit, manifest and `SHA256SUMS.txt` are included.
+
+XC32 v6.00 / DFP1.7.380 / `-Os -flto` produces text32117/data88/bss1952, fitting the unchanged 32 KB reservation with little margin. Application origin is `0x1D008000`. Schema3, the 30-byte PREVIOUS payload and the 96-byte retained journal are unchanged. The journal is NOBITS at `0xA0000000` and excluded from linked `.dinit`.
+
+Configuration words match the default local image: `FFFFFFFF / FFF97AFA / FD74CE5B / 7FFFFFE3`; PWP/BWP/CP remain OFF. Do not change protection to match an earlier debugger screenshot. The audit's `hardware_qualified=false` and `board_delivery_approved=false` describe artifact checks; this procedure supplies the separate limited initial-check authorisation.
+
+## Program and start once
+
+1. Preserve board power, jumpers and USB cable settings. Confirm the **existing independent external supply is still active** before starting and before disconnecting PICkit5. Do not change supplies or programmer power settings. If PICkit5 is the sole supply or independent power is uncertain, stop and report. Connect only one matching bootloader board to Windows.
+2. From the newly extracted directory, verify the manifest source and every file in `SHA256SUMS.txt`, including both HEX files, host scripts, requirements, procedure, audit and manifest:
+
+   ```powershell
+   $Manifest = Get-Content .\PACKAGE-MANIFEST.json -Raw | ConvertFrom-Json
+   $Source = 'a57fef3615db38a267ef467d9f5b793f8bd9bc78'
+   if ($Manifest.firmware_source_commit -ne $Source -or $Manifest.host_source_commit -ne $Source) {
+       throw 'Wrong package source; stop'
+   }
+   foreach ($Line in Get-Content .\SHA256SUMS.txt) {
+       $Parts = $Line -split '\s+', 2
+       $Actual = (Get-FileHash -LiteralPath (Join-Path $PWD $Parts[1]) -Algorithm SHA256).Hash
+       if ($Actual -ne $Parts[0]) { throw "Checksum mismatch: $($Parts[1]); stop" }
+   }
+   Get-FileHash .\usb-callback-mask.hex -Algorithm SHA256
+   Get-FileHash .\usb-probe-recovery.hex -Algorithm SHA256
+   ```
+
+   Both printed image hashes must match the table, and every checksum must pass. Inspect the manifest's schema3/30-byte PREVIOUS and initial-only scope (`pause_authorized=false`). Stop on any error or mismatch; do not combine files from different extractions.
+3. In IPE select **PIC32MX270F256D** and program/verify only `usb-callback-mask.hex` with PICkit5. This installs the diagnostic through the programmer; USB uploading remains disabled. No protection changes, bulk-erase experiments or substitute images. Save the programming/verification result for reporting.
+4. With the independent supply still active, disconnect PICkit5 **from the board after programming finishes**, preserving board power. Stop before disconnecting if independent power is uncertain. The previous IPE log reported Hold In Reset enabled; do not change that setting or reconnect PICkit5 during these checks. Its electrical MCLR interaction has not been measured.
+5. Perform this one initial startup: hold SW1, toggle MCLR/reset once, wait at least100ms, then release SW1. Let firmware run freely; do not halt during HID requests. No further resets, unplug/power-cycle trials or programming retries are authorised.
+
+## Four read-only checks
+
+Use the same Python environment that passed earlier probes. From this package's directory:
+
+```powershell
+$PY = 'python.exe' # Or your existing venv python.exe
+& $PY -c "import sys; assert sys.version_info >= (3,10), 'Python 3.10+ required'; print(sys.version)"
+& $PY .\pic32_hid.py list
+```
+
+Require exactly one matching interface: VID04D8/PID003C/interface0/vendor usageFF00:1. If missing, duplicated, mismatched or ambiguous, capture the list and stop before any query. Only if that check passes, run:
+
+```powershell
+& $PY .\pic32_hid.py probe --timeout 2
+& $PY .\usb_restart_diag.py status --timeout 2
+& $PY .\usb_restart_diag.py previous --timeout 2
+```
+
+If the selected environment lacks HID, install this package's requirements using `& $PY -m pip install -r .\requirements-hid.txt`. It installs `hidapi`, imported as `hid`; do not install the unrelated PyPI package named `hid`.
+
+Expected `list`: one VID04D8/PID003C/interface0/vendor usageFF00:1. Expected capabilities: protocol1/max510/origin1D008000/end1D03FC00/row128/erase1024. Expected live STATUS:
+
+```json
+{"ticket": 0, "generation": 1, "completed_cycles": 0, "state": 0}
+```
+
+PREVIOUS may report **valid:true with the older `bae3050` failure**, because this package keeps schema3 and some SRAM may survive programming/startup. It may also report valid:false with default fields. Send the output either way. Do not require the old record to survive or erase it to obtain valid:false. Programming and RAM-layout changes can invalidate or alter evidence; the previous observed failure is already recorded separately.
+
+A retained ticket1/generation2/time415322/FAILED/INIT/REBUILD/DRIVER_READY/irq_enabled512 record is historical evidence from the previous trial, **not a new callback-mask restart result**. No restart has been requested during these initial checks. PREVIOUS is captured at boot, does not clear/write the journal and never grants restart permission. Zero observations can mean unsampled registers, not passing predicates. Retained SRAM is not reset-safe identity or nonvolatile persistence.
+
+## Stop and report
+
+Send the IPE programming/verification result and all four outputs. **Stop even if they pass. No PAUSE, higher ID, reset retry, reprogramming retry, uploads, NVM/protection changes or fault tests are authorised after this startup.** Any future evidence-producing restart needs a separate decision after reviewing these results; the older image's spent PAUSE permission does not transfer.
+
+If programming or any query fails, capture the exact output and stop. If `list` is missing, duplicated, mismatched or ambiguous, do not run the remaining queries. Report before any further recovery action. The known recovery HEX is included for a separately confirmed recovery if needed; verify its hash before use. It implements capabilities only, not STATUS/PREVIOUS. No automatic recovery installation or second SW1/MCLR attempt is requested.
+
+## Offline verification
+
+Strict tests, ASan/UBSan, exact callback/attach hooks0/1 tests, generated-overlay/XC32 checks and linked ELF/HEX/configuration/startup audit passed. The unchanged MCC bases passed a five-file overlay round-trip; negative artifact regressions reject corrupt bytes and unsafe load/initialisation metadata. Bounded source/publication/attach reviews found no concrete must-fix within their completed scopes; a broader final review timed out and was not treated as approval.
+
+The package's actual copied artifacts, archive entries/checksums and extracted host scripts are verified before attachment. Those checks do not qualify interrupt timing, later USBBUSY/USBEN/queue/BDT predicates, hardware restart, power-loss retention or arbitrary LTO instruction safety. Report this image's initial results before any further test.
