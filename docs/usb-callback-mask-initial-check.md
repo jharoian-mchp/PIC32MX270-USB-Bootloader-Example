@@ -15,7 +15,7 @@ The user returned all four outputs from the new `usb-callback-mask-a57fef3` dire
 
 Initial enumeration, capabilities, live STATUS and expanded PREVIOUS decoding pass. No validated retained record is available. This absence does not identify whether earlier evidence was invalidated or rejected, verify the programmed file's hash, or qualify retention or USB-only restart. No callback-mask rebuild has been exercised by these read-only checks.
 
-The subsequent IPE log confirms programming/verification on the second attempt, as recorded below. **Leave the board running unchanged: no PAUSE, higher ID, reset/reprogramming retry or fault test is authorised.** Clarify the earlier no-VDD report from recollection only; do not reproduce it.
+The subsequent IPE log confirms programming/verification on the second attempt, as recorded below. **Leave the board running unchanged: no PAUSE, higher ID, reset/reprogramming retry or fault test is authorised.** The earlier no-VDD report is explained by the user's later recollection below; do not reproduce it.
 
 ## IPE attempts — received 2026-10-21 05:14
 
@@ -27,7 +27,7 @@ The existing log names `C:\Users\c14029\Downloads\usb-callback-mask-a57fef3\usb-
 
 Successful programming/verification of the named image and the intended program range are now tool-reported. The log does not contain an independent file hash, VDD waveform or detailed erase bounds; approximate12% usage is not the linked-image reservation audit. The later successful HID queries establish firmware running at query time, not restart qualification.
 
-The first no-VDD report does not establish actual loss of board power: a target-supply interruption, programmer connection/sensing issue or other cause is not distinguished. It also cannot explain PREVIOUS valid:false without further evidence. Ask what changed between the attempts and confirm the existing independent supply is active and PICkit5 disconnected, without changing or retesting anything. Both attempts are recorded; no retry permission is granted by the successful second result.
+At 05:20 the user clarified: `Forgot to reattach PICKit5 prior to programming attempt`. The first attempt therefore lacked the programmer connection to the target, explaining its no-VDD report without establishing a board power fault. This recollection does not establish SRAM retention or explain PREVIOUS valid:false. Both attempts and the clarification are recorded; no retry permission follows from the successful second result. Confirm only the current independent supply and PICkit5-disconnected state without changing or retesting anything.
 
 ## Package and images
 
