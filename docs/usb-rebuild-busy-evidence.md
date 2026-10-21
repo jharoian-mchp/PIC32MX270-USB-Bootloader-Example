@@ -43,6 +43,10 @@ The current host decoder accepts the exact detail as DRIVER_READY/usb_busy1024/o
 
 A bounded independent diagnosis review confirmed the ordered predicate interpretation, power-enable path and absence of a dedicated BUSY-clear wait. It explicitly limited the record to BUSY set at one check and left the need for a bounded powered-ready wait as a source question. No code, HEX or protection change was made.
 
+## Later power-debug evidence — 20:30
+
+The later [power-debug record](usb-power-debug-board-evidence.md) validates PRE power/BUSY0/0, POST1/1 and READY1/1, ticket1/generation2/time319308, with raw deltas6097/54314. It supplies the missing pre/post samples for that newer trial but does not establish continuous BUSY or a clearing deadline. The BUSY rejection and later unsampled USBEN/queue/BDT limits remain.
+
 ## Next source questions and board limits
 
 The subsequent [powered-BUSY reference investigation](usb-powered-busy-semantics.md) found official conditional rapid-re-enable wait guidance, but no general powered BUSY-clear guarantee or time bound. The project introduced the powered BUSY0 readiness check; the original generated initializer does not enforce it. This does not justify removing the guard or adding an arbitrary delay. Next design bounded evidence-only power-boundary observations, with source review before implementation/delivery. Preserve ordered register access, detached/IRQ masking, ownership, session continuity and the separately defined USB-off NVM safety gate.

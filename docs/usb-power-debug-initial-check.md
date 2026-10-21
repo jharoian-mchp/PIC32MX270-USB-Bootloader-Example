@@ -1,6 +1,6 @@
 # Temporary 48 KB power-observation diagnostic — initial checks
 
-The power-debug PAUSE100 did not verify reconnect and post-list was empty at 2026-10-21 20:28. **The single-trial permission is spent: no resend, higher ID or second cycle.** After reviewing the failure report, one controlled powered SW1/MCLR recovery and read-only retained capture is instructed below. No power loss, reprogramming or fault test. Earlier initial/trial instructions are historical.
+The power-debug PAUSE100 failed; powered SW1/MCLR recovery restored HID and both retained snapshots at 2026-10-21 20:30. [Board evidence](usb-power-debug-board-evidence.md) shows PRE power/BUSY0/0, POST1/1 and READY1/1, with DRIVER_READY/usb_busy1024. **Both the single trial and recovery are complete: no resend, higher ID, reset or reprogramming.** Leave the board recovered/read-only. Earlier initial/trial/recovery instructions are historical.
 
 The previous callback-mask trial failed at DRIVER_READY/usb_busy1024 with USBPWR and USBBUSY sampled set. This image adds three one-shot observations; it adds no wait or readiness correction. USB-only restart and BUSY semantics remain hardware-unqualified. Uploads, NVM writes, application handoff and protection changes are disabled.
 
@@ -59,7 +59,15 @@ After reviewing the report, perform **one controlled powered SW1/MCLR recovery**
 
 Both queries capture the immutable previous snapshot at boot. Compare their ticket/generation/time when reporting; matching fields are not reset-safe identity. Invalid records or missing samples leave corresponding firmware behavior unknown. Initial PREVIOUS and power-previous were invalid. Fresh STATUS0/1/0/0 after recovery establishes startup, not successful USB-only restart. Raw Count deltas include logging, may wrap and cannot prove a settling deadline.
 
-Recovery results are pending. No PAUSE, higher ID, reset retry, reprogramming, upload/NVM/protection change or fault test is authorised beyond this one bounded recovery and its read-only queries.
+Recovery results were pending at the20:28 instruction cutoff; the subsequent result follows.
+
+## Recovery and power snapshots — 2026-10-21 20:30
+
+The user returned the expected single HID interface, debug capabilitiesorigin1D00C000 and recovery STATUS0/1/0/0. PREVIOUS and power-previous both validated ticket1/attempted generation2/time_ms319308. PREVIOUS records FAILED/INIT/faultINIT/checkpointREBUILD/evidence0, DRIVER_READY/usb_busy1024/observations3. Power metadata487 records valid PRE0/0, POST1/1 and READY1/1, with deltas6097 and54314 raw Count ticks from PRE.
+
+This shows a clean sampled pre-enable power-off state followed by powered BUSY at two samples. It does not establish continuous BUSY, a settling deadline or its cause. The earlier IRQ-source check passed; USBEN and later queue/BDT checks were not reached. Both retained decoders and recovery passed for this reported powered sequence; broader retention and USB-only restart remain unqualified. See [the paired evidence and timing limits](usb-power-debug-board-evidence.md).
+
+Keep external power/settings unchanged and PICkit5 disconnected. No new PAUSE, reset, reprogramming, replacement package, uploads, NVM/protection changes or fault test is authorised.
 
 ## Package and temporary layout
 
