@@ -12,7 +12,11 @@ static USB_RESTART_RECORD previous_record;
 static bool previous_record_valid,runtime_record_valid;
 static USB_RESTART_RECORD runtime_record;
 static uint8_t wait_evidence;
+static USB_RESTART_CHECKPOINT checkpoint;
+static uint32_t owner_now;
 static void RecordPhase(uint32_t now);
+static void PortEnter(USB_RESTART_CHECKPOINT port)
+{checkpoint=port;usb_restart_owner_diagnostics.checkpoint=port;RecordPhase(owner_now);}
 static USB_RESTART restart;
 static USB_DEVICE_HANDLE handle;
 static bool initialized,attached,configured;
@@ -47,10 +51,10 @@ static void DeviceEvent(USB_DEVICE_EVENT event,void *data,uintptr_t context)
         event_flags=(event_flags|OWNER_RESET)&~OWNER_CONFIGURED; /* Latest reset invalidates prior configuration. */
     else if(event==USB_DEVICE_EVENT_ERROR)event_flags|=OWNER_ERROR;
 }
-static bool Fence(void *c){(void)c;return USB_RetirementFence();}
+static bool Fence(void *c){(void)c;PortEnter(USB_RESTART_PORT_FENCE);return USB_RetirementFence();}
 static bool CancelDetach(void *c)
 {
-    (void)c;bool irq=EVIC_INT_Disable();
+    (void)c;bool irq=EVIC_INT_Disable();PortEnter(USB_RESTART_PORT_CANCEL);
     USB_PROBE_Configure(false);configured=false;usb_restart_owner_diagnostics.configured=false;
     bool ok=true;
     /* HID data endpoints plus both control directions; lower cancel invokes
@@ -63,7 +67,7 @@ static bool CancelDetach(void *c)
 }
 static bool Drained(void *c)
 {
-    (void)c;
+    (void)c;PortEnter(USB_RESTART_PORT_DRAIN);
     bool probe=USB_PROBE_RetireReady(),hid=USB_RetirementHidDrained();
     bool device=USB_RetirementDeviceDrained(),driver=USB_RetirementDriverDrained();
     wait_evidence=(probe?0U:1U)|(hid?0U:2U)|(device?0U:4U)|(driver?0U:8U);
@@ -71,25 +75,25 @@ static bool Drained(void *c)
 }
 static bool PowerOff(void *c)
 {
-    (void)c;
+    (void)c;PortEnter(USB_RESTART_PORT_POWER_OFF);
     /* After a power-off attempt, do not touch ordinary USB registers even if
      * the port reports failure. Partial shutdown is not idle proof. */
     usb_registers_accessible=false;return USB_RetirementPowerOff();
 }
 static bool OffIdle(void *c)
-{(void)c;bool idle=USB_RetirementOffIdle();wait_evidence=idle?0U:16U;return idle;}
+{(void)c;PortEnter(USB_RESTART_PORT_OFF_IDLE);bool idle=USB_RetirementOffIdle();wait_evidence=idle?0U:16U;return idle;}
 static bool Retire(void *c)
-{(void)c;return USB_RetirementHidRetire()&&USB_RetirementDeviceRetire()&&USB_RetirementDriverRetire();}
+{(void)c;PortEnter(USB_RESTART_PORT_RETIRE);return USB_RetirementHidRetire()&&USB_RetirementDeviceRetire()&&USB_RetirementDriverRetire();}
 static bool Rebuild(void *c,uint32_t generation)
 {
     (void)c;USB_DEVICE_HANDLE rebuilt=USB_DEVICE_HANDLE_INVALID;
-    bool irq=EVIC_INT_Disable();callback_generation=generation;event_flags=0;
+    bool irq=EVIC_INT_Disable();PortEnter(USB_RESTART_PORT_REBUILD);callback_generation=generation;event_flags=0;
     bool ok=USB_RebuildDetached(generation,DeviceEvent,HidEvent,generation,&rebuilt);
     if(ok){handle=rebuilt;attached=configured=false;usb_registers_accessible=true;USB_PROBE_Initialize(handle);}
     EVIC_INT_Restore(irq);return ok;
 }
 static bool Configured(void *c,uint32_t generation)
-{(void)c;return configured&&generation==restart.generation;}
+{(void)c;PortEnter(USB_RESTART_PORT_CONFIGURED);return configured&&generation==restart.generation;}
 bool USB_RestartOwnerInit(USB_DEVICE_HANDLE initial,uint32_t timeout)
 {
     if(initial==USB_DEVICE_HANDLE_INVALID||initialized)return false;
@@ -97,7 +101,7 @@ bool USB_RestartOwnerInit(USB_DEVICE_HANDLE initial,uint32_t timeout)
     const USB_RESTART_PORT port={NULL,Fence,CancelDetach,Drained,PowerOff,OffIdle,Retire,Rebuild,Configured};
     if(!USB_RestartInit(&restart,&port,timeout))return false;
     handle=initial;initialized=true;attached=configured=false;idle_rate=0;callback_generation=1;event_flags=0;
-    wait_evidence=0;runtime_record_valid=false;
+    wait_evidence=0;runtime_record_valid=false;checkpoint=USB_RESTART_PORT_NONE;owner_now=0;
     usb_restart_owner_diagnostics=(USB_RESTART_OWNER_DIAGNOSTICS){.generation=1,.exclusive=true};
     USB_DEVICE_EventHandlerSet(handle,DeviceEvent,1);
     (void)USB_DEVICE_HID_EventHandlerSet(USB_DEVICE_HID_INDEX_0,HidEvent,1);
@@ -108,10 +112,11 @@ bool USB_RestartOwnerInit(USB_DEVICE_HANDLE initial,uint32_t timeout)
 }
 bool USB_RestartOwnerRequest(uint32_t now,uint32_t *ticket)
 {
-    if(!initialized||!configured||event_flags!=0U)return false;
+    bool irq=EVIC_INT_Disable();
+    if(!initialized||!configured||event_flags!=0U){EVIC_INT_Restore(irq);return false;}
     bool ok=USB_RestartRequest(&restart,now,ticket);
-    if(ok){wait_evidence=0;RecordPhase(now);}
-    return ok;
+    if(ok){owner_now=now;wait_evidence=0;checkpoint=USB_RESTART_PORT_NONE;RecordPhase(now);}
+    EVIC_INT_Restore(irq);return ok;
 }
 unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint32_t *ticket)
 {
@@ -134,10 +139,10 @@ static void RecordPhase(uint32_t now)
     uint8_t evidence=wait_evidence;
     USB_RESTART_RECORD record={.ticket=restart.ticket,.generation=restart.generation,.time_ms=now,
         .state=restart.state,.phase=restart.state==USB_RESTART_FAILED?restart.failure_phase:restart.state,
-        .fault=restart.fault,.evidence=evidence};
+        .fault=restart.fault,.checkpoint=checkpoint,.evidence=evidence};
     if(runtime_record_valid&&runtime_record.ticket==record.ticket&&runtime_record.generation==record.generation&&
        runtime_record.state==record.state&&runtime_record.phase==record.phase&&runtime_record.fault==record.fault&&
-       runtime_record.evidence==record.evidence)return;
+       runtime_record.evidence==record.evidence&&runtime_record.checkpoint==record.checkpoint)return;
     if(USB_RestartJournalWrite(&restart_journal,&record)){runtime_record=record;runtime_record_valid=true;}
 }
 static void QuarantineFailed(void)
@@ -153,7 +158,7 @@ static void QuarantineFailed(void)
 void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now)
 {
     if(!initialized)return;
-    bool irq=EVIC_INT_Disable();
+    bool irq=EVIC_INT_Disable();owner_now=now;
     if(event_flags&(OWNER_RESET|OWNER_ERROR))USB_RestartCancel(&restart);
     else USB_RestartAck(&restart,ticket,success,now);
     wait_evidence=0;QuarantineFailed();RecordPhase(now);
@@ -164,7 +169,7 @@ void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
     if(!initialized)return;
     /* Hold the single-core global IRQ fence through event application and
      * scheduling. A new ISR reset cannot race an old CONFIGURED snapshot. */
-    bool irq=EVIC_INT_Disable();uint32_t events=event_flags;event_flags=0;
+    bool irq=EVIC_INT_Disable();owner_now=now;uint32_t events=event_flags;event_flags=0;
     if(events&OWNER_RESET)
     {
         USB_PROBE_Configure(false);configured=false;usb_restart_owner_diagnostics.configured=false;
@@ -191,6 +196,7 @@ void USB_RestartOwnerTasks(uint32_t now,bool cable,bool mux)
     QuarantineFailed();
     if(previous!=USB_RESTART_DONE&&restart.state==USB_RESTART_DONE)++usb_restart_owner_diagnostics.completed_cycles;
     usb_restart_owner_diagnostics.state=restart.state;usb_restart_owner_diagnostics.generation=restart.generation;
+    usb_restart_owner_diagnostics.failure_phase=restart.failure_phase;usb_restart_owner_diagnostics.fault=restart.fault;
     if(restart.state==USB_RESTART_READY||restart.state==USB_RESTART_ACK_WAIT||
        restart.state==USB_RESTART_CONFIG_WAIT||restart.state==USB_RESTART_DONE)
     {

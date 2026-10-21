@@ -107,12 +107,63 @@ try{
         if(ja>=a&&ja+96<=a+n&&elf.readUInt32LE(s+4)===8)journalNobits=true;
     }
     check(journalNobits,"journal must occupy retained NOBITS section, not loadable initialized data");
+    // XC32 v6's inspected __pic32_data_init dispatch uses destination/length/
+    // opcode headers, clear(0)/inline-copy(1), 4-byte alignment, zero terminator.
+    // NOBITS alone is insufficient: linker .dinit might still clear that RAM.
+    const stringsIndex=elf.readUInt16LE(50);
+    check(stringsIndex<shcount,"ELF section-name table index invalid");
+    const stringsHeader=shoff+stringsIndex*shsize;
+    check(stringsHeader+40<=shoff+shcount*shsize&&elf.readUInt32LE(stringsHeader+4)===3,
+          "ELF section-name table header/type invalid");
+    const names=elf.readUInt32LE(stringsHeader+16),namesSize=elf.readUInt32LE(stringsHeader+20);
+    check(names+namesSize<=elf.length,"ELF section-name table bounds");
+    let dinitOffset=-1,dinitBytes=0;
+    for(let i=0;i<shcount;i++){
+        const s=shoff+i*shsize,nameOffset=elf.readUInt32LE(s),start=names+nameOffset;
+        check(nameOffset<namesSize,"invalid ELF section-name offset");
+        const end=elf.indexOf(0,start);check(end>=start&&end<names+namesSize,"unterminated ELF section name");
+        if(elf.toString("utf8",start,end)===".dinit"){
+            check(dinitOffset<0,"duplicate .dinit section");
+            check(elf.readUInt32LE(s+4)===1&&(elf.readUInt32LE(s+8)&2)!==0,
+                  ".dinit must be allocated file-backed PROGBITS");
+            dinitOffset=elf.readUInt32LE(s+16);dinitBytes=elf.readUInt32LE(s+20);
+            const virtual=elf.readUInt32LE(s+12),address=physical(virtual);
+            check(allowed(address,dinitBytes),".dinit not in permitted Flash");
+            const runtime=symbols.match(/^([0-9a-fA-F]+)\s+\w\s+_dinit_addr$/m);
+            check(runtime!==null&&parseInt(runtime[1],16)===virtual,".dinit differs from runtime initialization address");
+            let mapped=false;
+            for(let k=0;k<count;k++){
+                const p=offset+k*size;if(elf.readUInt32LE(p)!==1)continue;
+                const start=elf.readUInt32LE(p+4),pn=elf.readUInt32LE(p+16),pa=physical(elf.readUInt32LE(p+12));
+                if(dinitOffset>=start&&dinitOffset+dinitBytes<=start+pn&&pa+dinitOffset-start===address){mapped=true;break;}
+            }
+            check(mapped,".dinit not covered by Flash load segment");
+            for(let j=0;j<dinitBytes;j++)check(memory.get(address+j)===elf[dinitOffset+j],".dinit differs from delivered HEX");
+        }
+    }
+    check(dinitOffset>=0&&dinitBytes>=4&&dinitOffset+dinitBytes<=elf.length,"missing/invalid .dinit");
+    const initialization: {destination:string,bytes:number,operation:string}[]=[];
+    let cursor=dinitOffset,terminated=false;
+    while(cursor+4<=dinitOffset+dinitBytes){
+        const destination=elf.readUInt32LE(cursor);
+        if(destination===0){terminated=true;break;}
+        check(cursor+12<=dinitOffset+dinitBytes,"truncated .dinit header");
+        const bytes=elf.readUInt32LE(cursor+4),operation=elf.readUInt32LE(cursor+8);
+        check(bytes>0&&destination>=0xA0000000&&destination+bytes<=0xA0010000,".dinit writes outside target SRAM");
+        check(destination+bytes<=ja||destination>=ja+96,".dinit overlaps retained journal");
+        check(operation===0||operation===1,"unsupported .dinit operation; review startup decoder");
+        cursor+=12;
+        if(operation===1){check(cursor+bytes<=dinitOffset+dinitBytes,"truncated .dinit copy");cursor+=bytes;}
+        cursor=Math.ceil(cursor/4)*4;
+        initialization.push({destination:`0x${destination.toString(16).toUpperCase()}`,bytes,operation:operation===0?"clear":"copy"});
+    }
+    check(terminated&&initialization.length>0,".dinit missing terminator/records");
     check(/^bfc00480\s+\w\s+__DbgExecReturn$/m.test(symbols),"expected XC32 debug-return stub location missing");
     for(const name of ["USB_RestartOwnerRequest","USB_RestartOwnerAck"])
         check(new RegExp(`^[0-9a-fA-F]+\\s+[Tt]\\s+${name}$`,"m").test(symbols),`required defined code symbol ${name} missing`);
     check(!/\b(?:UPDATE_(?:Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)\w*|NVM_(?:RowWrite|PageErase|WordWrite)|run_Application)\b/.test(symbols),"linked update/NVM write/handoff entrypoint");
     const hash=(bytes:Uint8Array)=>new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
-    const result={elf:elfPath,hex:hexPath,elf_sha256:hash(elf),hex_sha256:hash(readFileSync(hexPath)),hex_bytes:memory.size,segments,config,retained_journal:{address:`0x${ja.toString(16).toUpperCase()}`,bytes:96,nobits:true},
+    const result={elf:elfPath,hex:hexPath,elf_sha256:hash(elf),hex_sha256:hash(readFileSync(hexPath)),hex_bytes:memory.size,segments,config,retained_journal:{address:`0x${ja.toString(16).toUpperCase()}`,bytes:96,nobits:true,dinit_excluded:true},initialization,
         review_scope:"ELF load spans/HEX equality/config equality/symbol exclusion; LTO can inline code, so symbols alone do not prove arbitrary instruction safety.",
         hardware_qualified:false,board_delivery_approved:false};
     writeFileSync(elfPath.replace(/\.elf$/,"-audit.json"),JSON.stringify(result,null,2)+"\n");

@@ -17,7 +17,8 @@ PAUSE = 0x66
 STATUS = 0x67
 PREVIOUS = 0x68
 BODY = struct.Struct("<IIIB")
-PREVIOUS_BODY = struct.Struct("<IIIBBBBB")
+PREVIOUS_BODY = struct.Struct("<IIIBBBBBB")
+CHECKPOINTS = ("NONE", "FENCE", "CANCEL", "DRAIN", "POWER_OFF", "OFF_IDLE", "RETIRE", "REBUILD", "CONFIGURED")
 PHASES = ("READY", "ACK_WAIT", "DRAIN", "OFF_WAIT", "RETIRE", "INIT", "CONFIG_WAIT", "DONE", "FAILED")
 FAULTS = ("NONE", "TIMEOUT", "ACK", "FENCE", "CANCEL", "POWER_OFF", "OFF_IDLE", "DRAIN", "RETIRE", "INIT", "EXTERNAL")
 
@@ -71,14 +72,14 @@ def exchange(device, request, timeout=2.0, clock=time.monotonic):
                 if op == PREVIOUS:
                     if len(body) != PREVIOUS_BODY.size:
                         raise host.HostError("invalid previous-record response length")
-                    ticket, generation, time_ms, state, phase, fault, evidence, valid = PREVIOUS_BODY.unpack(body)
-                    if state > 8 or phase > 8 or fault >= len(FAULTS) or valid not in (0, 1) or (valid and (not ticket or not generation)):
+                    ticket, generation, time_ms, state, phase, fault, evidence, valid, checkpoint = PREVIOUS_BODY.unpack(body)
+                    if state > 8 or phase > 8 or fault >= len(FAULTS) or checkpoint >= len(CHECKPOINTS) or valid not in (0, 1) or (valid and (not ticket or not generation)):
                         raise host.HostError("invalid retained diagnostic record")
                     if clock() >= deadline:
                         raise host.HostError("deadline exceeded decoding retained record")
                     return {"valid": bool(valid), "ticket": ticket, "generation": generation,
                             "time_ms": time_ms, "state": PHASES[state], "phase": PHASES[phase],
-                            "fault": FAULTS[fault], "evidence_bits": evidence,
+                            "fault": FAULTS[fault], "checkpoint": CHECKPOINTS[checkpoint], "evidence_bits": evidence,
                             "warning": "Retained SRAM evidence only; not reset-safe identity or restart permission."}
                 if len(body) != BODY.size:
                     raise host.HostError("invalid diagnostic response length")

@@ -4,6 +4,18 @@
 #include "usb_restart_owner.h"
 #include "usb_rebuild.h"
 #include "../bootloader/src/usb_probe.h"
+#if USB_RESTART_OWNER_INTERNAL_TEST
+/* Include the real owner TU in this test only to inspect its private journal
+ * at port entry; no new production snapshot API is exposed. */
+#include "../bootloader/src/usb_restart_owner.c"
+static void VerifyJournalCheckpoint(USB_RESTART_CHECKPOINT expected)
+{
+    USB_RESTART_RECORD record;
+    assert(USB_RestartJournalRead(&restart_journal,&record)&&record.checkpoint==expected);
+}
+#else
+#define VerifyJournalCheckpoint(expected) ((void)(expected))
+#endif
 struct SYSTEM_OBJECTS sysObj;
 volatile USB_PROBE_DIAGNOSTICS usb_probe_diagnostics;
 static USB_DEVICE_EVENT_HANDLER device_event;
@@ -28,18 +40,18 @@ void USB_PROBE_Configure(bool active){usb_probe_diagnostics.active=active;}
 void USB_PROBE_Event(USB_DEVICE_HID_EVENT event,void *data){(void)event;(void)data;}
 void USB_PROBE_Tasks(uint32_t now){(void)now;assert(!off&&!blocked);}
 bool USB_PROBE_RetireReady(void){return true;}
-bool USB_RetirementFence(void){assert(!blocked);blocked=true;return true;}
+bool USB_RetirementFence(void){assert(!blocked&&!irq&&usb_restart_owner_diagnostics.checkpoint==USB_RESTART_PORT_FENCE);VerifyJournalCheckpoint(USB_RESTART_PORT_FENCE);blocked=true;return true;}
 bool USB_RetirementBlocked(void){return blocked;}
 bool USB_RetirementHidDrained(void){return blocked;}
 bool USB_RetirementDeviceDrained(void){return blocked;}
 bool USB_RetirementDriverDrained(void){return blocked;}
-bool USB_RetirementPowerOff(void){assert(blocked);off=busy=true;poweroffs++;return true;}
+bool USB_RetirementPowerOff(void){assert(blocked&&!irq&&usb_restart_owner_diagnostics.checkpoint==USB_RESTART_PORT_POWER_OFF);VerifyJournalCheckpoint(USB_RESTART_PORT_POWER_OFF);off=busy=true;poweroffs++;return true;}
 bool USB_RetirementOffIdle(void){return off&&!busy;}
 bool USB_RetirementHidRetire(void){assert(off&&!busy&&blocked);retires++;return true;}
 bool USB_RetirementDeviceRetire(void){assert(off&&!busy&&blocked);retires++;return true;}
 bool USB_RetirementDriverRetire(void){assert(off&&!busy&&blocked);retires++;return true;}
 bool USB_RebuildDetached(uint32_t generation,USB_DEVICE_EVENT_HANDLER dev,USB_DEVICE_HID_EVENT_HANDLER hid,uintptr_t context,USB_DEVICE_HANDLE *handle)
-{assert(off&&!busy&&blocked&&retires%3==0&&generation==mock_gen+1&&context==generation);mock_gen=generation;off=blocked=false;rebuilds++;device_event=dev;hid_event=hid;device_context=hid_context=context;*handle=1;return true;}
+{assert(off&&!busy&&blocked&&!irq&&retires%3==0&&generation==mock_gen+1&&context==generation&&usb_restart_owner_diagnostics.checkpoint==USB_RESTART_PORT_REBUILD);VerifyJournalCheckpoint(USB_RESTART_PORT_REBUILD);mock_gen=generation;off=blocked=false;rebuilds++;device_event=dev;hid_event=hid;device_context=hid_context=context;*handle=1;return true;}
 int main(int argc,char **argv)
 {
     assert(!USB_RestartOwnerInit(USB_DEVICE_HANDLE_INVALID,100));assert(USB_RestartOwnerInit(1,100));

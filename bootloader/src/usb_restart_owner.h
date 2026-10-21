@@ -13,7 +13,9 @@
 #include "usb_restart.h"
 #include "usb_restart_journal.h"
 typedef struct {
-    USB_RESTART_STATE state;
+    USB_RESTART_STATE state,failure_phase;
+    USB_RESTART_FAULT fault;
+    USB_RESTART_CHECKPOINT checkpoint;
     uint32_t generation,completed_cycles,stale_events,cancel_errors;
     bool configured,exclusive,attached;
 } USB_RESTART_OWNER_DIAGNOSTICS;

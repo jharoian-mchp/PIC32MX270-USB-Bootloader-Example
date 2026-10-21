@@ -41,6 +41,29 @@ try{
         }
     }
     if(!changed)throw Error("required symbol regression unavailable");run(missing,hex,false);
+    // Change a real startup clear destination to retained RAM. Mirror the
+    // modified .dinit byte in HEX so ELF/HEX equality is not the rejection.
+    const namesHeader=shoff+elf.readUInt16LE(50)*shsize,baseNames=elf.readUInt32LE(namesHeader+16);
+    let dinit=-1,virtual=0,dinitHeader=-1;
+    for(let i=0;i<shcount;i++){
+        const s=shoff+i*shsize,start=baseNames+elf.readUInt32LE(s),end=elf.indexOf(0,start);
+        if(elf.toString("utf8",start,end)===".dinit"){dinit=elf.readUInt32LE(s+16);virtual=elf.readUInt32LE(s+12);dinitHeader=s;}
+    }
+    if(dinit<0)throw Error(".dinit regression section missing");
+    const badNames=Buffer.from(elf);badNames.writeUInt16LE(shcount,50);run(badNames,hex,false);
+    const fakeDinit=Buffer.from(elf);fakeDinit.writeUInt32LE(8,dinitHeader+4);run(fakeDinit,hex,false);
+    fakeDinit.writeUInt32LE(1,dinitHeader+4);fakeDinit.writeUInt32LE(0,dinitHeader+8);run(fakeDinit,hex,false);
+    const overlap=Buffer.from(elf);overlap.writeUInt32LE(0xA0000000,dinit);
+    let extension=0;
+    const mirrored=hex.split("\n").map(line=>{
+        if(!line.startsWith(":"))return line;const b=Buffer.from(line.slice(1),"hex");
+        if(b[3]===4){extension=b.readUInt16BE(4)*65536;return line;}
+        if(b[3]!==0)return line;const address=extension+b.readUInt16BE(1),target=virtual&0x1FFFFFFF;let touched=false;
+        for(let i=0;i<b[0];i++)if(address+i>=target&&address+i<target+4){b[4+i]=overlap[dinit+address+i-target];touched=true;}
+        if(!touched)return line;b[b.length-1]=0;b[b.length-1]=(-b.reduce((a,v)=>a+v,0))&255;
+        return ":"+b.toString("hex");
+    }).join("\n");
+    run(overlap,mirrored,false);
     console.log("PASS: audit rejects corrupted/missing bytes, rogue/out-of-file PT_LOAD and undefined required code symbol");
 }
 finally{rmSync(dir,{recursive:true,force:true});}

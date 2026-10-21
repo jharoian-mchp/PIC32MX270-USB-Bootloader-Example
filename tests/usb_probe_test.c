@@ -11,7 +11,7 @@ unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint
 {(void)now;if(id==0||generation!=1)return 2;++pause_requests;*ticket=7;return 0;}
 void USB_RestartOwnerStatus(uint32_t *ticket,uint32_t *generation){*ticket=7;*generation=1;}
 bool USB_RestartOwnerPrevious(USB_RESTART_RECORD *r)
-{*r=(USB_RESTART_RECORD){.ticket=7,.generation=1,.time_ms=999,.state=USB_RESTART_FAILED,.phase=USB_RESTART_DRAIN,.fault=USB_RESTART_FAULT_TIMEOUT};return true;}
+{*r=(USB_RESTART_RECORD){.ticket=7,.generation=1,.time_ms=999,.state=USB_RESTART_FAILED,.phase=USB_RESTART_DRAIN,.fault=USB_RESTART_FAULT_TIMEOUT,.checkpoint=USB_RESTART_PORT_DRAIN};return true;}
 void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now)
 {(void)now;assert(ticket==7);if(success)++ack_success;else ++ack_failure;}
 #endif
@@ -110,8 +110,8 @@ int main(void)
     assert(UPDATE_FrameFeed(&reply,sent,64,&consumed)==UPDATE_FRAME_READY&&reply.length==21&&reply.bytes[0]==0xE7);
     Sent(12);assert(!ack_success&&!ack_failure&&!pause_requests);
     Reset();n=Query(wire,0x68,1,56);Deliver(wire,n,11);UPDATE_FrameReset(&reply);
-    assert(UPDATE_FrameFeed(&reply,sent,64,&consumed)==UPDATE_FRAME_READY&&reply.length==25&&reply.bytes[0]==0xE8);
-    assert(reply.bytes[20]==USB_RESTART_FAILED&&reply.bytes[21]==USB_RESTART_DRAIN&&reply.bytes[22]==USB_RESTART_FAULT_TIMEOUT&&reply.bytes[24]==1);
+    assert(UPDATE_FrameFeed(&reply,sent,64,&consumed)==UPDATE_FRAME_READY&&reply.length==26&&reply.bytes[0]==0xE8);
+    assert(reply.bytes[20]==USB_RESTART_FAILED&&reply.bytes[21]==USB_RESTART_DRAIN&&reply.bytes[22]==USB_RESTART_FAULT_TIMEOUT&&reply.bytes[24]==1&&reply.bytes[25]==USB_RESTART_PORT_DRAIN);
     Sent(12);assert(!ack_success&&!ack_failure&&!pause_requests);
 #endif
     /* Every destructive/legacy request is rejected, no response or operations. */

@@ -27,7 +27,7 @@ class Device:
             state = (1, 2, 1, 7) if not self.module.wrong else (1, 1, 0, 0)
         else:
             state = (0, 1, 0, 0)
-        body = diag.PREVIOUS_BODY.pack(1, 1, 10020, 8, 2, 1, 4, 1) if op == diag.PREVIOUS else diag.BODY.pack(*state)
+        body = diag.PREVIOUS_BODY.pack(1, 1, 10020, 8, 2, 1, 4, 1, 3) if op == diag.PREVIOUS else diag.BODY.pack(*state)
         response = host.RESPONSE_HEADER.pack(op | 0x80, version, 0, 0, request_id) + body
         self.response = host.encode_frame(response).ljust(64, b"\0")
         return 65
@@ -110,7 +110,7 @@ class RestartDiagnostic(unittest.TestCase):
         device = Device(module)
         result = diag.exchange(device, diag.payload(diag.PREVIOUS, 1))
         self.assertTrue(result["valid"])
-        self.assertEqual((result["phase"], result["fault"]), ("DRAIN", "TIMEOUT"))
+        self.assertEqual((result["phase"], result["fault"], result["checkpoint"]), ("DRAIN", "TIMEOUT", "DRAIN"))
         self.assertEqual(module.pauses, 0)
         self.assertEqual(module.sent, [diag.PREVIOUS])
 

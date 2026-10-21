@@ -100,6 +100,8 @@ test:
 	./build/tests/usb_restart_owner_test expired-ack
 	./build/tests/usb_restart_owner_test reset-wait
 	./build/tests/usb_restart_owner_test off-failure
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_OWNER_INTERNAL_TEST=1 -Itests/usb_owner_mocks -Itests/usb_mocks -Ibootloader/src bootloader/src/usb_restart.c bootloader/src/usb_restart_journal.c tests/usb_restart_owner_test.c -o build/tests/usb_owner_checkpoint_test
+	./build/tests/usb_owner_checkpoint_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c tests/update_protocol_test.c -o build/tests/update_protocol_test
 	./build/tests/update_protocol_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c bootloader/src/update_hex.c bootloader/src/update_flash.c tests/update_storage_test.c -o build/tests/update_storage_test
