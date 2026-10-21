@@ -17,6 +17,22 @@ Keep PICkit5 disconnected from the board and do not change power, USB cable, SW1
 
 The failed old image is not authorised for another PAUSE. No uploads, NVM/protection changes, destructive electrical faults or production qualification are authorised by this diagnostic trial.
 
+## Instrumented failure located — 2026-10-21
+
+The instrumented PAUSE100 timed out and post-list was empty. After the requested powered SW1/MCLR recovery, the user returned the expected HID interface and live STATUS ticket0/generation1/completed_cycles0/state0. PREVIOUS returned a validated retained record:
+
+```text
+ticket=1  attempted generation=2  time_ms=1351925
+state=FAILED  phase=INIT  fault=INIT  checkpoint=REBUILD  evidence_bits=0
+valid=true
+```
+
+This is positive hardware evidence that this journal survived the reported recovery sequence and was validated/decoded afterwards. It is not proof of preservation under power loss, programming or every reset. Live generation1 is a fresh startup; retained generation2 denotes the failed replacement attempt, not successful reopening.
+
+The coordinator reached REBUILD and its USB-only initialization callback returned false. Prior coordinator drain/off-idle/retire gates progressed far enough to enter that callback, but the record does not identify whether preparation, driver/device construction, binding or a readiness predicate failed. The zero blocker bitmap is an earlier wait observation, not all initializer checks passing. No timeout occurred at this recorded failure; the time value is elapsed boot milliseconds, not operation duration.
+
+**The single-trial permission above is spent. Do not repeat PAUSE, use a higher ID, reset again or reprogram for diagnosis without confirmation.** Keep the board recovered. Next investigate/instrument the exact rebuild sub-step and readiness inputs; do not weaken the USB-off NVM guard or reinterpret successful startup as successful USB-only restart. No firmware/protection changes are requested by this result.
+
 ## Images
 
 Use these prebuilt files from this package; do not use a normal Clean/Build output or mix scripts/HEX files from older packages.
