@@ -49,4 +49,4 @@ The temporary diagnostic link is text33237/data88/bss2052, with32829 bytes used 
 
 ## Board and delivery scope
 
-No replacement archive was created, and the running board still has the prior `2de2f84` power-debug image. Its PAUSE/recovery permissions are spent. Keep PICkit5 disconnected and external power/settings unchanged. No new PAUSE, higher ID, reset, reprogramming, upload, NVM/protection change or fault test is authorised. A separate experimental candidate/delivery review is required before any new programming or trial decision.
+No replacement archive was created, and the running board still has the prior `2de2f84` power-debug image. Its PAUSE/recovery permissions are spent. Keep PICkit5 disconnected and external power/settings unchanged. No new PAUSE, higher ID, reset, reprogramming, upload, NVM/protection change or fault test is authorised. The subsequent [experimental candidate review](usb-harmony-powered-candidate-review.md) passes its bounded offline checks and defines future initial-only delivery requirements. It grants no package or board permission; a separate programming and later trial decision is still required.
