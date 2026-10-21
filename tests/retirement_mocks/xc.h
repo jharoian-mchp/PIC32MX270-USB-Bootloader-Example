@@ -7,5 +7,7 @@ extern uint32_t U1PWRC;
 uint32_t mock_disable(void);
 void mock_restore(uint32_t value);
 #define __builtin_disable_interrupts mock_disable
+uint32_t mock_count(void);
+#define _CP0_GET_COUNT() mock_count()
 #define __builtin_mtc0(reg,sel,value) mock_restore(value)
 #endif

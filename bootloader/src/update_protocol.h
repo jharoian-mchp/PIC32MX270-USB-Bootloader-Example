@@ -9,7 +9,12 @@
 
 #define UPDATE_FRAME_CAPACITY 512U /* Decoded command plus two CRC bytes. */
 #define UPDATE_PAYLOAD_MAX (UPDATE_FRAME_CAPACITY - 2U)
+#if USB_RESTART_DEBUG_LAYOUT
+#include "usb_restart_debug_layout.h"
+#define UPDATE_APP_PHYSICAL_START USB_RESTART_DEBUG_APP_ORIGIN
+#else
 #define UPDATE_APP_PHYSICAL_START UINT32_C(0x1D008000)
+#endif
 #define UPDATE_FLASH_PHYSICAL_END UINT32_C(0x1D040000) /* Exclusive. */
 
 typedef enum

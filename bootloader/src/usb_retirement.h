@@ -8,7 +8,15 @@
 #ifndef USB_RETIREMENT_HOOKS
 #define USB_RETIREMENT_HOOKS 0
 #endif
+/* Schema-4 evidence fields; no authority is derived from them. */
+typedef struct {uint32_t pre_count,post_delta,ready_delta;uint16_t meta;} USB_POWER_EVIDENCE;
 #if USB_RETIREMENT_HOOKS
+#if USB_RESTART_DIAGNOSTIC
+void USB_RetirementPowerObserver(void (*observer)(const USB_POWER_EVIDENCE *,bool));
+void USB_RetirementPowerReset(void);
+void USB_RetirementPowerEnableSample(bool after);
+void USB_RetirementPowerReadySample(uint32_t power);
+#endif
 typedef enum {
     USB_REBUILD_DETAIL_NONE=0,USB_REBUILD_DETAIL_INPUT,USB_REBUILD_DETAIL_PREPARE,
     USB_REBUILD_DETAIL_DRIVER,USB_REBUILD_DETAIL_DEVICE,USB_REBUILD_DETAIL_OPEN,

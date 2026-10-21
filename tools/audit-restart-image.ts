@@ -12,8 +12,10 @@ function physical(v:number):number {
     check(v<0xC0000000,"unsupported MIPS address segment");
     return (v&0x1FFFFFFF)>>>0; // Only direct-mapped KSEG0/KSEG1.
 }
+const debugLayout=process.argv.includes("--power-debug");
+const programEnd=debugLayout?0x1D00C000:0x1D008000;
 function allowed(a:number,n:number):boolean {
-    return (a>=0x1D000000&&a+n<=0x1D008000)||(a>=0x1FC00000&&a+n<=0x1FC004AC)||
+    return (a>=0x1D000000&&a+n<=programEnd)||(a>=0x1FC00000&&a+n<=0x1FC004AC)||
            (a>=0x1FC00BF0&&a+n<=0x1FC00C00);
 }
 function hexMemory(path:string):Map<number,number>{
@@ -100,11 +102,11 @@ try{
     const end=symbols.match(/^([0-9a-fA-F]+)\s+[Bb]\s+_persist_end$/m);
     check(journal!==null&&begin!==null&&end!==null,"retained journal/persist symbols missing");
     const ja=parseInt(journal[1],16),pb=parseInt(begin[1],16),pe=parseInt(end[1],16);
-    check(ja>=pb&&ja+96<=pe&&pb>=0xA0000000&&pe<=0xA0010000,"journal outside retained SRAM range");
+    check(ja>=pb&&ja+128<=pe&&pe-pb===128&&pb>=0xA0000000&&pe<=0xA0010000,"journal outside retained SRAM range");
     let journalNobits=false;
     for(let i=0;i<shcount;i++){
         const s=shoff+i*shsize,a=elf.readUInt32LE(s+12),n=elf.readUInt32LE(s+20);
-        if(ja>=a&&ja+96<=a+n&&elf.readUInt32LE(s+4)===8)journalNobits=true;
+        if(ja>=a&&ja+128<=a+n&&elf.readUInt32LE(s+4)===8)journalNobits=true;
     }
     check(journalNobits,"journal must occupy retained NOBITS section, not loadable initialized data");
     // XC32 v6's inspected __pic32_data_init dispatch uses destination/length/
@@ -150,7 +152,7 @@ try{
         check(cursor+12<=dinitOffset+dinitBytes,"truncated .dinit header");
         const bytes=elf.readUInt32LE(cursor+4),operation=elf.readUInt32LE(cursor+8);
         check(bytes>0&&destination>=0xA0000000&&destination+bytes<=0xA0010000,".dinit writes outside target SRAM");
-        check(destination+bytes<=ja||destination>=ja+96,".dinit overlaps retained journal");
+        check(destination+bytes<=ja||destination>=ja+128,".dinit overlaps retained journal");
         check(operation===0||operation===1,"unsupported .dinit operation; review startup decoder");
         cursor+=12;
         if(operation===1){check(cursor+bytes<=dinitOffset+dinitBytes,"truncated .dinit copy");cursor+=bytes;}
@@ -163,8 +165,10 @@ try{
         check(new RegExp(`^[0-9a-fA-F]+\\s+[Tt]\\s+${name}$`,"m").test(symbols),`required defined code symbol ${name} missing`);
     check(!/\b(?:UPDATE_(?:Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)\w*|NVM_(?:RowWrite|PageErase|WordWrite)|run_Application)\b/.test(symbols),"linked update/NVM write/handoff entrypoint");
     const hash=(bytes:Uint8Array)=>new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
-    const result={elf:elfPath,hex:hexPath,elf_sha256:hash(elf),hex_sha256:hash(readFileSync(hexPath)),hex_bytes:memory.size,segments,config,retained_journal:{address:`0x${ja.toString(16).toUpperCase()}`,bytes:96,nobits:true,dinit_excluded:true},initialization,
+    const result={elf:elfPath,hex:hexPath,elf_sha256:hash(elf),hex_sha256:hash(readFileSync(hexPath)),hex_bytes:memory.size,segments,config,retained_journal:{address:`0x${ja.toString(16).toUpperCase()}`,bytes:128,nobits:true,dinit_excluded:true},initialization,
         review_scope:"ELF load spans/HEX equality/config equality/symbol exclusion; LTO can inline code, so symbols alone do not prove arbitrary instruction safety.",
+        diagnostic_layout:debugLayout?"temporary-48KB":"normal-32KB",application_origin:`0x${programEnd.toString(16).toUpperCase()}`,program_reservation_bytes:programEnd-0x1D000000,
+        application_overlap_warning:debugLayout?"May overwrite existing application flash 1D008000..1D00C000; requires explicit programmer approval and backup":null,
         hardware_qualified:false,board_delivery_approved:false};
     writeFileSync(elfPath.replace(/\.elf$/,"-audit.json"),JSON.stringify(result,null,2)+"\n");
     console.log(JSON.stringify(result,null,2));

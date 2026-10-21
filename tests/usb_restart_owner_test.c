@@ -25,6 +25,9 @@ static bool blocked,off,busy,irq=true;
 static unsigned poweroffs,retires,rebuilds,attaches,tasks,cancels,detaches;
 static uint32_t mock_gen=1;
 static uint8_t endpoints[4];
+void USB_RetirementPowerReset(void){}
+static void (*power_observer)(const USB_POWER_EVIDENCE *,bool);
+void USB_RetirementPowerObserver(void (*observer)(const USB_POWER_EVIDENCE *,bool)){power_observer=observer;}
 static void (*detail_observer)(uint32_t);
 void USB_RetirementDetailObserver(void (*observer)(uint32_t)){detail_observer=observer;}
 void USB_RetirementDetail(USB_REBUILD_DETAIL_STAGE stage,uint16_t rejected,uint8_t observation)
@@ -56,9 +59,24 @@ bool USB_RetirementDeviceRetire(void){assert(off&&!busy&&blocked);retires++;retu
 bool USB_RetirementDriverRetire(void){assert(off&&!busy&&blocked);retires++;return true;}
 bool USB_RebuildDetached(uint32_t generation,USB_DEVICE_EVENT_HANDLER dev,USB_DEVICE_HID_EVENT_HANDLER hid,uintptr_t context,USB_DEVICE_HANDLE *handle)
 {assert(off&&!busy&&blocked&&!irq&&retires%3==0&&generation==mock_gen+1&&context==generation&&usb_restart_owner_diagnostics.checkpoint==USB_RESTART_PORT_REBUILD);VerifyJournalCheckpoint(USB_RESTART_PORT_REBUILD);
+#if USB_RESTART_OWNER_INTERNAL_TEST
+USB_RESTART_RECORD snapshot;assert(USB_RestartJournalRead(&restart_journal,&snapshot)&&snapshot.power.meta==0);
+#endif
+USB_POWER_EVIDENCE power={.pre_count=UINT32_MAX-5,.meta=1};if(power_observer)power_observer(&power,true);
+#if USB_RESTART_OWNER_INTERNAL_TEST
+assert(USB_RestartJournalRead(&restart_journal,&snapshot)&&snapshot.power.meta==1);
+#endif
+power.post_delta=10;power.meta=99;if(power_observer)power_observer(&power,true);
+#if USB_RESTART_OWNER_INTERNAL_TEST
+assert(USB_RestartJournalRead(&restart_journal,&snapshot)&&snapshot.power.meta==99&&snapshot.power.post_delta==10);
+#endif
+power.ready_delta=20;power.meta=487;if(power_observer)power_observer(&power,false);
+#if USB_RESTART_OWNER_INTERNAL_TEST
+assert(USB_RestartJournalRead(&restart_journal,&snapshot)&&snapshot.power.meta==99); /* RAM only until detail commit */
+#endif
 USB_RetirementDetail(USB_REBUILD_DETAIL_DRIVER_READY,1024U,3U);
 #if USB_RESTART_OWNER_INTERNAL_TEST
-USB_RESTART_RECORD snapshot;assert(USB_RestartJournalRead(&restart_journal,&snapshot)&&snapshot.detail==(11U|(1024U<<8)|(3U<<24)));
+assert(USB_RestartJournalRead(&restart_journal,&snapshot)&&snapshot.detail==(11U|(1024U<<8)|(3U<<24))&&snapshot.power.meta==487&&snapshot.power.ready_delta==20);
 #endif
 mock_gen=generation;off=blocked=false;rebuilds++;device_event=dev;hid_event=hid;device_context=hid_context=context;*handle=1;return true;}
 int main(int argc,char **argv)
@@ -102,6 +120,9 @@ int main(int argc,char **argv)
     device_event(USB_DEVICE_EVENT_CONFIGURED,NULL,1);assert(!usb_restart_owner_diagnostics.configured&&usb_restart_owner_diagnostics.stale_events==1);
     device_event(USB_DEVICE_EVENT_RESET,NULL,2);device_event(USB_DEVICE_EVENT_CONFIGURED,NULL,2);
     USB_RestartOwnerTasks(9,true,true);assert(usb_restart_owner_diagnostics.state==USB_RESTART_DONE&&usb_restart_owner_diagnostics.completed_cycles==1);
+#if USB_RESTART_OWNER_INTERNAL_TEST
+    USB_RESTART_RECORD committed;assert(USB_RestartJournalRead(&restart_journal,&committed)&&committed.power.meta==487);
+#endif
     assert(USB_RestartOwnerRequest(10,&ticket)&&ticket==2);USB_RestartOwnerAck(ticket,true,11);
     USB_RestartOwnerTasks(12,true,true);busy=false;USB_RestartOwnerTasks(13,true,true);USB_RestartOwnerTasks(14,true,true);USB_RestartOwnerTasks(15,true,true);
     assert(rebuilds==2&&device_context==3);device_event(USB_DEVICE_EVENT_CONFIGURED,NULL,3);

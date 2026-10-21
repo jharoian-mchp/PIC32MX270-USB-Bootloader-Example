@@ -357,13 +357,13 @@ def parse_response(payload: bytes, opcode: int, request_id: int) -> bytes:
     return payload[RESPONSE_HEADER.size:]
 
 
-def parse_capabilities(body: bytes) -> dict:
+def parse_capabilities(body: bytes, debug_layout: bool = False) -> dict:
     if len(body) != CAP_BODY.size:
         raise HostError("invalid capabilities length")
     magic, protocol, maximum, origin, end, row, erase = CAP_BODY.unpack(body)
     if magic != b"PKBL" or protocol != PROTOCOL_VERSION or maximum != PAYLOAD_MAX or (
         origin, end, row, erase
-    ) != (APP_START, META_START, ROW_SIZE, ERASE_SIZE):
+    ) != (0x1D00C000 if debug_layout else APP_START, META_START, ROW_SIZE, ERASE_SIZE):
         raise HostError("device capabilities/layout do not match this host")
     return {"protocol": protocol, "max_payload": maximum,
             "origin": f"0x{origin:08X}", "image_end": f"0x{end:08X}",
@@ -441,7 +441,7 @@ def transact(device, payload: bytes, timeout: float = 2.0, clock=time.monotonic)
     raise HostError("no matching response; check SW1 entry, firmware revision and USB connection")
 
 
-def probe(module, path_hex: str | None, timeout: float) -> dict:
+def probe(module, path_hex: str | None, timeout: float, debug_layout: bool = False) -> dict:
     selected = select_device(candidates(module), path_hex)
     device = module.device()
     try:
@@ -450,7 +450,7 @@ def probe(module, path_hex: str | None, timeout: float) -> dict:
         except Exception as exc:
             raise HostError(f"HID open failed: {exc}") from exc
         body = transact(device, request_payload(CAPABILITIES, secrets.randbelow(0xFFFFFFFF) + 1), timeout)
-        return parse_capabilities(body)
+        return parse_capabilities(body, debug_layout)
     finally:
         device.close()
 
@@ -470,6 +470,7 @@ def main(argv: list[str] | None = None) -> int:
     query = commands.add_parser("probe", help="send read-only versioned capabilities request; no legacy fallback")
     query.add_argument("--path-hex")
     query.add_argument("--timeout", type=float, default=2.0)
+    query.add_argument("--power-debug", action="store_true", help="read-only probe: require temporary 48KB debug layout; no uploader/layout conversion")
     commands.add_parser("selftest", help="offline known CRC/frame tests; no HID dependency")
     args = parser.parse_args(argv)
     try:
@@ -492,7 +493,7 @@ def main(argv: list[str] | None = None) -> int:
                                for key, value in item.items()}
                               for item in listed], indent=2, sort_keys=True))
         elif args.command == "probe":
-            print(json.dumps(probe(hid_module(), args.path_hex, args.timeout), indent=2, sort_keys=True))
+            print(json.dumps(probe(hid_module(), args.path_hex, args.timeout, args.power_debug), indent=2, sort_keys=True))
         else:
             if crc16(b"123456789") != 0x31C3 or binascii.crc32(b"123456789") != 0xCBF43926:
                 raise HostError("CRC selftest failed")

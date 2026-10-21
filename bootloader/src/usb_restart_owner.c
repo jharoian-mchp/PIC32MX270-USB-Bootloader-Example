@@ -14,7 +14,15 @@ static USB_RESTART_RECORD runtime_record;
 static uint8_t wait_evidence;
 static USB_RESTART_CHECKPOINT checkpoint;
 static uint32_t owner_now,rebuild_detail;
+static USB_POWER_EVIDENCE owner_power;
 static void RecordPhase(uint32_t now);
+#if USB_RESTART_DIAGNOSTIC
+static void PowerChanged(const USB_POWER_EVIDENCE *power,bool commit)
+{owner_power=*power;if(commit)RecordPhase(owner_now);}
+static void PowerReset(void){owner_power=(USB_POWER_EVIDENCE){0};USB_RetirementPowerReset();}
+#else
+static void PowerReset(void){owner_power=(USB_POWER_EVIDENCE){0};}
+#endif
 static void PortEnter(USB_RESTART_CHECKPOINT port)
 {checkpoint=port;rebuild_detail=0;usb_restart_owner_diagnostics.checkpoint=port;RecordPhase(owner_now);}
 static void DetailChanged(uint32_t detail)
@@ -89,7 +97,7 @@ static bool Retire(void *c)
 static bool Rebuild(void *c,uint32_t generation)
 {
     (void)c;USB_DEVICE_HANDLE rebuilt=USB_DEVICE_HANDLE_INVALID;
-    bool irq=EVIC_INT_Disable();PortEnter(USB_RESTART_PORT_REBUILD);callback_generation=generation;event_flags=0;
+    bool irq=EVIC_INT_Disable();PowerReset();PortEnter(USB_RESTART_PORT_REBUILD);callback_generation=generation;event_flags=0;
     bool ok=USB_RebuildDetached(generation,DeviceEvent,HidEvent,generation,&rebuilt);
     if(ok){handle=rebuilt;attached=configured=false;usb_registers_accessible=true;USB_PROBE_Initialize(handle);}
     EVIC_INT_Restore(irq);return ok;
@@ -109,7 +117,10 @@ bool USB_RestartOwnerInit(USB_DEVICE_HANDLE initial,uint32_t timeout)
     (void)USB_DEVICE_HID_EventHandlerSet(USB_DEVICE_HID_INDEX_0,HidEvent,1);
     bool journal_irq=EVIC_INT_Disable();
     previous_record_valid=USB_RestartJournalRead(&restart_journal,&previous_record);
-    rebuild_detail=0;USB_RetirementDetailObserver(DetailChanged);
+    rebuild_detail=0;PowerReset();USB_RetirementDetailObserver(DetailChanged);
+#if USB_RESTART_DIAGNOSTIC
+    USB_RetirementPowerObserver(PowerChanged);
+#endif
     EVIC_INT_Restore(journal_irq);
     USB_DEVICE_Detach(handle);USB_PROBE_Initialize(handle);return true;
 }
@@ -118,7 +129,7 @@ bool USB_RestartOwnerRequest(uint32_t now,uint32_t *ticket)
     bool irq=EVIC_INT_Disable();
     if(!initialized||!configured||event_flags!=0U){EVIC_INT_Restore(irq);return false;}
     bool ok=USB_RestartRequest(&restart,now,ticket);
-    if(ok){owner_now=now;wait_evidence=0;checkpoint=USB_RESTART_PORT_NONE;RecordPhase(now);}
+    if(ok){owner_now=now;wait_evidence=0;checkpoint=USB_RESTART_PORT_NONE;PowerReset();RecordPhase(now);}
     EVIC_INT_Restore(irq);return ok;
 }
 unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint32_t *ticket)
@@ -142,10 +153,12 @@ static void RecordPhase(uint32_t now)
     uint8_t evidence=wait_evidence;
     USB_RESTART_RECORD record={.ticket=restart.ticket,.generation=restart.generation,.time_ms=now,
         .state=restart.state,.phase=restart.state==USB_RESTART_FAILED?restart.failure_phase:restart.state,
-        .fault=restart.fault,.checkpoint=checkpoint,.detail=rebuild_detail,.evidence=evidence};
+        .fault=restart.fault,.checkpoint=checkpoint,.detail=rebuild_detail,.power=owner_power,.evidence=evidence};
     if(runtime_record_valid&&runtime_record.ticket==record.ticket&&runtime_record.generation==record.generation&&
        runtime_record.state==record.state&&runtime_record.phase==record.phase&&runtime_record.fault==record.fault&&
-       runtime_record.evidence==record.evidence&&runtime_record.checkpoint==record.checkpoint&&runtime_record.detail==record.detail)return;
+       runtime_record.evidence==record.evidence&&runtime_record.checkpoint==record.checkpoint&&runtime_record.detail==record.detail&&
+       runtime_record.power.pre_count==record.power.pre_count&&runtime_record.power.post_delta==record.power.post_delta&&
+       runtime_record.power.ready_delta==record.power.ready_delta&&runtime_record.power.meta==record.power.meta)return;
     if(USB_RestartJournalWrite(&restart_journal,&record)){runtime_record=record;runtime_record_valid=true;}
 }
 static void QuarantineFailed(void)

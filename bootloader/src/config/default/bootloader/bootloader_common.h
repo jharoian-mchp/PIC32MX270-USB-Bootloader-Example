@@ -67,8 +67,14 @@
 #define FLASH_END_ADDRESS                       (FLASH_START + FLASH_LENGTH)
 
 
+#if USB_RESTART_DEBUG_LAYOUT
+#include "usb_restart_debug_layout.h"
+#define APP_START_ADDRESS ((uint32_t)PA_TO_KVA0(USB_RESTART_DEBUG_APP_ORIGIN))
+#define APP_JUMP_ADDRESS APP_START_ADDRESS
+#else
 #define APP_START_ADDRESS                       ((uint32_t)(PA_TO_KVA0(0x1d008000U)))
 #define APP_JUMP_ADDRESS                        ((uint32_t)(PA_TO_KVA0(0x1d008000U)))
+#endif
 
 
 

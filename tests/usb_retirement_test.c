@@ -7,6 +7,8 @@
 #include "xc.h"
 uint32_t U1PWRC;
 static bool irq=true;
+static uint32_t count;static unsigned count_reads;
+uint32_t mock_count(void){assert(!irq);++count_reads;return count;}
 uint32_t mock_disable(void){uint32_t old=irq;irq=false;return old;}
 void mock_restore(uint32_t value){irq=value!=0;}
 #define USB_DEVICE_HID_QUEUE_DEPTH_COMBINED 2U
@@ -85,6 +87,15 @@ static void AssertAttachBlocked(void)
     DRV_USBFS_DEVICE_Attach((uintptr_t)&gDrvUSBGroup[0].gDrvUSBObj);
     assert(irq==old&&attaches==old_attaches&&source_enables==old_enables);
 }
+static USB_POWER_EVIDENCE captured;
+static unsigned commits,copies;
+static void PowerObserve(const USB_POWER_EVIDENCE *p,bool commit)
+{assert(!irq);captured=*p;++copies;if(commit)++commits;}
+static void PLIB_USB_Enable(unsigned usbID)
+{(void)usbID;assert(!irq&&captured.meta==1&&commits==1);count=4;U1PWRC=9;}
+static void Enable(void){unsigned usbID=0;
+#include "power-enable.inc"
+}
 static uint32_t observed_detail;
 static void ObserveDetail(uint32_t detail){observed_detail=detail;}
 static bool Guarded(bool early)
@@ -97,6 +108,9 @@ static bool Guarded(bool early)
 int main(void)
 {
     USB_RetirementDetailObserver(ObserveDetail);
+    USB_RetirementPowerObserver(PowerObserve);USB_RetirementPowerReset();
+    irq=false;USB_RetirementPowerEnableSample(false);USB_RetirementPowerReadySample(9);irq=true;
+    assert(!count_reads&&!copies); /* ordinary startup adds no sample */
     U1PWRC=1;assert(!USB_RetirementBlocked());
     /* Ordinary registration still enables both interrupt layers; invalid and
      * non-device calls do not. Default-off source is also checked by the overlay. */
@@ -144,6 +158,11 @@ int main(void)
     assert(USB_RetirementBlocked()&&!USB_RetirementAdmissionBegin());
     assert(!USB_RetirementPrepare(1));assert(USB_RetirementPrepare(2));
     assert(!USB_RetirementPrepare(3));assert(!USB_RetirementReopen(2));AssertAttachBlocked();
+    assert(!count_reads); /* earlier readiness failure never samples */
+    irq=false;count=UINT32_MAX-5;U1PWRC=0;Enable();
+    assert(captured.meta==99&&captured.pre_count==UINT32_MAX-5&&captured.post_delta==10&&count_reads==2&&commits==2);
+    USB_RetirementPowerEnableSample(false);USB_RetirementPowerEnableSample(true);assert(count_reads==2&&copies==2);
+    irq=true;
     INTERFACE interface={SetHandler};USB_DEVICE_HANDLE handle;
     assert(!USB_RetirementBindDevice(Callback,123,&handle));
     usbDeviceInstance[0]=(USB_DEVICE_OBJ){.usbCDHandle=1,.usbDeviceInstanceState=1,.taskState=1,.ptrMasterDescTable=&interface,.driverInterface=&interface};
@@ -156,7 +175,11 @@ int main(void)
     assert(driver->pEventCallBack==F_USB_DEVICE_EventHandler&&driver->hClientArg==(uintptr_t)&usbDeviceInstance[0]);
     irq=true;AssertAttachBlocked();
     assert(USB_RetirementBindHid(Callback,123));gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized=true;
+    U1PWRC=9;U1CON=0;count=14;assert(!USB_RetirementReopen(2));
+    assert(captured.meta==487&&captured.ready_delta==20&&count_reads==3&&copies==3&&commits==2);
+    assert(((observed_detail>>8)&65535U)==1024U);
     U1PWRC=1;U1CON=1;assert(!USB_RetirementReopen(2));
+    assert(count_reads==3&&captured.ready_delta==20); /* one-shot stays first rejected sample */
     assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==2048U);
     AssertAttachBlocked();
     U1CON=0;U1PWRC=9;assert(!USB_RetirementReopen(2));
@@ -168,6 +191,7 @@ int main(void)
     assert(USB_RetirementReopen(2)&&!USB_RetirementBlocked());
     assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==0U);
     assert(!irq_source_enabled&&!session_enabled); /* Reopen does not unmask or attach. */
+    assert(count_reads==3&&captured.meta==487&&copies==3);
     irq=false;DRV_USBFS_DEVICE_Attach((uintptr_t)driver);assert(!irq);irq=true;
     assert(irq_source_enabled&&session_enabled&&attaches==1&&driver->isAttached&&source_enables==saved_source_enables+1);
     assert(USB_RetirementCallbacksIdle());

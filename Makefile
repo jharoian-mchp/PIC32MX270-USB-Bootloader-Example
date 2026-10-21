@@ -18,6 +18,7 @@ PYTHON ?= python3
 # Extra diagnostics beyond the default Windows MPLAB X build flags.
 APP_WARNINGS ?= -Wall -Wextra
 BTL_DIR := build/bootloader
+BTL_LD ?= bootloader/src/config/default/btl.ld
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
@@ -25,6 +26,19 @@ BTL_WARNINGS ?= -Wall -Wextra
 
 restart-image-audit: bootloader bootloader-restart-check
 	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts
+
+# Temporary expanded read-only diagnostic. Existing app flash may overlap;
+# separate explicit programming approval/backup is required before delivery.
+bootloader-power-debug:
+	@mkdir -p build/power-debug
+	@sed '/kseg0_program_mem.*ORIGIN = 0x9D000000/s/LENGTH = 32768/LENGTH = 49152/' bootloader/src/config/default/btl.ld >build/power-debug/btl-debug.ld
+	@grep -q 'LENGTH = 49152' build/power-debug/btl-debug.ld
+	$(MAKE) bootloader BTL_DIR=build/power-debug BTL_LD=build/power-debug/btl-debug.ld BTL_WARNINGS='-Wall -Wextra -Os -flto -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -DUSB_RESTART_DEBUG_LAYOUT=1 -include bootloader/src/usb_restart_debug_layout.h -Wl,--undefined=USB_RestartOwnerRequest,--undefined=USB_RestartOwnerAck'
+	@$(XC32_ROOT)/bin/xc32-nm build/power-debug/bootloader.elf >build/power-debug/symbols.txt
+	@! grep -Eq 'UPDATE_(Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)|NVM_(RowWrite|PageErase|WordWrite)|run_Application' build/power-debug/symbols.txt
+
+power-debug-image-audit: bootloader bootloader-power-debug
+	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts build/power-debug/bootloader.elf --power-debug
 
 # Compile/link evidence only, NOT a hardware-delivery or update-enabled image.
 bootloader-restart-check:
@@ -56,7 +70,7 @@ nvm-codegen-check:
 
 bootloader:
 	@mkdir -p "$(BTL_DIR)"
-	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O2 -fno-common -ffunction-sections -fdata-sections $(BTL_WARNINGS) -Ibootloader/src -Ibootloader/src/config/default $(BTL_SOURCES) -Wl,--script=bootloader/src/config/default/btl.ld,--defsym=_min_heap_size=512,--gc-sections,-Map="$(BTL_DIR)/bootloader.map" -o "$(BTL_DIR)/bootloader.elf"
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -O2 -fno-common -ffunction-sections -fdata-sections $(BTL_WARNINGS) -Ibootloader/src -Ibootloader/src/config/default $(BTL_SOURCES) -Wl,--script=$(BTL_LD),--defsym=_min_heap_size=512,--gc-sections,-Map="$(BTL_DIR)/bootloader.map" -o "$(BTL_DIR)/bootloader.elf"
 	"$(XC32_ROOT)/bin/xc32-bin2hex" "$(BTL_DIR)/bootloader.elf"
 	"$(XC32_ROOT)/bin/xc32-size" "$(BTL_DIR)/bootloader.elf"
 	@test -s "$(BTL_DIR)/bootloader.hex"
@@ -71,6 +85,10 @@ application:
 
 test:
 	@mkdir -p build/tests
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_wire.c tests/usb_debug_layout_test.c -o build/tests/usb_normal_layout_test
+	./build/tests/usb_normal_layout_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -DUSB_RESTART_DEBUG_LAYOUT=1 -Ibootloader/src -include bootloader/src/usb_restart_debug_layout.h bootloader/src/update_wire.c tests/usb_debug_layout_test.c -o build/tests/usb_debug_layout_test
+	./build/tests/usb_debug_layout_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/mocks -Iapplication/src application/src/app_led.c tests/app_led_test.c -o build/tests/app_led_test
 	./build/tests/app_led_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Itests/usb_mocks -Ibootloader/src bootloader/src/board_usb_diag.c tests/board_usb_diag_test.c -o build/tests/board_usb_diag_test
@@ -100,7 +118,7 @@ test:
 	./build/tests/usb_restart_owner_test expired-ack
 	./build/tests/usb_restart_owner_test reset-wait
 	./build/tests/usb_restart_owner_test off-failure
-	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_OWNER_INTERNAL_TEST=1 -Itests/usb_owner_mocks -Itests/usb_mocks -Ibootloader/src bootloader/src/usb_restart.c bootloader/src/usb_restart_journal.c tests/usb_restart_owner_test.c -o build/tests/usb_owner_checkpoint_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -DUSB_RESTART_OWNER_INTERNAL_TEST=1 -Itests/usb_owner_mocks -Itests/usb_mocks -Ibootloader/src bootloader/src/usb_restart.c bootloader/src/usb_restart_journal.c tests/usb_restart_owner_test.c -o build/tests/usb_owner_checkpoint_test
 	./build/tests/usb_owner_checkpoint_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_protocol.c tests/update_protocol_test.c -o build/tests/update_protocol_test
 	./build/tests/update_protocol_test

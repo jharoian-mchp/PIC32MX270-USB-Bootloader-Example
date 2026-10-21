@@ -20,8 +20,13 @@ try {
     }
     writeFileSync(dir+"/binding.inc",extract("driver/usb/usbfs/src/drv_usbfs.c","DRV_USBFS_ClientEventCallBackSet")+"\n"+
         extract("driver/usb/usbfs/src/drv_usbfs_device.c","DRV_USBFS_DEVICE_Attach"));
+    const drv=readFileSync("bootloader/src/config/default/driver/usb/usbfs/src/drv_usbfs.c","utf8");
+    const begin=drv.indexOf("#if USB_RESTART_DIAGNOSTIC\n                USB_RetirementPowerEnableSample(false);");
+    const finish=drv.indexOf("#endif",drv.indexOf("USB_RetirementPowerEnableSample(true);",begin))+6;
+    if(begin<0||finish<begin)throw Error("power sites missing");
+    writeFileSync(dir+"/power-enable.inc",drv.slice(begin,finish));
     const cc=(process.env.HOST_CC??"cc").trim().split(/\s+/);
-    const args=[...cc,"-std=c11","-O2","-Wall","-Wextra","-Werror","-DUSB_RETIREMENT_HOOKS=1","-Itests/retirement_mocks","-Ibootloader/src","-I"+dir,"bootloader/src/usb_retirement.c","bootloader/src/usb_irp_ledger.c","tests/usb_retirement_test.c","-o",dir+"/test"];
+    const args=[...cc,"-std=c11","-O2","-Wall","-Wextra","-Werror","-DUSB_RETIREMENT_HOOKS=1","-DUSB_RESTART_DIAGNOSTIC=1","-Itests/retirement_mocks","-Ibootloader/src","-I"+dir,"bootloader/src/usb_retirement.c","bootloader/src/usb_irp_ledger.c","tests/usb_retirement_test.c","-o",dir+"/test"];
     const compile=Bun.spawnSync(args,{stdout:"inherit",stderr:"inherit"});if(compile.exitCode!==0)throw Error("compilefailed");
     const test=Bun.spawnSync([dir+"/test"],{stdout:"inherit",stderr:"inherit"});if(test.exitCode!==0)throw Error("testsfailed");
     for(const enabled of [0,1]) {

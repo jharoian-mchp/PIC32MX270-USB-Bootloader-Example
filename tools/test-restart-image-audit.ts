@@ -4,8 +4,9 @@
  */
 import{mkdirSync,readFileSync,writeFileSync,rmSync}from"node:fs";import{resolve}from"node:path";
 process.chdir(resolve(import.meta.dir,".."));const dir="build/restart-audit-negative";mkdirSync(dir,{recursive:true});
-const source="build/restart-check/bootloader",elf=readFileSync(source+".elf"),hex=readFileSync(source+".hex","utf8");
-function run(e:Buffer,h:string,success:boolean){writeFileSync(dir+"/case.elf",e);writeFileSync(dir+"/case.hex",h);const r=Bun.spawnSync(["bun","tools/audit-restart-image.ts",dir+"/case.elf"],{stdout:"pipe",stderr:"pipe"});if((r.exitCode===0)!==success)throw Error("unexpectedaudit result "+r.stderr.toString());}
+const debugLayout=process.argv.includes("--power-debug");
+const source=debugLayout?"build/power-debug/bootloader":"build/restart-check/bootloader",elf=readFileSync(source+".elf"),hex=readFileSync(source+".hex","utf8");
+function run(e:Buffer,h:string,success:boolean){writeFileSync(dir+"/case.elf",e);writeFileSync(dir+"/case.hex",h);const r=Bun.spawnSync(["bun","tools/audit-restart-image.ts",dir+"/case.elf",...(debugLayout?["--power-debug"]:[])],{stdout:"pipe",stderr:"pipe"});if((r.exitCode===0)!==success)throw Error("unexpectedaudit result "+r.stderr.toString());}
 function corruptData():string{let changed=false;return hex.split("\n").map(line=>{if(changed||!line.startsWith(":"))return line;const b=Buffer.from(line.slice(1),"hex");if(b[3]!==0||b[0]===0)return line;changed=true;b[4]^=1;b[b.length-1]=0;let sum=0;for(const v of b)sum+=v;b[b.length-1]=(-sum)&255;return ":"+b.toString("hex").toUpperCase();}).join("\n");}
 try{
     run(elf,hex,true);run(elf,corruptData(),false);
@@ -18,7 +19,7 @@ try{
     for(let i=0;i<phcount;i++)if(elf.readUInt32LE(phoff+i*phsize)!==1){spare=phoff+i*phsize;break;}
     if(spare<0)throw Error("no non-load regression header");
     const rogue=Buffer.from(elf);rogue.writeUInt32LE(1,spare);rogue.writeUInt32LE(0,spare+4);
-    rogue.writeUInt32LE(0x9D008000,spare+8);rogue.writeUInt32LE(0x9D008000,spare+12);
+    rogue.writeUInt32LE(debugLayout?0x9D00C000:0x9D008000,spare+8);rogue.writeUInt32LE(debugLayout?0x9D00C000:0x9D008000,spare+12);
     rogue.writeUInt32LE(1,spare+16);rogue.writeUInt32LE(1,spare+20);run(rogue,hex,false);
     rogue.writeUInt32LE(0,spare+16);run(rogue,hex,false); /* zero-file, nonzero memory still unsafe */
     rogue.writeUInt32LE(1,spare+16);
@@ -64,6 +65,18 @@ try{
         return ":"+b.toString("hex");
     }).join("\n");
     run(overlap,mirrored,false);
+    // The final 32 bytes of the new 128-byte region must also be excluded from dinit.
+    overlap.writeUInt32LE(0xA0000060,dinit);extension=0;
+    const tailHex=hex.split("\n").map(line=>{
+        if(!line.startsWith(":"))return line;const b=Buffer.from(line.slice(1),"hex");
+        if(b[3]===4){extension=b.readUInt16BE(4)*65536;return line;}
+        if(b[3]!==0)return line;const address=extension+b.readUInt16BE(1),target=virtual&0x1FFFFFFF;let changed=false;
+        for(let i=0;i<b[0];i++)if(address+i>=target&&address+i<target+4){b[4+i]=overlap[dinit+address+i-target];changed=true;}
+        if(changed){b[b.length-1]=0;b[b.length-1]=(-b.reduce((a,v)=>a+v,0))&255;}return ":"+b.toString("hex");
+    }).join("\n");run(overlap,tailHex,false);
+    if(debugLayout){writeFileSync(dir+"/case.elf",elf);writeFileSync(dir+"/case.hex",hex);
+        const normal=Bun.spawnSync(["bun","tools/audit-restart-image.ts",dir+"/case.elf"],{stdout:"pipe",stderr:"pipe"});
+        if(normal.exitCode===0)throw Error("expanded image accepted by normal32KB audit");}
     console.log("PASS: audit rejects corrupted/missing bytes, rogue/out-of-file PT_LOAD and undefined required code symbol");
 }
 finally{rmSync(dir,{recursive:true,force:true});}

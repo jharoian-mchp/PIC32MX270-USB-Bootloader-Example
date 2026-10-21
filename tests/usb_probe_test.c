@@ -7,11 +7,12 @@
 #if USB_RESTART_DIAGNOSTIC
 volatile USB_RESTART_OWNER_DIAGNOSTICS usb_restart_owner_diagnostics;
 static unsigned pause_requests,ack_success,ack_failure;
+static bool no_previous;
 unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint32_t *ticket)
 {(void)now;if(id==0||generation!=1)return 2;++pause_requests;*ticket=7;return 0;}
 void USB_RestartOwnerStatus(uint32_t *ticket,uint32_t *generation){*ticket=7;*generation=1;}
 bool USB_RestartOwnerPrevious(USB_RESTART_RECORD *r)
-{*r=(USB_RESTART_RECORD){.ticket=7,.generation=1,.time_ms=999,.state=USB_RESTART_FAILED,.phase=USB_RESTART_DRAIN,.fault=USB_RESTART_FAULT_TIMEOUT,.checkpoint=USB_RESTART_PORT_DRAIN,.detail=11U|(1024U<<8)|(3U<<24)};return true;}
+{if(no_previous)return false;*r=(USB_RESTART_RECORD){.ticket=7,.generation=1,.time_ms=999,.state=USB_RESTART_FAILED,.phase=USB_RESTART_DRAIN,.fault=USB_RESTART_FAULT_TIMEOUT,.checkpoint=USB_RESTART_PORT_DRAIN,.detail=11U|(1024U<<8)|(3U<<24),.power={.post_delta=10,.ready_delta=20,.meta=487}};return true;}
 void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now)
 {(void)now;assert(ticket==7);if(success)++ack_success;else ++ack_failure;}
 #endif
@@ -114,16 +115,24 @@ int main(void)
     assert(reply.bytes[20]==USB_RESTART_FAILED&&reply.bytes[21]==USB_RESTART_DRAIN&&reply.bytes[22]==USB_RESTART_FAULT_TIMEOUT&&reply.bytes[24]==1&&reply.bytes[25]==USB_RESTART_PORT_DRAIN);
     assert(reply.bytes[26]==11&&reply.bytes[27]==0&&reply.bytes[28]==4&&reply.bytes[29]==3);
     Sent(12);assert(!ack_success&&!ack_failure&&!pause_requests);
+    Reset();n=Query(wire,0x69,1,57);Deliver(wire,n,11);UPDATE_FrameReset(&reply);
+    assert(UPDATE_FrameFeed(&reply,sent,64,&consumed)==UPDATE_FRAME_READY&&reply.length==30&&reply.bytes[0]==0xE9&&reply.bytes[8]==7&&reply.bytes[20]==10&&reply.bytes[24]==20&&reply.bytes[28]==0xE7&&reply.bytes[29]==1);
+    Sent(12);assert(!ack_success&&!ack_failure&&!pause_requests);
+    no_previous=true;Reset();n=Query(wire,0x69,1,58);Deliver(wire,n,11);UPDATE_FrameReset(&reply);
+    assert(UPDATE_FrameFeed(&reply,sent,64,&consumed)==UPDATE_FRAME_READY&&reply.length==30);
+    for(unsigned i=8;i<30;i++)assert(reply.bytes[i]==0);
+    Sent(12);no_previous=false;
     /* 30 payload bytes +2CRC +SOH/EOT worstcase66; fixed response opcode,
      * result/reserved/valid/checkpoint fields bound this response below64. */
     uint8_t worst[30];memset(worst,1,sizeof(worst));worst[0]=0xE8;worst[2]=worst[3]=0;
     uint8_t encoded[66];size_t en;
     assert(UPDATE_FrameEncode(worst,sizeof(worst),encoded,sizeof(encoded),&en)&&en<=63);
+    worst[0]=0xE9;assert(UPDATE_FrameEncode(worst,sizeof(worst),encoded,sizeof(encoded),&en)&&en<=63);
 #endif
     /* Every destructive/legacy request is rejected, no response or operations. */
     for(unsigned op=0;op<256;op++)if(op!=0x60
 #if USB_RESTART_DIAGNOSTIC
-        &&op!=0x67&&op!=0x68
+        &&op!=0x67&&op!=0x68&&op!=0x69
 #endif
     )
     {

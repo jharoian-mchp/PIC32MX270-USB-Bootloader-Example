@@ -2,6 +2,40 @@
 #if USB_RETIREMENT_HOOKS
 #include <xc.h>
 #include <limits.h>
+#if USB_RESTART_DIAGNOSTIC
+#if defined(__XC32)
+#include "definitions.h"
+_Static_assert(CPU_CLOCK_FREQUENCY==48000000U,"power evidence requires nominal 24MHz Count");
+_Static_assert(DRV_USBFS_INSTANCES_NUMBER==1U,"power evidence is single-instance");
+#endif
+static USB_POWER_EVIDENCE power_evidence;
+static void (*power_observer)(const USB_POWER_EVIDENCE *,bool);
+void USB_RetirementPowerObserver(void (*observer)(const USB_POWER_EVIDENCE *,bool))
+{power_observer=observer;}
+void USB_RetirementPowerReset(void){power_evidence=(USB_POWER_EVIDENCE){0};}
+static void PowerSample(unsigned site,uint32_t count,uint32_t power,bool commit)
+{
+    uint16_t bits=(uint16_t)(((power&_U1PWRC_USBPWR_MASK)!=0U?1U:0U)|((power&_U1PWRC_USBBUSY_MASK)!=0U?2U:0U));
+    if(site==0U)power_evidence.pre_count=count;
+    else if(site==1U)power_evidence.post_delta=count-power_evidence.pre_count;
+    else power_evidence.ready_delta=count-power_evidence.pre_count;
+    power_evidence.meta|=(uint16_t)((1U<<site)|(bits<<(3U+2U*site)));
+    if(power_observer!=NULL)power_observer(&power_evidence,commit);
+}
+void USB_RetirementPowerEnableSample(bool after)
+{
+    unsigned site=after?1U:0U;
+    if(!USB_RetirementPreparing()||(power_evidence.meta&(1U<<site))!=0U||
+       (after&&(power_evidence.meta&1U)==0U))return;
+    uint32_t count=_CP0_GET_COUNT();uint32_t power=U1PWRC;
+    PowerSample(site,count,power,true);
+}
+void USB_RetirementPowerReadySample(uint32_t power)
+{
+    if(!USB_RetirementPreparing()||(power_evidence.meta&4U)!=0U||(power_evidence.meta&3U)!=3U)return;
+    PowerSample(2U,_CP0_GET_COUNT(),power,false); /* Original predicate power sample, then Count. */
+}
+#endif
 static volatile bool fenced,poisoned,power_off_authorized;
 static volatile uint32_t callbacks,admissions;
 static uint32_t retired_layers,generation=1,preparing_generation;

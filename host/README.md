@@ -4,6 +4,12 @@
 
 Python was explicitly selected for the Windows host. Offline commands use only the standard library; HID discovery/probe optionally use the PyPI **hidapi** package, imported as `hid`. Do not install the unrelated package named `hid`.
 
+## Power-observation diagnostics — source only
+
+The schema4 diagnostic adds `usb_restart_diag.py power-previous`, a read-only query for PRE/POST/READY power/BUSY samples and raw Count deltas captured at startup. PREVIOUS remains30 bytes; the new reply is also30 bytes. Invalid/absent samples are distinct from sampled zero bits. Timing includes logging and may wrap; these fields never authorise restart.
+
+The temporary48KB build reports application origin `0x1D00C000`. Only `pic32_hid.py probe --power-debug` accepts that layout; normal `probe` still requires `0x1D008000`, and offline planning is unchanged. This option does not relocate an application or enable uploading. Older firmware has no `power-previous` handler. Use matching scripts only under a separately approved package/procedure; no new hardware commands are requested here. See [implementation and layout limits](../docs/usb-power-observation-implementation.md).
+
 ## Windows setup and offline check
 
 From the repository root:

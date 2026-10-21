@@ -223,6 +223,9 @@ bool USB_RetirementDriverReplacementReady(void)
     else
     {
         uint32_t power=U1PWRC;
+#if USB_RESTART_DIAGNOSTIC
+        USB_RetirementPowerReadySample(power);
+#endif
         observation=((power&_U1PWRC_USBPWR_MASK)!=0U?1U:0U)|((power&_U1PWRC_USBBUSY_MASK)!=0U?2U:0U);
         if((power&_U1PWRC_USBBUSY_MASK)!=0U)rejected=1024U;
         else
@@ -308,7 +311,7 @@ const attachUnmask = attachEnable + `
         M_DRV_USBFS_InterruptSourceEnable(((DRV_USBFS_OBJ *)handle)->interruptSource);
 #endif`;
 const inlinePatches:Record<string,[string,string][]>= {
-    "driver/usb/usbfs/src/drv_usbfs.c": [[callbackEnable,callbackMasked]],
+    "driver/usb/usbfs/src/drv_usbfs.c": [[callbackEnable,callbackMasked],["                PLIB_USB_Enable(usbID);","#if USB_RESTART_DIAGNOSTIC\n                USB_RetirementPowerEnableSample(false);\n#endif\n                PLIB_USB_Enable(usbID);\n#if USB_RESTART_DIAGNOSTIC\n                USB_RetirementPowerEnableSample(true);\n#endif"]],
     "driver/usb/usbfs/src/drv_usbfs_device.c": [[attachEnable,attachUnmask]],
 };
 function functionOpening(text:string,name:string):number {

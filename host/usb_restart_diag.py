@@ -16,8 +16,11 @@ import pic32_hid as host
 PAUSE = 0x66
 STATUS = 0x67
 PREVIOUS = 0x68
+POWER_PREVIOUS = 0x69
 BODY = struct.Struct("<IIIB")
 PREVIOUS_BODY = struct.Struct("<IIIBBBBBBI")
+POWER_PREVIOUS_BODY = struct.Struct("<IIIIIH")
+NOMINAL_COUNT_HZ = 24_000_000
 REBUILD_STAGES = ("NONE", "INPUT", "PREPARE", "DRIVER_INIT", "DEVICE_INIT", "DEVICE_OPEN",
                   "BIND_DEVICE", "BIND_HID", "REOPEN", "HID_READY", "DEVICE_READY", "DRIVER_READY", "COMPLETE")
 READINESS = {
@@ -51,11 +54,63 @@ FAULTS = ("NONE", "TIMEOUT", "ACK", "FENCE", "CANCEL", "POWER_OFF", "OFF_IDLE", 
 def payload(opcode, request_id, generation=None):
     if type(request_id) is not int or not 1 <= request_id <= 0xFFFFFFFF:
         raise host.HostError("request ID must be 1..0xFFFFFFFF")
-    if opcode in (STATUS, PREVIOUS) and generation is None:
+    if opcode in (STATUS, PREVIOUS, POWER_PREVIOUS) and generation is None:
         return host.REQUEST_HEADER.pack(opcode, 1, request_id)
     if opcode == PAUSE and type(generation) is int and 1 <= generation <= 0xFFFFFFFF:
         return host.REQUEST_HEADER.pack(opcode, 1, request_id) + struct.pack("<I", generation)
-    raise host.HostError("diagnostic transport permits only STATUS/PREVIOUS and generation-bound PAUSE")
+    raise host.HostError("diagnostic transport permits only read-only STATUS/PREVIOUS/POWER_PREVIOUS and generation-bound PAUSE")
+
+
+def decode_power_previous(body):
+    """Decode the immutable power summary captured from the previous record."""
+    if len(body) != POWER_PREVIOUS_BODY.size:
+        raise host.HostError("invalid previous-power response length")
+    ticket, generation, time_ms, post_delta, ready_delta, metadata = POWER_PREVIOUS_BODY.unpack(body)
+    if bool(ticket) != bool(generation):
+        raise host.HostError("mixed-zero retained power identity")
+    valid = bool(ticket and generation)
+    if not valid and (time_ms or post_delta or ready_delta or metadata):
+        raise host.HostError("empty retained power record has nonzero fields")
+    if metadata & 0xFE00:
+        raise host.HostError("reserved previous-power metadata bits are set")
+
+    sample_sites = (
+        ("pre_enable", 0, 3, 4, None),
+        ("post_enable", 1, 5, 6, post_delta),
+        ("ready_power", 2, 7, 8, ready_delta),
+    )
+    if metadata & (1 << 1) and not metadata & (1 << 0):
+        raise host.HostError("POST_ENABLE sample lacks PRE_ENABLE dependency")
+    if metadata & (1 << 2) and not metadata & (1 << 1):
+        raise host.HostError("READY_POWER sample lacks POST_ENABLE dependency")
+
+    samples = {}
+    for name, valid_bit, power_bit, busy_bit, delta in sample_sites:
+        site_valid = bool(metadata & (1 << valid_bit))
+        power = bool(metadata & (1 << power_bit))
+        busy = bool(metadata & (1 << busy_bit))
+        if not site_valid and (power or busy or (delta is not None and delta != 0)):
+            raise host.HostError(f"invalid {name} sample has data")
+        samples[name] = ({"valid": True, "power": power, "busy": busy}
+                         if site_valid else None)
+
+    return {
+        "valid": valid,
+        "ticket": ticket,
+        "generation": generation,
+        "time_ms": time_ms,
+        "nominal_count_hz": NOMINAL_COUNT_HZ,
+        "post_delta_ticks": post_delta if metadata & (1 << 1) else None,
+        "ready_delta_ticks": ready_delta if metadata & (1 << 2) else None,
+        "metadata": metadata,
+        "samples": samples,
+        "timing_note": (
+            "Raw CP0 Count ticks at the nominal profile only. Deltas may wrap, "
+            "sample pairs are non-atomic, and intervening work including journal "
+            "logging is included. Not power-settling time, a deadline, or authority."
+        ),
+        "warning": "Retained SRAM evidence only; not reset-safe identity or restart permission.",
+    }
 
 
 def exchange(device, request, timeout=2.0, clock=time.monotonic):
@@ -100,6 +155,8 @@ def exchange(device, request, timeout=2.0, clock=time.monotonic):
                     ticket, generation, time_ms, state, phase, fault, evidence, valid, checkpoint, detail = PREVIOUS_BODY.unpack(body)
                     if state > 8 or phase > 8 or fault >= len(FAULTS) or checkpoint >= len(CHECKPOINTS) or valid not in (0, 1) or (valid and (not ticket or not generation)):
                         raise host.HostError("invalid retained diagnostic record")
+                    if evidence & ~31 or (not valid and any((ticket, generation, time_ms, state, phase, fault, evidence, checkpoint, detail))):
+                        raise host.HostError("noncanonical or reserved retained diagnostic record")
                     rebuild = decode_rebuild_detail(detail)
                     if clock() >= deadline:
                         raise host.HostError("deadline exceeded decoding retained record")
@@ -108,6 +165,11 @@ def exchange(device, request, timeout=2.0, clock=time.monotonic):
                             "fault": FAULTS[fault], "checkpoint": CHECKPOINTS[checkpoint], "evidence_bits": evidence,
                             "rebuild": rebuild,
                             "warning": "Retained SRAM evidence only; not reset-safe identity or restart permission."}
+                if op == POWER_PREVIOUS:
+                    result = decode_power_previous(body)
+                    if clock() >= deadline:
+                        raise host.HostError("deadline exceeded decoding retained power record")
+                    return result
                 if len(body) != BODY.size:
                     raise host.HostError("invalid diagnostic response length")
                 ticket, generation, cycles, state = BODY.unpack(body)
@@ -213,7 +275,7 @@ def restart(module, request_id, path_hex=None, timeout=2.0, reconnect_timeout=15
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("status", "previous", "restart"))
+    parser.add_argument("command", choices=("status", "previous", "power-previous", "restart"))
     parser.add_argument("--path-hex")
     parser.add_argument("--timeout", type=float, default=2)
     parser.add_argument("--reconnect-timeout", type=float, default=15)
@@ -224,7 +286,9 @@ def main():
         if args.command == "restart" and (not args.confirm_usb_disconnect or args.request_id is None):
             raise host.HostError("restart requires --request-id and --confirm-usb-disconnect")
         module = host.hid_module()
-        result = status(module, args.path_hex, args.timeout, PREVIOUS if args.command == "previous" else STATUS) if args.command != "restart" else restart(
+        opcode = {"status": STATUS, "previous": PREVIOUS,
+                  "power-previous": POWER_PREVIOUS}.get(args.command)
+        result = status(module, args.path_hex, args.timeout, opcode) if args.command != "restart" else restart(
             module, args.request_id, args.path_hex, args.timeout, args.reconnect_timeout)
         print(json.dumps(result, indent=2, sort_keys=True))
     except (host.HostError, OSError) as exc:

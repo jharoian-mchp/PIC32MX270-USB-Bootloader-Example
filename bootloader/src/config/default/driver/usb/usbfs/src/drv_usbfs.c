@@ -146,7 +146,13 @@ SYS_MODULE_OBJ DRV_USBFS_Initialize
                  * - Enable the USB transceiver
                  * - Enable the USB comparators */
 
+#if USB_RESTART_DIAGNOSTIC
+                USB_RetirementPowerEnableSample(false);
+#endif
                 PLIB_USB_Enable(usbID);
+#if USB_RESTART_DIAGNOSTIC
+                USB_RetirementPowerEnableSample(true);
+#endif
 
                 /* Setup the Hardware */
                 if(pusbInit->stopInIdle)
@@ -668,6 +674,9 @@ bool USB_RetirementDriverReplacementReady(void)
     else
     {
         uint32_t power=U1PWRC;
+#if USB_RESTART_DIAGNOSTIC
+        USB_RetirementPowerReadySample(power);
+#endif
         observation=((power&_U1PWRC_USBPWR_MASK)!=0U?1U:0U)|((power&_U1PWRC_USBBUSY_MASK)!=0U?2U:0U);
         if((power&_U1PWRC_USBBUSY_MASK)!=0U)rejected=1024U;
         else
