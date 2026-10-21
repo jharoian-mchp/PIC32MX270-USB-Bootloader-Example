@@ -1,6 +1,6 @@
 # Restart phase and reset-retained diagnostic evidence
 
-The schema-3 board PAUSE100 failed at **INIT / REBUILD / DRIVER_READY**, with first rejection **irq_enabled (mask512)**. Powered SW1/MCLR recovery restored HID and captured the retained record at 2026-10-21 04:33. [Source diagnosis](usb-rebuild-irq-diagnosis.md) traces callback registration enabling the USB interrupt source before the detached-ready guard. No safety predicate was changed. Leave the board recovered/read-only: no further PAUSE, reset, reprogramming or package/trial is authorised. Uploads, NVM writes and protection changes remain disabled. The [schema-3 procedure](usb-rebuild-detail-initial-check.md) and [older 18384b2 procedure](usb-instrumented-initial-check.md) record spent trials.
+The latest callback-mask board PAUSE100 failed at **INIT / REBUILD / DRIVER_READY**, first rejection **usb_busy (mask1024)** with USBPWR and USBBUSY sampled set (observations3). Powered SW1/MCLR recovery restored HID and captured that record at 2026-10-21 05:47. The preceding schema-3 image rejected irq_enabled512; the source fix allowed this attempt to reach the next check. [BUSY evidence](usb-rebuild-busy-evidence.md) leaves its duration/cause unresolved. Leave the board recovered/read-only: no further PAUSE, reset, reprogramming or package/trial is authorised. Uploads, NVM writes and protection changes remain disabled.
 
 ## Earlier schema-2 board result — 2026-10-21
 
@@ -11,6 +11,10 @@ The USB-only initializer returned failure after REBUILD entry. The exact prepara
 ## Schema-3 board result — 04:33
 
 PREVIOUS returned valid:true, ticket1/attempted generation2/time_ms415322/FAILED/INIT/faultINIT/checkpointREBUILD/evidence0, detailDRIVER_READY/irq_enabled/mask512/observations0. Recovered HID, live STATUS0/1/0/0 and normal capabilities passed. This journal survived the reported powered recovery, not a qualified power-loss/general-reset sequence. The first driver rejection precedes U1PWRC/U1CON reads and queue/BDT tests. See the [call-chain diagnosis](usb-rebuild-irq-diagnosis.md); later hardware predicates remain untested.
+
+## Callback-mask board result — 05:47
+
+PREVIOUS validated ticket1/attempted generation2/time_ms1339853/FAILED/INIT/faultINIT/checkpointREBUILD/evidence0; detailDRIVER_READY/usb_busy/mask1024/observations3. Recovered HID, live STATUS0/1/0/0 and normal capabilities passed. The previous IRQ-source check passed; the single U1PWRC sample saw power and BUSY set. U1CON/USBEN and queue/BDT checks were not reached. This record supports retention for the reported powered recovery, not successful USB-only restart or transient-vs-stuck BUSY. The [power-up source trace](usb-rebuild-busy-evidence.md) contains no dedicated BUSY wait and requires further semantics review before changes.
 
 ## Failure fields
 

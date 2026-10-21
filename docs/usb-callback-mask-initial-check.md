@@ -1,6 +1,6 @@
 # Callback-mask diagnostic — initial read-only checks
 
-The callback-mask PAUSE100 did not verify reconnect and post-list was empty at 2026-10-21 05:35. **The single-trial permission is spent: no resend, higher ID or second cycle.** The dated initial and trial instructions below are historical. After reviewing this failure report, the next bounded action is one powered SW1/MCLR recovery and read-only retained-evidence capture; no power loss, reprogramming or fault tests.
+The callback-mask PAUSE100 failed; powered SW1/MCLR recovery restored HID and captured **DRIVER_READY / usb_busy / mask1024 / observations3** at 2026-10-21 05:47. [BUSY evidence and source questions](usb-rebuild-busy-evidence.md) distinguish the sampled state from an unproven cause. **Both the single trial and recovery are complete: no resend, higher ID, reset or reprogramming.** Leave the board recovered/read-only. The dated initial/trial/recovery instructions below are historical.
 
 The previous `bae3050` image failed at DRIVER_READY/irq_enabled512 and was recovered with powered SW1/MCLR. This replacement defers callback registration's interrupt enables until admitted attachment, preserving the readiness guard. It has passed source tests and local artifact review; actual USB-only restart and later readiness predicates are still hardware-unqualified. Uploads, NVM writes, application handoff and protection changes remain disabled.
 
@@ -65,7 +65,15 @@ After reviewing the failure report, perform **one controlled powered SW1/MCLR re
 
 PREVIOUS is captured at startup; this recovery attempts to expose the last validated journal. Report it without treating it as restart authority. Valid:false leaves the firmware failure unknown. Validate any returned record against this trial's evidence; do not automatically assign an older same-schema record to the new attempt. The initial PREVIOUS was valid:false. Fresh live STATUS0/1/0/0 after recovery proves startup, not successful USB-only restart.
 
-Recovery and retention for this image have not yet been observed. No PAUSE/resend/higher ID, uploads, NVM/protection changes or electrical fault tests are authorised. Recovery results are pending.
+Recovery results were pending at the 05:35 instruction cutoff. The subsequently returned evidence follows.
+
+## Recovery and BUSY rejection — 2026-10-21 05:47
+
+Recovered list/probe returned the expected interface/layout, and STATUS was ticket0/generation1/cycles0/state0. PREVIOUS validated ticket1/attempted generation2/time_ms1339853/FAILED/INIT/faultINIT/checkpointREBUILD/evidence0; DRIVER_READY first_rejectedusb_busy/mask1024/observation_bits3.
+
+The IRQ-source predicate passed before the guard sampled USBPWR and USBBUSY set. The guard did not read USBEN or check later queues/BDT. This is progress past the earlier IRQ rejection, not a successful reopen or attachment. A single retained sample does not distinguish transient BUSY from a persistent powered-active state. See [the inspected power-up sequence and datasheet limits](usb-rebuild-busy-evidence.md).
+
+Recovery and retained-record decoding passed for this reported powered sequence. Live generation1 is fresh startup; attempted generation2 failed. No broader power-loss/reset retention or USB-only restart is qualified. No PAUSE, higher ID, reset/reprogramming, replacement package, upload/NVM/protection change or fault test is authorised.
 
 ## Package and images
 
