@@ -1,6 +1,6 @@
 # Callback-mask diagnostic — initial read-only checks
 
-Programming and the four initial read-only checks passed under the user's 2026-10-21 05:03 approval. At 05:28 the user separately approved **one PAUSE on the currently running callback-mask image**, as bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions describe the completed initial scope.
+The callback-mask PAUSE100 did not verify reconnect and post-list was empty at 2026-10-21 05:35. **The single-trial permission is spent: no resend, higher ID or second cycle.** The dated initial and trial instructions below are historical. After reviewing this failure report, the next bounded action is one powered SW1/MCLR recovery and read-only retained-evidence capture; no power loss, reprogramming or fault tests.
 
 The previous `bae3050` image failed at DRIVER_READY/irq_enabled512 and was recovered with powered SW1/MCLR. This replacement defers callback registration's interrupt enables until admitted attachment, preserving the readiness guard. It has passed source tests and local artifact review; actual USB-only restart and later readiness predicates are still hardware-unqualified. Uploads, NVM writes, application handoff and protection changes remain disabled.
 
@@ -45,6 +45,27 @@ Proceed only with those conditions still unchanged and exactly one matching boar
 Send the restart and post-list outputs. If exactly one expected interface is present, also send matching `usb_restart_diag.py status --timeout 2` and `pic32_hid.py probe --timeout 2`. If the interface is absent, ambiguous or a query fails, capture the output and stop. Successful qualification for this cycle requires the host's verified removal/reconnect and live ticket1/generation2/completed_cycles1/state7; HID return alone does not establish it.
 
 **No reset, power-cycle, unplug, reprogramming or recovery before reporting.** If USB stays absent, preserve the failed state. A later powered SW1/MCLR recovery/PREVIOUS capture needs a separate decision after reviewing the output. PREVIOUS is boot-captured historical evidence, so reading it in the current boot cannot reveal the new trial's retained journal. No uploads, NVM/protection changes, destructive faults or additional cycles are authorised. Trial results are pending; no restart success is presumed.
+
+## Failed callback-mask trial and retained recovery — 2026-10-21 05:35
+
+The user reported the one restart command returning:
+
+```text
+Error: removal/reconnect not verified before deadline; no retry, outcome unknown
+```
+
+Post-list returned `[]`. Reconnect qualification failed; live ticket1/generation2/cycles1/state7 was not observed. This host result does not identify request acceptance, the stopped firmware phase or any failed predicate. It does not establish that the callback-mask fix passed readiness or that the older irq_enabled512 failure recurred.
+
+After reviewing the failure report, perform **one controlled powered SW1/MCLR recovery** to attempt capture of this trial's retained record:
+
+1. Proceed only if the existing independent external supply is still active, PICkit5 remains disconnected from the board, and USB/power/jumpers are unchanged. If uncertain, stop and report before recovery. Do not reconnect PICkit5 or change Hold In Reset settings.
+2. Keep external power and USB connected. Hold SW1, toggle MCLR/reset once, wait at least100ms, then release SW1. No second reset or power-cycle.
+3. From the matching `usb-callback-mask-a57fef3` directory run `pic32_hid.py list`. If exactly one expected interface returns, run `usb_restart_diag.py previous --timeout 2` first, then `usb_restart_diag.py status --timeout 2` and `pic32_hid.py probe --timeout 2`. Send all outputs.
+4. If HID is absent/ambiguous or a query fails, capture the output and stop. No repeat recovery, reprogramming or recovery-HEX installation is authorised.
+
+PREVIOUS is captured at startup; this recovery attempts to expose the last validated journal. Report it without treating it as restart authority. Valid:false leaves the firmware failure unknown. Validate any returned record against this trial's evidence; do not automatically assign an older same-schema record to the new attempt. The initial PREVIOUS was valid:false. Fresh live STATUS0/1/0/0 after recovery proves startup, not successful USB-only restart.
+
+Recovery and retention for this image have not yet been observed. No PAUSE/resend/higher ID, uploads, NVM/protection changes or electrical fault tests are authorised. Recovery results are pending.
 
 ## Package and images
 
