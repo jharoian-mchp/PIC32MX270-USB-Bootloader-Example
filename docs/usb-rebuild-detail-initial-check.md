@@ -4,6 +4,19 @@ Only programming the supplied schema-3 diagnostic and the initial `list`, `probe
 
 The previous 18384b2 PAUSE100 failed at INIT/REBUILD. Powered SW1/MCLR recovery restored HID and recovered its retained record. The exact failing sub-step is unknown. This replacement adds evidence recording without changing the restart safety predicates. It has not fixed or qualified USB-only restart. Uploads, NVM writes, application handoff and protection changes stay disabled.
 
+## Initial read-only results — 2026-10-21 04:15
+
+The user returned all four successful outputs from the new `usb-rebuild-detail-bae3050` directory:
+
+- `list`: one Microchip USB HID Bootloader, VID04D8/PID003C/interface0/vendor usageFF00:1.
+- `probe`: protocol1/max510/origin1D008000/end1D03FC00/row128/erase1024, matching the expected layout.
+- STATUS: ticket0/generation1/completed_cycles0/state0.
+- PREVIOUS: valid:false; ticket/generation/time/evidence zero; READY/NONE defaults; rebuild stepNONE/first_rejectednull/rejected_mask0/observation_bits0.
+
+Initial enumeration, capabilities and live STATUS pass; the expanded PREVIOUS response decodes correctly. No validated prior record is available. These results do not identify why the earlier record is unavailable, prove the programmed HEX hash, or qualify schema-3 retention or USB-only restart. The older image's INIT/REBUILD failure is still unresolved.
+
+The IPE programming/verification result has not yet been reported. Confirm the existing result without reconnecting the programmer or repeating programming. **Keep the board running unchanged: no PAUSE, higher request ID, reset/reprogramming retry or fault test is authorised.**
+
 ## Package and compatibility
 
 Package: `usb-rebuild-detail-bae3050.zip`. Extract into a **new directory**, separate from both older experimental/instrumented packages. Use only this package's scripts and HEX files; do not substitute a normal MPLAB Clean/Build image.
