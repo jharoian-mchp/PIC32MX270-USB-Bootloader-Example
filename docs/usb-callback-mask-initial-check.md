@@ -4,6 +4,19 @@ Only programming the supplied callback-mask diagnostic and the initial `list`, `
 
 The previous `bae3050` image failed at DRIVER_READY/irq_enabled512 and was recovered with powered SW1/MCLR. This replacement defers callback registration's interrupt enables until admitted attachment, preserving the readiness guard. It has passed source tests and local artifact review; actual USB-only restart and later readiness predicates are still hardware-unqualified. Uploads, NVM writes, application handoff and protection changes remain disabled.
 
+## Initial read-only results — 2026-10-21 05:13
+
+The user returned all four outputs from the new `usb-callback-mask-a57fef3` directory:
+
+- `list`: one expected Microchip USB HID Bootloader, VID04D8/PID003C/interface0/vendor usageFF00:1.
+- `probe`: protocol1/max510/origin1D008000/end1D03FC00/row128/erase1024, matching the expected layout.
+- STATUS: ticket0/generation1/completed_cycles0/state0.
+- PREVIOUS: valid:false; ticket/generation/time/evidence zero; READY/NONE defaults; rebuild stepNONE/first_rejectednull/rejected_mask0/observation_bits0.
+
+Initial enumeration, capabilities, live STATUS and expanded PREVIOUS decoding pass. No validated retained record is available. This absence does not identify whether earlier evidence was invalidated or rejected, verify the programmed file's hash, or qualify retention or USB-only restart. No callback-mask rebuild has been exercised by these read-only checks.
+
+The IPE programming/verification result has not yet been supplied. Confirm the existing result without reconnecting PICkit5 or repeating programming. **Leave the board running unchanged: no PAUSE, higher ID, reset/reprogramming retry or fault test is authorised.**
+
 ## Package and images
 
 Package: `usb-callback-mask-a57fef3.zip`. Extract into a **new directory**, separate from all older packages. Use only its scripts and HEX files; do not substitute a normal MPLAB Clean/Build image.
