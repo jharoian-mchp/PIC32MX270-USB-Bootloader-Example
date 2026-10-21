@@ -291,16 +291,38 @@ bool USB_RebuildDetached(uint32_t generation,USB_DEVICE_EVENT_HANDLER device_cal
 #endif
 `,
 };
+// Inline generated edits are stripped before the unchanged MCC base hash is checked.
+const callbackEnable = `            /* Enable the session valid interrupt */
+            PLIB_USB_OTG_InterruptEnable(pUSBDrvObj->usbID, USB_OTG_INT_SESSION_VALID);`;
+const callbackMasked = `#if USB_RETIREMENT_HOOKS
+            /* Binding during detached rebuild stores callbacks only. Keep both
+             * peripheral and CPU-source interrupts masked until admitted attach. */
+            if(USB_RetirementBlocked())return;
+#endif
+` + callbackEnable;
+const attachEnable = `        PLIB_USB_AllInterruptEnable(((DRV_USBFS_OBJ *)handle)->usbID, (USB_INTERRUPTS)usbIntResume, USB_ERR_INT_ALL, (USB_OTG_INTERRUPTS)usbOtg);`;
+const attachUnmask = attachEnable + `
+#if USB_RETIREMENT_HOOKS
+        /* The owner reaches attach only after detached readiness and publication.
+         * Callback binding deliberately deferred this source enable while fenced. */
+        M_DRV_USBFS_InterruptSourceEnable(((DRV_USBFS_OBJ *)handle)->interruptSource);
+#endif`;
+const inlinePatches:Record<string,[string,string][]>= {
+    "driver/usb/usbfs/src/drv_usbfs.c": [[callbackEnable,callbackMasked]],
+    "driver/usb/usbfs/src/drv_usbfs_device.c": [[attachEnable,attachUnmask]],
+};
 function functionOpening(text:string,name:string):number {
     const regex=new RegExp(`^.*\\b${name}\\s*\\([^;]*?\\)\\s*\\{`,"gm");
-    const matches=Array.from(text.matchAll(regex));
+    // Ignore documentation prototypes without changing source offsets.
+    const code=text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,comment=>comment.replace(/[^\n]/g," "));
+    const matches=Array.from(code.matchAll(regex));
     if(matches.length!==1)throw Error(`expected one function ${name}`);
     return matches[0].index!+matches[0][0].length;
 }
 const guards:Record<string,[string,string][]>={
 "usb/src/usb_device_hid.c":[["USB_DEVICE_HID_ReportSend","USB_DEVICE_HID_RESULT_ERROR"],["USB_DEVICE_HID_ReportReceive","USB_DEVICE_HID_RESULT_ERROR"],["USB_DEVICE_HID_EventHandlerSet","USB_DEVICE_HID_RESULT_ERROR"],["F_USB_DEVICE_HID_InitializeByDescriptorType",""]],
 "usb/src/usb_device.c":[["USB_DEVICE_ControlSend","USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED"],["USB_DEVICE_ControlReceive","USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED"],["USB_DEVICE_ControlStatus","USB_DEVICE_CONTROL_TRANSFER_RESULT_FAILED"]],
-"driver/usb/usbfs/src/drv_usbfs_device.c":[["DRV_USBFS_DEVICE_IRPSubmit","USB_ERROR_IRP_QUEUE_FULL"]],
+"driver/usb/usbfs/src/drv_usbfs_device.c":[["DRV_USBFS_DEVICE_IRPSubmit","USB_ERROR_IRP_QUEUE_FULL"],["DRV_USBFS_DEVICE_Attach",""]],
 };
 const completions:[string,string,boolean][]=[
 ["F_USB_DEVICE_HID_ReportReceiveCallBack","irpRx",false],
@@ -348,6 +370,7 @@ try {
             text=text.slice(0,-tail.length);
             text=text.replace('\n/* USB_RETIREMENT_OVERLAY_BEGIN: tools/usb-retirement-overlay.ts */\n#include "usb_retirement.h"','');
             for(const [,result] of guards[rel]??[])text=text.replace(`\n#if USB_RETIREMENT_HOOKS\n    USB_RETIREMENT_ADMISSION(${result});\n#endif\n`,'');
+            for(const [base,patched] of inlinePatches[rel]??[])text=text.replace(patched,base);
             text=text.replace(/USB_RETIREMENT_NOTIFY\(([^;]+)\);/g,(_,call)=>`${call};`);
             if(rel.endsWith("usb_device_hid.c")){
                 for(const[,pointer,transmit]of completions)text=text.replace(completionGuard(pointer,transmit),"");
@@ -364,6 +387,10 @@ try {
             const at=functionOpening(text,name);
             const guard=`\n#if USB_RETIREMENT_HOOKS\n    USB_RETIREMENT_ADMISSION(${result});\n#endif\n`;
             text=text.slice(0,at)+guard+text.slice(at);
+        }
+        for(const [base,patched] of inlinePatches[rel]??[]) {
+            if(text.split(base).length!==2)throw Error(`inline generated shape changed: ${rel}`);
+            text=text.replace(base,patched);
         }
         if(rel.endsWith("usb_device_hid.c")){
             text=patchSubmissions(text);

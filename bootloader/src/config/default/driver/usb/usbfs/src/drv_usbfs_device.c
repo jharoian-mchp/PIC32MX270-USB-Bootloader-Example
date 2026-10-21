@@ -270,6 +270,10 @@ void DRV_USBFS_DEVICE_RemoteWakeupStop(DRV_HANDLE handle)
 
 void DRV_USBFS_DEVICE_Attach(DRV_HANDLE handle)
 {
+#if USB_RETIREMENT_HOOKS
+    USB_RETIREMENT_ADMISSION();
+#endif
+
     uint32_t usbIntResume, usbOtg;
     
     /* Check if the handle is valid */
@@ -287,6 +291,11 @@ void DRV_USBFS_DEVICE_Attach(DRV_HANDLE handle)
         usbIntResume = (((uint32_t)USB_INT_ALL) & ~((uint32_t)USB_INT_RESUME));
         usbOtg = ((~(uint32_t)USB_OTG_INT_ALL) | (uint32_t)USB_OTG_INT_SESSION_VALID | (uint32_t)USB_OTG_INT_ACTIVITY_DETECT);
         PLIB_USB_AllInterruptEnable(((DRV_USBFS_OBJ *)handle)->usbID, (USB_INTERRUPTS)usbIntResume, USB_ERR_INT_ALL, (USB_OTG_INTERRUPTS)usbOtg);
+#if USB_RETIREMENT_HOOKS
+        /* The owner reaches attach only after detached readiness and publication.
+         * Callback binding deliberately deferred this source enable while fenced. */
+        M_DRV_USBFS_InterruptSourceEnable(((DRV_USBFS_OBJ *)handle)->interruptSource);
+#endif
     }
     else
     {

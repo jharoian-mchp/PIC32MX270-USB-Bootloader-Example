@@ -39,20 +39,52 @@ static bool irq_source_enabled;
 static bool EVIC_SourceIsEnabled(INT_SOURCE source){(void)source;return irq_source_enabled;}
 static void F_USB_DEVICE_EventHandler(void){}
 static void Callback(void){}
-static void SetHandler(uintptr_t handle,uintptr_t context,void(*cb)(void)){assert(handle&&context&&cb);}
+static void SetHandler(uintptr_t handle,uintptr_t context,void(*cb)(void));
 typedef struct {struct {int status;} irpEp0Rx,irpEp0Tx;uintptr_t usbCDHandle;int usbDeviceInstanceState,clientState,taskState;bool inUse;USB_DEVICE_EVENT_HANDLER callBackFunc;uintptr_t context;void *ptrMasterDescTable;INTERFACE *driverInterface;struct {int usbDeviceState;} usbDeviceStatusStruct;} USB_DEVICE_OBJ;
 static USB_DEVICE_OBJ usbDeviceInstance[1];
 typedef union {uint8_t byte[8];uint32_t word[2];} DRV_USBFS_BDT_ENTRY;
 typedef struct {void *irpQueue;} ENDPOINT;
-typedef struct {bool inUse,inInterruptContext,isAttached,isOpened;int status;void(*pEventCallBack)(void);ENDPOINT *endpointTable;DRV_USBFS_BDT_ENTRY *pBDT;unsigned interruptSource;uintptr_t usbID;} DRV_USBFS_OBJ;
+typedef struct {bool inUse,inInterruptContext,isAttached,isOpened;int status;void(*pEventCallBack)(void);ENDPOINT *endpointTable;DRV_USBFS_BDT_ENTRY *pBDT;unsigned interruptSource,operationMode;uintptr_t usbID,hClientArg;} DRV_USBFS_OBJ;
 static struct {DRV_USBFS_OBJ gDrvUSBObj;ENDPOINT gDrvUSBEndpoints[4];} gDrvUSBGroup[1];
 static DRV_USBFS_BDT_ENTRY bdt[8];
 static unsigned deinit,poweroffs;
-static bool M_DRV_USBFS_InterruptSourceDisable(unsigned source){(void)source;assert(!irq);return true;}
+static bool M_DRV_USBFS_InterruptSourceDisable(unsigned source){(void)source;assert(!irq);bool old=irq_source_enabled;irq_source_enabled=false;return old;}
 static void PLIB_USB_Disable(uintptr_t id){(void)id;assert(!irq);U1PWRC=8;poweroffs++;}
 static void DRV_USBFS_Deinitialize(unsigned index)
 {assert(index==0&&U1PWRC==0);deinit++;gDrvUSBGroup[0].gDrvUSBObj.inUse=false;}
 #include "hooks.inc"
+typedef uintptr_t DRV_HANDLE;
+typedef void (*DRV_USB_EVENT_CALLBACK)(void);
+typedef unsigned USB_INTERRUPTS;
+typedef unsigned USB_OTG_INTERRUPTS;
+#define USB_OPMODE_DEVICE 1U
+#define USB_OTG_INT_SESSION_VALID 1U
+#define USB_OTG_INT_ACTIVITY_DETECT 2U
+#define USB_OTG_INT_ALL 3U
+#define USB_INT_ALL 255U
+#define USB_INT_RESUME 4U
+#define USB_ERR_INT_ALL 255U
+#define SYS_DEBUG(...) ((void)0)
+#define SYS_DEBUG_MESSAGE(...) ((void)0)
+static unsigned session_enables,source_enables,attaches;
+static bool session_enabled;
+static void PLIB_USB_OTG_InterruptEnable(uintptr_t id,unsigned event)
+{(void)id;assert(!irq&&event==USB_OTG_INT_SESSION_VALID);session_enabled=true;++session_enables;}
+static void M_DRV_USBFS_InterruptSourceEnable(unsigned source)
+{(void)source;assert(!irq&&!USB_RetirementBlocked()&&session_enabled);irq_source_enabled=true;++source_enables;}
+static void PLIB_USB_OperatingModeSelect(uintptr_t id,unsigned mode)
+{(void)id;assert(!irq&&!USB_RetirementBlocked()&&mode==USB_OPMODE_DEVICE);++attaches;}
+static void PLIB_USB_AllInterruptEnable(uintptr_t id,USB_INTERRUPTS usb,unsigned errors,USB_OTG_INTERRUPTS otg)
+{(void)id;(void)usb;assert(!irq&&!USB_RetirementBlocked()&&errors==USB_ERR_INT_ALL&&(otg&USB_OTG_INT_SESSION_VALID)!=0);session_enabled=true;}
+#include "binding.inc"
+static void SetHandler(uintptr_t handle,uintptr_t context,void(*cb)(void))
+{assert(handle&&context&&cb);DRV_USBFS_ClientEventCallBackSet((uintptr_t)&gDrvUSBGroup[0].gDrvUSBObj,context,cb);}
+static void AssertAttachBlocked(void)
+{
+    unsigned old_attaches=attaches,old_enables=source_enables;bool old=irq;
+    DRV_USBFS_DEVICE_Attach((uintptr_t)&gDrvUSBGroup[0].gDrvUSBObj);
+    assert(irq==old&&attaches==old_attaches&&source_enables==old_enables);
+}
 static uint32_t observed_detail;
 static void ObserveDetail(uint32_t detail){observed_detail=detail;}
 static bool Guarded(bool early)
@@ -66,6 +98,17 @@ int main(void)
 {
     USB_RetirementDetailObserver(ObserveDetail);
     U1PWRC=1;assert(!USB_RetirementBlocked());
+    /* Ordinary registration still enables both interrupt layers; invalid and
+     * non-device calls do not. Default-off source is also checked by the overlay. */
+    DRV_USBFS_OBJ *driver=&gDrvUSBGroup[0].gDrvUSBObj;
+    *driver=(DRV_USBFS_OBJ){.isOpened=true,.operationMode=USB_OPMODE_DEVICE};
+    irq=false;DRV_USBFS_ClientEventCallBackSet(DRV_HANDLE_INVALID,123,Callback);
+    assert(!source_enables&&!session_enables);
+    driver->operationMode=0;DRV_USBFS_ClientEventCallBackSet((uintptr_t)driver,123,Callback);
+    assert(!source_enables&&!session_enables&&driver->hClientArg==123);
+    driver->operationMode=USB_OPMODE_DEVICE;DRV_USBFS_ClientEventCallBackSet((uintptr_t)driver,456,Callback);
+    assert(!irq&&irq_source_enabled&&session_enabled&&source_enables==1&&session_enables==1&&driver->hClientArg==456);
+    irq=true;
     assert(Guarded(true)&&Guarded(false));assert(USB_RetirementCallbacksIdle());
     assert(USB_RetirementHidReserve(&gUSBDeviceHIDIRP[0],false));
     assert(!USB_RetirementHidReserve(&gUSBDeviceHIDIRP[0],true));
@@ -74,6 +117,10 @@ int main(void)
     assert(USB_RetirementAdmissionBegin());assert(!USB_RetirementFence());USB_RetirementAdmissionEnd();
     USB_RetirementCallbackEnter();assert(!USB_RetirementFence());USB_RetirementCallbackLeave();
     assert(USB_RetirementFence()&&USB_RetirementBlocked());assert(!USB_RetirementAdmissionBegin());
+    AssertAttachBlocked();
+    unsigned saved_source_enables=source_enables,saved_session_enables=session_enables;
+    irq=false;DRV_USBFS_ClientEventCallBackSet((uintptr_t)driver,789,Callback);irq=true;
+    assert(source_enables==saved_source_enables&&session_enables==saved_session_enables&&driver->hClientArg==789);
     U1PWRC=0;assert(!USB_RetirementHidRetire()&&!USB_RetirementDeviceRetire()&&!USB_RetirementDriverRetire());
     U1PWRC=1;
     gDrvUSBGroup[0].gDrvUSBObj=(DRV_USBFS_OBJ){.inUse=true,.endpointTable=gDrvUSBGroup[0].gDrvUSBEndpoints,.pBDT=bdt};
@@ -88,25 +135,30 @@ int main(void)
     memset(bdt,0,sizeof(bdt));for(unsigned i=0;i<8;i++)bdt[i].byte[0]=0x84;
     gUSBDeviceHIDIRP[0].data=123;gUsbDeviceHidInstance[0].appCallBack=Callback;
     assert(!USB_RetirementHidRetire()&&!USB_RetirementDeviceRetire()&&!USB_RetirementDriverRetire());
-    assert(USB_RetirementPowerOff()&&U1PWRC==8&&irq&&poweroffs==1);
+    assert(USB_RetirementPowerOff()&&U1PWRC==8&&irq&&poweroffs==1&&!irq_source_enabled);
+    session_enabled=false; /* Mock retired/rebuilt peripheral interrupt state. */
     assert(!USB_RetirementOffIdle()&&!USB_RetirementDriverRetire()&&deinit==0&&bdt[0].byte[0]==0x84);
     U1PWRC=0;assert(USB_RetirementHidRetire()&&USB_RetirementDeviceRetire());
     assert(gUSBDeviceHIDIRP[0].data==0&&gUsbDeviceHidInstance[0].appCallBack==NULL);
     assert(USB_RetirementDriverRetire()&&deinit==1&&bdt[0].word[0]==0);
     assert(USB_RetirementBlocked()&&!USB_RetirementAdmissionBegin());
     assert(!USB_RetirementPrepare(1));assert(USB_RetirementPrepare(2));
-    assert(!USB_RetirementPrepare(3));assert(!USB_RetirementReopen(2));
+    assert(!USB_RetirementPrepare(3));assert(!USB_RetirementReopen(2));AssertAttachBlocked();
     INTERFACE interface={SetHandler};USB_DEVICE_HANDLE handle;
     assert(!USB_RetirementBindDevice(Callback,123,&handle));
     usbDeviceInstance[0]=(USB_DEVICE_OBJ){.usbCDHandle=1,.usbDeviceInstanceState=1,.taskState=1,.ptrMasterDescTable=&interface,.driverInterface=&interface};
-    gDrvUSBGroup[0].gDrvUSBObj=(DRV_USBFS_OBJ){.inUse=true,.isOpened=true,.status=1,.pEventCallBack=Callback,.endpointTable=gDrvUSBGroup[0].gDrvUSBEndpoints,.pBDT=bdt};
+    gDrvUSBGroup[0].gDrvUSBObj=(DRV_USBFS_OBJ){.inUse=true,.isOpened=true,.status=1,.operationMode=USB_OPMODE_DEVICE,.endpointTable=gDrvUSBGroup[0].gDrvUSBEndpoints,.pBDT=bdt};
     usbDeviceInstance[0].driverInterface=NULL;assert(!USB_RetirementBindDevice(Callback,123,&handle));
     usbDeviceInstance[0].driverInterface=&interface;interface.eventHandlerSet=NULL;
     assert(!USB_RetirementBindDevice(Callback,123,&handle));interface.eventHandlerSet=SetHandler;
-    assert(USB_RetirementBindDevice(Callback,123,&handle));
+    irq=false;assert(USB_RetirementBindDevice(Callback,123,&handle));
+    assert(!irq&&!irq_source_enabled&&!session_enabled&&source_enables==saved_source_enables&&session_enables==saved_session_enables);
+    assert(driver->pEventCallBack==F_USB_DEVICE_EventHandler&&driver->hClientArg==(uintptr_t)&usbDeviceInstance[0]);
+    irq=true;AssertAttachBlocked();
     assert(USB_RetirementBindHid(Callback,123));gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized=true;
     U1PWRC=1;U1CON=1;assert(!USB_RetirementReopen(2));
     assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==2048U);
+    AssertAttachBlocked();
     U1CON=0;U1PWRC=9;assert(!USB_RetirementReopen(2));
     assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==1024U&&(observed_detail>>24)==3U);
     U1PWRC=1;irq_source_enabled=true;assert(!USB_RetirementReopen(2));
@@ -115,8 +167,15 @@ int main(void)
     assert(!USB_RetirementReopen(3));assert((observed_detail&255U)==USB_REBUILD_DETAIL_REOPEN&&((observed_detail>>8)&65535U)==2U);
     assert(USB_RetirementReopen(2)&&!USB_RetirementBlocked());
     assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==0U);
+    assert(!irq_source_enabled&&!session_enabled); /* Reopen does not unmask or attach. */
+    irq=false;DRV_USBFS_DEVICE_Attach((uintptr_t)driver);assert(!irq);irq=true;
+    assert(irq_source_enabled&&session_enabled&&attaches==1&&driver->isAttached&&source_enables==saved_source_enables+1);
+    assert(USB_RetirementCallbacksIdle());
     assert(USB_RetirementAdmissionBegin());USB_RetirementAdmissionEnd();assert(!USB_RetirementReopen(2));
     assert(USB_RetirementFence());assert(!USB_RetirementPrepare(2));
     USB_RetirementCallbackLeave();assert(USB_RetirementBlocked()&&!USB_RetirementFence()); /* underflow poisons */
+    AssertAttachBlocked();
+    irq=false;DRV_USBFS_ClientEventCallBackSet((uintptr_t)driver,999,Callback);irq=true;
+    assert(source_enables==saved_source_enables+1&&session_enables==saved_session_enables&&driver->hClientArg==999);
     puts("PASS: opt-in owning-TU drain/retire hooks fence callbacks+IRPs, poweroff retains state until offidle, private data reset only drained/off; no target restart binding.");return 0;
 }

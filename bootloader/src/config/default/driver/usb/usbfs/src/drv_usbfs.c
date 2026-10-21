@@ -533,6 +533,11 @@ void DRV_USBFS_ClientEventCallBackSet
 
         if(pUSBDrvObj->operationMode == USB_OPMODE_DEVICE)
         {
+#if USB_RETIREMENT_HOOKS
+            /* Binding during detached rebuild stores callbacks only. Keep both
+             * peripheral and CPU-source interrupts masked until admitted attach. */
+            if(USB_RetirementBlocked())return;
+#endif
             /* Enable the session valid interrupt */
             PLIB_USB_OTG_InterruptEnable(pUSBDrvObj->usbID, USB_OTG_INT_SESSION_VALID);
             

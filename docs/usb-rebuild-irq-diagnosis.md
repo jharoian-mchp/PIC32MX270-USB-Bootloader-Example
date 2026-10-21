@@ -51,6 +51,6 @@ A bounded independent source review confirmed the callback mapping, device-mode 
 
 ## Next source work and board limits
 
-Design and test preparation-aware callback registration that preserves USB interrupt masking throughout detached rebuilding. Retain the IRQ-disabled readiness predicate, its ordering and the ordinary startup path. Do not merely ignore mask512, and audit the setter's OTG interrupt side effect as well as the EVIC source. Later hardware predicates may still fail once this first mismatch is addressed.
+The subsequent [source-only callback-mask fix](usb-callback-mask-fix.md) defers both setter interrupt enables while blocked, preserves the IRQ-disabled readiness predicate and restores interrupt delivery through admitted attach. Tests and local image checks pass; no installation or board trial has occurred. Later hardware predicates may still fail once this first mismatch is addressed.
 
 Leave the board recovered/read-only with external power/settings unchanged and PICkit5 disconnected. The PAUSE and recovery permissions are spent. No repeat PAUSE, higher ID, reset, reprogramming, replacement package, uploads, NVM/protection changes or fault tests are authorised. Source changes, package review and any hardware evaluation require their own verification and scope.
