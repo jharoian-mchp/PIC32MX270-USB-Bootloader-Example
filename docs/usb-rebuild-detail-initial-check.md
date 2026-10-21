@@ -1,6 +1,6 @@
 # Rebuild-detail diagnostic — initial read-only checks
 
-Programming and the four initial read-only checks passed under the user's 2026-10-21 04:01 approval. At 04:19 the user separately approved **one PAUSE on the currently running schema-3 image**, as bounded below. No resend, higher-ID retry, second cycle or fault test is authorised. The earlier initial-only instructions remain historical; the dated single-trial scope is the only extension.
+The schema-3 PAUSE100 trial did not verify reconnect and post-list was empty at 2026-10-21 04:21. **The single-trial permission is spent. No resend, higher-ID retry or second cycle is authorised.** Programming/initial checks and the dated PAUSE authorisation below are historical. The next bounded action is one powered SW1/MCLR recovery and read-only retained-evidence capture, defined below; no reprogramming, power loss or fault tests.
 
 The previous 18384b2 PAUSE100 failed at INIT/REBUILD. Powered SW1/MCLR recovery restored HID and recovered its retained record. The exact failing sub-step is unknown. This replacement adds evidence recording without changing the restart safety predicates. It has not fixed or qualified USB-only restart. Uploads, NVM writes, application handoff and protection changes stay disabled.
 
@@ -47,6 +47,27 @@ The host sends PAUSE once; it reads live STATUS to bind the request to the curre
 Send both outputs. If `list` still finds the single expected interface, also send package-local `status --timeout 2` and `probe --timeout 2`. Expected successful live STATUS is ticket1/generation2/completed_cycles1/state7; HID returning alone does not establish restart success. If USB is absent, report the error and empty list and preserve the failed state.
 
 **No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and PREVIOUS query would require separate confirmation after reviewing the result. PREVIOUS is captured at boot; querying it without a new startup cannot expose the current trial's journal. No uploads, NVM/protection changes or destructive tests are authorised. The trial is spent as soon as its one restart command is run, even if it fails.
+
+## Failed trial and controlled retained-evidence recovery — 2026-10-21 04:21
+
+The user reported the single restart command returning:
+
+```text
+Error: removal/reconnect not verified before deadline; no retry, outcome unknown
+```
+
+Post-list returned `[]`. Reconnect qualification failed, and the expected live ticket1/generation2/cycles1/state7 was not observed. This host output does not establish the coordinator's stopped phase, acceptance outcome or exact failed readiness predicate. The prior image's INIT/REBUILD finding must not be substituted for this trial's missing record.
+
+After reviewing the failure report, the bounded next action is **one controlled powered SW1/MCLR recovery**, using the same previously successful method, to attempt capture of this image's retained evidence:
+
+1. Proceed only if the existing independent external supply remains active, PICkit5 remains disconnected from the board, and USB/power/jumper settings are unchanged. If any condition differs or is uncertain, stop and report before recovery. Do not reconnect PICkit5 or change its Hold In Reset setting.
+2. Keep external power and the USB cable connected. Hold SW1, toggle MCLR/reset once, wait at least100ms, then release SW1. Do not repeat the reset or perform a power-cycle.
+3. From the matching package directory, run `pic32_hid.py list`. If the expected single interface returns, run `usb_restart_diag.py previous --timeout 2` first, then `usb_restart_diag.py status --timeout 2` and `pic32_hid.py probe --timeout 2`. Send all outputs.
+4. If HID is absent or a query fails, capture that output and stop. No repeat recovery, reprogramming or recovery-HEX installation is authorised by this step.
+
+PREVIOUS is a boot-captured snapshot; this reset attempts to expose the last validated current-trial journal. Capture it before considering any other trial. A valid record provides historical stage/rejection observations only; valid:false leaves the firmware failure unknown. Fresh live STATUS ticket0/generation1/cycles0/state0 after recovery is startup evidence, not successful USB-only restart. Retention for this schema-3 image and this recovery has not yet been observed.
+
+No PAUSE/resend/higher ID, uploads, NVM/protection changes or electrical faults are authorised. Recovery results are pending; this procedure does not establish that recovery succeeded.
 
 ## Package and compatibility
 
