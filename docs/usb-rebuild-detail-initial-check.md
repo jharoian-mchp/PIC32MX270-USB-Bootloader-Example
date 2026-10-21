@@ -1,6 +1,6 @@
 # Rebuild-detail diagnostic — initial read-only checks
 
-Only programming the supplied schema-3 diagnostic and the initial `list`, `probe`, `status` and `previous` checks are authorised. **Do not run `restart`/PAUSE, resend ID100, use a higher PAUSE ID or perform fault tests.** The approval follows the user's 2026-10-21 04:01 confirmation. Stop and report after the four checks, even if all pass.
+Programming and the four initial read-only checks passed under the user's 2026-10-21 04:01 approval. At 04:19 the user separately approved **one PAUSE on the currently running schema-3 image**, as bounded below. No resend, higher-ID retry, second cycle or fault test is authorised. The earlier initial-only instructions remain historical; the dated single-trial scope is the only extension.
 
 The previous 18384b2 PAUSE100 failed at INIT/REBUILD. Powered SW1/MCLR recovery restored HID and recovered its retained record. The exact failing sub-step is unknown. This replacement adds evidence recording without changing the restart safety predicates. It has not fixed or qualified USB-only restart. Uploads, NVM writes, application handoff and protection changes stay disabled.
 
@@ -30,6 +30,23 @@ The user supplied the existing log for `C:\Users\c14029\Downloads\usb-rebuild-de
 This confirms tool-reported successful programming/verification of the named file and the intended 32 KB program range. The log does not include an independent HEX hash or detailed erase bounds. IPE's approximate 12% usage is not the linked-image reservation audit.
 
 Hold In Reset is now explicitly tool-reported. It is consistent with PICkit5 affecting reset while connected, but no MCLR waveform or electrical mechanism was measured. It does not diagnose the older USB-only INIT/REBUILD failure. The subsequent successful HID queries establish that firmware was running when those queries completed. Leave PICkit5 disconnected and preserve external power/settings; no setting change or reconnection test is requested.
+
+## One schema-3 evidence trial authorised — 2026-10-21 04:19
+
+The user approved one evidence-producing PAUSE after receiving the programming/initial-check findings and the explicit single-trial question. This applies only to the currently running `usb-rebuild-detail-bae3050` image, with initial STATUS ticket0/generation1/cycles0/state0. It does not renew either older image's spent trial.
+
+Proceed only with PICkit5 still disconnected from the board, the confirmed external supply active and the existing power/jumper/USB settings unchanged. Do not press SW1/MCLR, disconnect USB, reconnect PICkit5 or change power while the command runs. From this package's directory, using its matching scripts and the same `$PY`:
+
+```powershell
+& $PY .\usb_restart_diag.py restart --request-id 100 --confirm-usb-disconnect --timeout 2 --reconnect-timeout 15
+& $PY .\pic32_hid.py list
+```
+
+The host sends PAUSE once; it reads live STATUS to bind the request to the current generation. ID100 is for this fresh schema-3 boot only. **Run the restart command once, then stop regardless of outcome. Do not resend it or use a higher ID.** A timeout or lost response can mean an unknown outcome; it never authorises a retry.
+
+Send both outputs. If `list` still finds the single expected interface, also send package-local `status --timeout 2` and `probe --timeout 2`. Expected successful live STATUS is ticket1/generation2/completed_cycles1/state7; HID returning alone does not establish restart success. If USB is absent, report the error and empty list and preserve the failed state.
+
+**No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and PREVIOUS query would require separate confirmation after reviewing the result. PREVIOUS is captured at boot; querying it without a new startup cannot expose the current trial's journal. No uploads, NVM/protection changes or destructive tests are authorised. The trial is spent as soon as its one restart command is run, even if it fails.
 
 ## Package and compatibility
 
