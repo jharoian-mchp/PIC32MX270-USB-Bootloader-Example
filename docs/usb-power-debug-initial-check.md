@@ -1,6 +1,6 @@
 # Temporary 48 KB power-observation diagnostic — initial checks
 
-Programming and five initial read-only checks passed under the user's 2026-10-21 18:42 overlap-aware approval. At 20:26 the user separately authorised **one PAUSE on the currently running power-debug image**, as bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions describe the completed scope.
+The power-debug PAUSE100 did not verify reconnect and post-list was empty at 2026-10-21 20:28. **The single-trial permission is spent: no resend, higher ID or second cycle.** After reviewing the failure report, one controlled powered SW1/MCLR recovery and read-only retained capture is instructed below. No power loss, reprogramming or fault test. Earlier initial/trial instructions are historical.
 
 The previous callback-mask trial failed at DRIVER_READY/usb_busy1024 with USBPWR and USBBUSY sampled set. This image adds three one-shot observations; it adds no wait or readiness correction. USB-only restart and BUSY semantics remain hardware-unqualified. Uploads, NVM writes, application handoff and protection changes are disabled.
 
@@ -45,6 +45,21 @@ if ($LASTEXITCODE -ne 0) { throw 'Debug probe failed; stop and report' }
 A successful cycle requires verified removal/reconnect plus live ticket1/generation2/completed_cycles1/state7. HID return alone is insufficient. If HID is absent/ambiguous or a query fails, report that output and preserve the state.
 
 **No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and PREVIOUS/power-previous capture needs a separate decision after the result. Both retained queries are boot snapshots: in the current boot they cannot expose this new trial's journal. This trial grants no uploads, NVM/protection changes, electrical faults or additional cycle. Results are pending; no restart success is assumed.
+
+## Failed trial and powered retained capture — 2026-10-21 20:28
+
+The user reported the one PAUSE100 command returning `Error: removal/reconnect not verified before deadline; no retry, outcome unknown`, then list returned `[]`. Reconnect qualification failed; expected live ticket1/generation2/cycles1/state7 was not observed. The host output does not identify acceptance, stopped firmware phase, first rejection or power samples. Do not substitute earlier images' failures for this missing record.
+
+After reviewing the report, perform **one controlled powered SW1/MCLR recovery** to attempt capture of both retained snapshots:
+
+1. Proceed only with the existing independent external supply active, PICkit5 disconnected from the board, and USB/power/jumpers unchanged. If uncertain, stop and report before recovery. Do not reconnect PICkit5 or change Hold In Reset settings.
+2. Keep external power and USB connected. Hold SW1, toggle MCLR/reset once, wait at least100ms, then release SW1. No second reset or power-cycle.
+3. From `usb-power-debug-2de2f84`, run list. Only if exactly one expected interface returns, run PREVIOUS then power-previous, followed by STATUS and `probe --power-debug`. Check each Python exit code and stop on error. Send every output.
+4. If HID is absent/ambiguous or a query fails, stop and report. No repeated recovery, programmer operation or recovery-HEX installation is authorised.
+
+Both queries capture the immutable previous snapshot at boot. Compare their ticket/generation/time when reporting; matching fields are not reset-safe identity. Invalid records or missing samples leave corresponding firmware behavior unknown. Initial PREVIOUS and power-previous were invalid. Fresh STATUS0/1/0/0 after recovery establishes startup, not successful USB-only restart. Raw Count deltas include logging, may wrap and cannot prove a settling deadline.
+
+Recovery results are pending. No PAUSE, higher ID, reset retry, reprogramming, upload/NVM/protection change or fault test is authorised beyond this one bounded recovery and its read-only queries.
 
 ## Package and temporary layout
 
