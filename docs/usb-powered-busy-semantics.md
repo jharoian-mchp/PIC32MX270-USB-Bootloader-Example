@@ -62,7 +62,7 @@ No firmware source, HEX, readiness ordering, USB-off NVM predicate or protection
 
 ## Next bounded work
 
-Design evidence-only observations around the power-enable boundary before choosing a wait or predicate correction. Useful evidence would distinguish the last pre-enable off-idle sample from post-enable powered samples and record elapsed time/limited observations without granting admission, attaching, touching unsafe registers or writing USBBUSY. Preserve an explicit bounded failure outcome and existing resource quarantine. Any such instrumentation needs source review, fixed-reservation verification and separate delivery/trial approval.
+The subsequent [power-observation design](usb-power-observation-design.md) specifies three one-shot evidence sites, raw CP0 timing, partial-record semantics, a proposed retained-schema extension and a separate read-only query. It adds no wait or readiness correction and is not implemented. Any instrumentation still needs source tests, fixed-reservation/startup verification and separate delivery/trial approval.
 
 A proposed wait must have justified semantics and a bound, remain under the required ownership/interrupt fence and not depend on an interrupt-driven timebase while interrupts are masked. It must not silently turn a failed readiness check into success. The independent USB-off NVM gate remains USBPWR0/BUSY0 with DMA exclusion throughout flash ownership.
 
