@@ -15,7 +15,21 @@ The user returned all four successful outputs from the new `usb-rebuild-detail-b
 
 Initial enumeration, capabilities and live STATUS pass; the expanded PREVIOUS response decodes correctly. No validated prior record is available. These results do not identify why the earlier record is unavailable, prove the programmed HEX hash, or qualify schema-3 retention or USB-only restart. The older image's INIT/REBUILD failure is still unresolved.
 
-The IPE programming/verification result has not yet been reported. Confirm the existing result without reconnecting the programmer or repeating programming. **Keep the board running unchanged: no PAUSE, higher request ID, reset/reprogramming retry or fault test is authorised.**
+The subsequently supplied IPE log confirms the programming/verification result below. Programming evidence and all four initial read-only results are now collected. **Keep the board running unchanged: no PAUSE, higher request ID, reset/reprogramming retry or fault test is authorised.**
+
+## IPE programming evidence — received 2026-10-21 04:17
+
+The user supplied the existing log for `C:\Users\c14029\Downloads\usb-rebuild-detail-bae3050\usb-rebuild-detail.hex`. IPE reports:
+
+- HEX loaded successfully; DFP `PIC32MX_DFP,1.7.380,Microchip`.
+- PICkit5 target voltage detected; device `PIC32MX270F256D`, revision `0xA1`, Device Id `0x660a053`.
+- Program memory range `0x1D000000..0x1D007FFF`, plus configuration memory and boot config memory.
+- `Programming/Verify complete` and `Programming complete` at local `2026-10-20 21:13:37 -0700` (`2026-10-21 04:13:37Z`).
+- `*** Hold In Reset mode is enabled ***`.
+
+This confirms tool-reported successful programming/verification of the named file and the intended 32 KB program range. The log does not include an independent HEX hash or detailed erase bounds. IPE's approximate 12% usage is not the linked-image reservation audit.
+
+Hold In Reset is now explicitly tool-reported. It is consistent with PICkit5 affecting reset while connected, but no MCLR waveform or electrical mechanism was measured. It does not diagnose the older USB-only INIT/REBUILD failure. The subsequent successful HID queries establish that firmware was running when those queries completed. Leave PICkit5 disconnected and preserve external power/settings; no setting change or reconnection test is requested.
 
 ## Package and compatibility
 
