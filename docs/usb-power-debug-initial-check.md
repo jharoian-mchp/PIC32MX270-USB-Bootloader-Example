@@ -4,6 +4,22 @@ The user approved this temporary 48 KB layout at 2026-10-21 18:42 and confirmed 
 
 The previous callback-mask trial failed at DRIVER_READY/usb_busy1024 with USBPWR and USBBUSY sampled set. This image adds three one-shot observations; it adds no wait or readiness correction. USB-only restart and BUSY semantics remain hardware-unqualified. Uploads, NVM writes, application handoff and protection changes are disabled.
 
+## Programming and initial results — 2026-10-21 20:24
+
+The user supplied the existing IPE log for `usb-power-debug-2de2f84\usb-power-debug.hex` and all five read-only outputs:
+
+- IPE: target voltage detected, PIC32MX270F256D/revision0xA1/DeviceId0x660a053, DFP1.7.380, HEX loaded successfully. `Programming/Verify complete` and `Programming complete` at local `2026-10-21 13:22:23 -0700` (`2026-10-21 20:22:23Z`). Hold In Reset remains enabled.
+- Reported program memory: `0x1D000000..0x1D008FFF`, plus configuration memory and boot config memory. This36KB reported extent lies inside the approved48KB reservation; it does not relocate the application origin or reduce the linker reservation. The log does not establish detailed erase bounds or an independent HEX hash.
+- Python3.14.8; list found exactly one expected VID04D8/PID003C/interface0/vendor usageFF00:1 HID.
+- Explicit debug probe: protocol1/max510/origin1D00C000/end1D03FC00/row128/erase1024.
+- STATUS: ticket0/generation1/completed_cycles0/state0.
+- PREVIOUS: valid:false, READY/NONE and zero identity/time/evidence/detail defaults.
+- Power-previous: valid:false, zero identity/time/metadata, all three samples null and POST/READY deltas null. Nominal Count24MHz is decoder profile information, not a measured board clock.
+
+Programming/verification, initial link, debug-layout reporting and both retained query decoders pass. No validated prior record or reached sample is available. This does not establish why older SRAM evidence is absent, retention under this image, power-enable timing or successful USB-only restart. No rebuild observation has been produced by these initial checks.
+
+Initial-only evidence collection is complete. Keep external power/settings unchanged and PICkit5 disconnected. **No PAUSE, higher ID, reset/programming retry or fault test is authorised.** A single evidence-producing trial requires a separate decision; no new command is granted by these results.
+
 ## Package and temporary layout
 
 Package: `usb-power-debug-2de2f84.zip`. Extract into a **new directory**, separate from older packages. Use this package's scripts and prebuilt images only; do not substitute a normal MPLAB Clean/Build output.
