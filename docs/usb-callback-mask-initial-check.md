@@ -82,6 +82,10 @@ If programming or any query fails, capture the exact output and stop. If `list` 
 
 ## Offline verification
 
+Verified archive: 75724 bytes, SHA-256 `377d9e59ca67daa3c41737a8eaae8cddd1ddb4fc96b63e41153cd64bd239298b`. Its nine entries passed ZIP CRC, staged/extracted equality, all eight listed checksums and manifest file hashes/scope. Extracted host CLI and 19 test methods passed with no skips, including the mocked C dispatcher fixture. Default PREVIOUS, historical valid:true irq512 evidence and old26-byte refusal cases passed offline. No board was accessed. Packaged `START-HERE.md` is procedure commit `c9ae28417a8b3f3e0d9d20ea54ed94c00357cc9c`; this later verification record adds no board authority.
+
+The initial-only procedure review requested manifest/all-file checksum verification and a stop before queries for any unexpected/ambiguous device list. Both changes were added and confirmed in the bounded follow-up.
+
 Strict tests, ASan/UBSan, exact callback/attach hooks0/1 tests, generated-overlay/XC32 checks and linked ELF/HEX/configuration/startup audit passed. The unchanged MCC bases passed a five-file overlay round-trip; negative artifact regressions reject corrupt bytes and unsafe load/initialisation metadata. Bounded source/publication/attach reviews found no concrete must-fix within their completed scopes; a broader final review timed out and was not treated as approval.
 
 The package's actual copied artifacts, archive entries/checksums and extracted host scripts are verified before attachment. Those checks do not qualify interrupt timing, later USBBUSY/USBEN/queue/BDT predicates, hardware restart, power-loss retention or arbitrary LTO instruction safety. Report this image's initial results before any further test.
