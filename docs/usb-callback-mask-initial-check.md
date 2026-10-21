@@ -15,7 +15,19 @@ The user returned all four outputs from the new `usb-callback-mask-a57fef3` dire
 
 Initial enumeration, capabilities, live STATUS and expanded PREVIOUS decoding pass. No validated retained record is available. This absence does not identify whether earlier evidence was invalidated or rejected, verify the programmed file's hash, or qualify retention or USB-only restart. No callback-mask rebuild has been exercised by these read-only checks.
 
-The IPE programming/verification result has not yet been supplied. Confirm the existing result without reconnecting PICkit5 or repeating programming. **Leave the board running unchanged: no PAUSE, higher ID, reset/reprogramming retry or fault test is authorised.**
+The subsequent IPE log confirms programming/verification on the second attempt, as recorded below. **Leave the board running unchanged: no PAUSE, higher ID, reset/reprogramming retry or fault test is authorised.** Clarify the earlier no-VDD report from recollection only; do not reproduce it.
+
+## IPE attempts — received 2026-10-21 05:14
+
+The existing log names `C:\Users\c14029\Downloads\usb-callback-mask-a57fef3\usb-callback-mask.hex`, loaded successfully with DFP `PIC32MX_DFP,1.7.380,Microchip`.
+
+- First attempt at local `2026-10-20 22:11:25 -0700` reported that the target was configured to supply its own power but no voltage was detected on VDD, then `Connection Failed`. No erase/program operation is shown for that attempt.
+- Second attempt at `22:11:35 -0700` detected target voltage and found PIC32MX270F256D/revision0xA1/DeviceId0x660a053. It reported program memory `0x1D000000..0x1D007FFF`, configuration memory and boot config memory, followed by `Programming/Verify complete` and `Programming complete` at `22:11:36 -0700` (`2026-10-21 05:11:36Z`).
+- `*** Hold In Reset mode is enabled ***` remains explicitly tool-reported.
+
+Successful programming/verification of the named image and the intended program range are now tool-reported. The log does not contain an independent file hash, VDD waveform or detailed erase bounds; approximate12% usage is not the linked-image reservation audit. The later successful HID queries establish firmware running at query time, not restart qualification.
+
+The first no-VDD report does not establish actual loss of board power: a target-supply interruption, programmer connection/sensing issue or other cause is not distinguished. It also cannot explain PREVIOUS valid:false without further evidence. Ask what changed between the attempts and confirm the existing independent supply is active and PICkit5 disconnected, without changing or retesting anything. Both attempts are recorded; no retry permission is granted by the successful second result.
 
 ## Package and images
 
