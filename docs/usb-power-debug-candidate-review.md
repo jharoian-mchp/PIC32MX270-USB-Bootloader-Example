@@ -44,6 +44,10 @@ Before offering a programming procedure, establish whether application code or o
 
 Any future approval must explicitly accept the temporary48KB diagnostic layout and its overlap, identify the exact diagnostic/recovery files, and bound programming plus initial checks. Keep protection and supply settings unchanged. Review the actual programmer operation/erase scope before use, and stop on any unexpected target or memory-range report.
 
+## Subsequent overlap-aware initial approval — 18:42
+
+The user confirmed no application code/data in the overlapped interval needs preserving and approved temporary48KB programming plus list/probe/STATUS/PREVIOUS/power-previous only. The [initial-check procedure](usb-power-debug-initial-check.md) defines that later limited scope. No PAUSE is authorised. Earlier no-delivery statements describe this review's cutoff; erase/programming outside the stated scope still requires separate approval.
+
 ## Requirements for a future package
 
 A separately approved package must use a new directory and matching `2de2f84` firmware/host sources, exact copied-artifact audit JSON, manifest identifying the48KB reservation/origin1D00C000/schema4/128-byte journal, checksums, known recovery HEX and an overlap-aware procedure. Verify all archive entries, extracted bytes and host tests before attaching it. Do not reuse an older32KB manifest or source identification.
