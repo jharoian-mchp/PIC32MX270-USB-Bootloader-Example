@@ -11,6 +11,7 @@
 #if USB_RETIREMENT_HOOKS
 #include "definitions.h"
 #include "usb_restart.h"
+#include "usb_restart_journal.h"
 typedef struct {
     USB_RESTART_STATE state;
     uint32_t generation,completed_cycles,stale_events,cancel_errors;
@@ -31,6 +32,9 @@ void USB_RestartOwnerAck(uint32_t ticket,bool success,uint32_t now);
  * USB-only rebuild, not MCU reset. Output is separate caller storage. */
 unsigned USB_RestartOwnerPause(uint32_t id,uint32_t generation,uint32_t now,uint32_t *ticket);
 void USB_RestartOwnerStatus(uint32_t *ticket,uint32_t *generation);
+/* Previous validated retained-RAM record captured at owner initialization;
+ * not updated by current operation, and never consumed as authorization. */
+bool USB_RestartOwnerPrevious(USB_RESTART_RECORD *record);
 void USB_RestartOwnerTasks(uint32_t now,bool cable_present,bool mux_ready);
 #endif
 #endif

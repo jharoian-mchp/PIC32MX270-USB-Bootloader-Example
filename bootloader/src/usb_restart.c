@@ -7,8 +7,11 @@ static bool Overlap(const void *a,size_t an,const void *b,size_t bn)
 }
 static bool Expired(const USB_RESTART *s,uint32_t now)
 {return (uint32_t)(now-s->since)>=s->timeout_ms;}
-static USB_RESTART_STATE Fail(USB_RESTART *s)
-{s->state=USB_RESTART_FAILED;return s->state;}
+static USB_RESTART_STATE Fail(USB_RESTART *s,USB_RESTART_FAULT fault)
+{
+    if(s->state!=USB_RESTART_FAILED){s->failure_phase=s->state;s->fault=fault;}
+    s->state=USB_RESTART_FAILED;return s->state;
+}
 bool USB_RestartInit(USB_RESTART *s,const USB_RESTART_PORT *p,uint32_t timeout)
 {
     if(s==NULL||p==NULL||timeout==0U||timeout>0x7FFFFFFFU||
@@ -26,27 +29,29 @@ bool USB_RestartRequest(USB_RESTART *s,uint32_t now,uint32_t *ticket)
        (s->state!=USB_RESTART_READY&&s->state!=USB_RESTART_DONE)||
        s->ticket==UINT32_MAX||s->generation==UINT32_MAX)return false;
     ++s->ticket;s->since=now;s->offline_confirmed=false;s->state=USB_RESTART_ACK_WAIT;
+    s->failure_phase=USB_RESTART_READY;s->fault=USB_RESTART_FAULT_NONE;
     *ticket=s->ticket;return true;
 }
 void USB_RestartAck(USB_RESTART *s,uint32_t ticket,bool success,uint32_t now)
 {
     if(s==NULL||!s->initialized||s->state!=USB_RESTART_ACK_WAIT||ticket!=s->ticket)return;
-    if(!success||Expired(s,now)){Fail(s);return;}
-    if(!s->port.fence_submissions(s->port.context)||!s->port.cancel_and_detach(s->port.context))
-    {Fail(s);return;}
+    if(!success){Fail(s,USB_RESTART_FAULT_ACK);return;}
+    if(Expired(s,now)){Fail(s,USB_RESTART_FAULT_TIMEOUT);return;}
+    if(!s->port.fence_submissions(s->port.context)){Fail(s,USB_RESTART_FAULT_FENCE);return;}
+    if(!s->port.cancel_and_detach(s->port.context)){Fail(s,USB_RESTART_FAULT_CANCEL);return;}
     s->since=now;s->state=USB_RESTART_DRAIN;
 }
 USB_RESTART_STATE USB_RestartPoll(USB_RESTART *s,uint32_t now)
 {
     if(s==NULL||!s->initialized)return USB_RESTART_FAILED;
     if(s->state==USB_RESTART_READY||s->state==USB_RESTART_DONE||s->state==USB_RESTART_FAILED)return s->state;
-    if(Expired(s,now))return Fail(s);
+    if(Expired(s,now))return Fail(s,USB_RESTART_FAULT_TIMEOUT);
     switch(s->state)
     {
         case USB_RESTART_DRAIN:
             if(s->port.transfers_drained(s->port.context))
             {
-                if(!s->port.mask_and_power_off(s->port.context))return Fail(s);
+                if(!s->port.mask_and_power_off(s->port.context))return Fail(s,USB_RESTART_FAULT_POWER_OFF);
                 s->state=USB_RESTART_OFF_WAIT;s->since=now;
             }
             break;
@@ -56,14 +61,15 @@ USB_RESTART_STATE USB_RestartPoll(USB_RESTART *s,uint32_t now)
             {s->offline_confirmed=true;s->state=USB_RESTART_RETIRE;s->since=now;}
             break;
         case USB_RESTART_RETIRE:
-            if(!s->port.module_off_idle(s->port.context)||!s->port.transfers_drained(s->port.context)||
-               !s->port.retire_resources(s->port.context))return Fail(s);
+            if(!s->port.module_off_idle(s->port.context))return Fail(s,USB_RESTART_FAULT_OFF_IDLE);
+            if(!s->port.transfers_drained(s->port.context))return Fail(s,USB_RESTART_FAULT_DRAIN);
+            if(!s->port.retire_resources(s->port.context))return Fail(s,USB_RESTART_FAULT_RETIRE);
             s->state=USB_RESTART_INIT;s->since=now;
             break;
         case USB_RESTART_INIT:
-            if(!s->port.module_off_idle(s->port.context))return Fail(s);
+            if(!s->port.module_off_idle(s->port.context))return Fail(s,USB_RESTART_FAULT_OFF_IDLE);
             ++s->generation;
-            if(!s->port.initialize_usb_only(s->port.context,s->generation))return Fail(s);
+            if(!s->port.initialize_usb_only(s->port.context,s->generation))return Fail(s,USB_RESTART_FAULT_INIT);
             s->offline_confirmed=false;s->state=USB_RESTART_CONFIG_WAIT;s->since=now;
             break;
         case USB_RESTART_CONFIG_WAIT:
@@ -74,4 +80,4 @@ USB_RESTART_STATE USB_RestartPoll(USB_RESTART *s,uint32_t now)
     return s->state;
 }
 void USB_RestartCancel(USB_RESTART *s)
-{if(s!=NULL&&s->initialized)Fail(s);}
+{if(s!=NULL&&s->initialized)Fail(s,USB_RESTART_FAULT_EXTERNAL);}

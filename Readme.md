@@ -87,6 +87,7 @@ tools/
 docs/
   usb-host-probe.md    Active read-only capabilities endpoint and Python hardware test
   host-compatibility.md Vendor host packet findings and recommended manifest extension
+  usb-restart-phase-evidence.md Source-tested retained SRAM phase/reason journal; not board-delivered
   usb-restart-board-test.md Initial experimental USB-only image/status/pause/recovery procedure
   usb-restart-host-audit.md Single-send host verifier/linked ELF-HEX audit and final review fixes
   usb-pause-diagnostic.md Opt-in USB-only pause/status and completed-send authority
@@ -308,3 +309,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-20:** First cleanPAUSE100 failed: hostremoval/reconnect timeout, userremovalsound, postlist[]/STATUSnointerface. Experimental startup/list/probe/STATUS passed, but USB-only reconnect failed; stoppedphase notdetermined fromhostevidence. No repeatPAUSE/higherID permitted. Next recoverySW1/MCLR/read-onlychecks withPICkit5disconnected; ifneededprogramdefaultrecovery. Drain/offidle/retire/rebuild sourceinspected withoutconclusivephase, nocode/HEXchangesyet. NVM/protection/applicationqualification remainblocked; docs/usb-restart-board-test.md.
 
 - **2026-10-20:** Following failedPAUSE100, requested SW1/MCLR recovery returns expected HID/list/probe and STATUSticket0/gen1/cycles0/state0. Startup recovery passes; reset erased volatile failure-phase evidence, not proof of USB-only restart completion. No repeatPAUSE/currentimage or protection/upload/fault tests. Next source diagnosis and retained phase/failure instrumentation before another authorised evaluation; no code/HEX changed for this result.
+
+- **2026-10-20:** Added firstrestartfailurephase/reason and evidence-only two-slotretainedSRAMCRC/commit journal; optinPREVIOUS68 reports previousbootcapturedrecord, neverfeedsresumepermission. Drain/offidleblockerbits andchangedstatecache added. LTOinitialpersistentattribute landedBSS; explicit.persistsection/used fixeslinkedNOBITS96bytes audited. TwentyC+21Python/ASan/UBSan/enabledXC32/imageauditpass, instrumentedtext31057/data88/bss1908 same32KB/defaultunchanged/XML42sources. Actualfailedphase/retentionhardwareunverified; broaderownerreviewtimedout. No replacementpackage orPAUSEapproved, nextinstrumentedreview/retentionaudit beforegatedevidencecollection. docs/usb-restart-phase-evidence.md.

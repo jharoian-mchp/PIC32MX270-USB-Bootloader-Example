@@ -81,16 +81,18 @@ test:
 	./build/tests/usb_probe_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Itests/usb_owner_mocks -Ibootloader/src -Itests/usb_mocks bootloader/src/usb_probe.c bootloader/src/update_wire.c bootloader/src/update_protocol.c tests/usb_probe_test.c -o build/tests/usb_pause_test
 	./build/tests/usb_pause_test
-	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Itests/usb_owner_mocks -Ibootloader/src -Itests/usb_mocks bootloader/src/usb_probe.c bootloader/src/update_wire.c bootloader/src/update_protocol.c bootloader/src/usb_restart_owner.c bootloader/src/usb_restart.c tests/usb_pause_owner_test.c -o build/tests/usb_pause_owner_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Itests/usb_owner_mocks -Ibootloader/src -Itests/usb_mocks bootloader/src/usb_probe.c bootloader/src/update_wire.c bootloader/src/update_protocol.c bootloader/src/usb_restart_owner.c bootloader/src/usb_restart.c bootloader/src/usb_restart_journal.c tests/usb_pause_owner_test.c -o build/tests/usb_pause_owner_test
 	./build/tests/usb_pause_owner_test
 	./build/tests/usb_pause_owner_test failed-ack
 	./build/tests/usb_pause_owner_test expired-ack
 	./build/tests/usb_pause_owner_test reset-wait
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/usb_restart.c tests/usb_restart_test.c -o build/tests/usb_restart_test
 	./build/tests/usb_restart_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/usb_restart_journal.c tests/usb_restart_journal_test.c -o build/tests/usb_restart_journal_test
+	./build/tests/usb_restart_journal_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/usb_irp_ledger.c tests/usb_irp_ledger_test.c -o build/tests/usb_irp_ledger_test
 	./build/tests/usb_irp_ledger_test
-	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -Itests/usb_owner_mocks -Itests/usb_mocks -Ibootloader/src bootloader/src/usb_restart_owner.c bootloader/src/usb_restart.c tests/usb_restart_owner_test.c -o build/tests/usb_restart_owner_test
+	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -Itests/usb_owner_mocks -Itests/usb_mocks -Ibootloader/src bootloader/src/usb_restart_owner.c bootloader/src/usb_restart.c bootloader/src/usb_restart_journal.c tests/usb_restart_owner_test.c -o build/tests/usb_restart_owner_test
 	./build/tests/usb_restart_owner_test
 	./build/tests/usb_restart_owner_test error
 	./build/tests/usb_restart_owner_test ack-reset

@@ -61,17 +61,18 @@ int main(void)
     configured_generation=3;USB_RestartPoll(&s,30);assert(s.state==USB_RESTART_DONE);
     /* Failed/late ACK has no side effects; cancelled late callback no retry. */
     Reset(&s);assert(USB_RestartRequest(&s,0,&ticket));USB_RestartAck(&s,ticket,false,1);
-    assert(s.state==USB_RESTART_FAILED&&used==0);USB_RestartAck(&s,ticket,true,2);assert(used==0);
+    assert(s.state==USB_RESTART_FAILED&&s.failure_phase==USB_RESTART_ACK_WAIT&&s.fault==USB_RESTART_FAULT_ACK&&used==0);
+    USB_RestartAck(&s,ticket,true,2);assert(used==0);USB_RestartCancel(&s);assert(s.fault==USB_RESTART_FAULT_ACK);
     Reset(&s);assert(USB_RestartRequest(&s,UINT32_MAX-5,&ticket));
     USB_RestartAck(&s,ticket,true,95);assert(s.state==USB_RESTART_FAILED&&used==0);
     /* Timeout at drain/off/config keeps storage and performs no hidden retire. */
     Reset(&s);assert(USB_RestartRequest(&s,0,&ticket));USB_RestartAck(&s,ticket,true,1);
-    USB_RestartPoll(&s,101);assert(s.state==USB_RESTART_FAILED&&resource_retired==0&&powered);
+    USB_RestartPoll(&s,101);assert(s.state==USB_RESTART_FAILED&&s.failure_phase==USB_RESTART_DRAIN&&s.fault==USB_RESTART_FAULT_TIMEOUT&&resource_retired==0&&powered);
     Reset(&s);assert(USB_RestartRequest(&s,0,&ticket));USB_RestartAck(&s,ticket,true,1);
     pending=false;USB_RestartPoll(&s,2);USB_RestartPoll(&s,102);
-    assert(s.state==USB_RESTART_FAILED&&!powered&&resource_retired==0&&hardware_busy);
+    assert(s.state==USB_RESTART_FAILED&&s.failure_phase==USB_RESTART_OFF_WAIT&&s.fault==USB_RESTART_FAULT_TIMEOUT&&!powered&&resource_retired==0&&hardware_busy);
     Reset(&s);assert(USB_RestartRequest(&s,0,&ticket));Drain(&s,ticket,1);
-    USB_RestartPoll(&s,107);assert(s.state==USB_RESTART_FAILED&&resource_retired==1&&initializations==1);
+    USB_RestartPoll(&s,107);assert(s.state==USB_RESTART_FAILED&&s.failure_phase==USB_RESTART_CONFIG_WAIT&&s.fault==USB_RESTART_FAULT_TIMEOUT&&resource_retired==1&&initializations==1);
     /* Every mutating port failure stops, without reinitialization/retry. */
     for(unsigned failure=1;failure<=5;failure++)
     {
@@ -79,7 +80,8 @@ int main(void)
         pending=false;hardware_busy=false;
         for(uint32_t now=2;now<10&&s.state!=USB_RESTART_FAILED;now++)
         {if(s.state==USB_RESTART_OFF_WAIT)hardware_busy=false;USB_RestartPoll(&s,now);}
-        assert(s.state==USB_RESTART_FAILED&&call==failure);
+        const USB_RESTART_FAULT expected[]={USB_RESTART_FAULT_FENCE,USB_RESTART_FAULT_CANCEL,USB_RESTART_FAULT_POWER_OFF,USB_RESTART_FAULT_RETIRE,USB_RESTART_FAULT_INIT};
+        assert(s.state==USB_RESTART_FAILED&&s.fault==expected[failure-1]&&call==failure);
         unsigned old=call;USB_RestartPoll(&s,200);assert(call==old);
     }
     Reset(&s);assert(USB_RestartRequest(&s,0,&ticket));USB_RestartCancel(&s);USB_RestartAck(&s,ticket,true,1);

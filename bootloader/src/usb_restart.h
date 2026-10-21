@@ -9,6 +9,12 @@ typedef enum {
     USB_RESTART_OFF_WAIT,USB_RESTART_RETIRE,USB_RESTART_INIT,
     USB_RESTART_CONFIG_WAIT,USB_RESTART_DONE,USB_RESTART_FAILED
 } USB_RESTART_STATE;
+typedef enum {
+    USB_RESTART_FAULT_NONE=0,USB_RESTART_FAULT_TIMEOUT,USB_RESTART_FAULT_ACK,
+    USB_RESTART_FAULT_FENCE,USB_RESTART_FAULT_CANCEL,USB_RESTART_FAULT_POWER_OFF,
+    USB_RESTART_FAULT_OFF_IDLE,USB_RESTART_FAULT_DRAIN,USB_RESTART_FAULT_RETIRE,
+    USB_RESTART_FAULT_INIT,USB_RESTART_FAULT_EXTERNAL
+} USB_RESTART_FAULT;
 typedef struct {
     void *context;
     /* Atomic owner fence: block ALL submission paths (HID/EP0/tasks/ISR) and
@@ -26,7 +32,8 @@ typedef struct {
 typedef struct {
     USB_RESTART_PORT port;
     uint32_t generation,ticket,since,timeout_ms;
-    USB_RESTART_STATE state;
+    USB_RESTART_STATE state,failure_phase;
+    USB_RESTART_FAULT fault;
     bool initialized,offline_confirmed;
 } USB_RESTART;
 /* New/quiescent storage only. No active integration calls this coordinator. */

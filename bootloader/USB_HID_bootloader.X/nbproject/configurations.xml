@@ -18,6 +18,7 @@
       <itemPath>../src/update_wire.h</itemPath>
       <itemPath>../src/usb_probe.h</itemPath>
       <itemPath>../src/usb_restart.h</itemPath>
+      <itemPath>../src/usb_restart_journal.h</itemPath>
       <itemPath>../src/usb_restart_owner.h</itemPath>
       <itemPath>../src/usb_retirement.h</itemPath>
       <itemPath>../src/usb_rebuild.h</itemPath>
@@ -281,6 +282,7 @@
       <itemPath>../src/update_wire.c</itemPath>
       <itemPath>../src/usb_probe.c</itemPath>
       <itemPath>../src/usb_restart.c</itemPath>
+      <itemPath>../src/usb_restart_journal.c</itemPath>
       <itemPath>../src/usb_restart_owner.c</itemPath>
       <itemPath>../src/usb_retirement.c</itemPath>
       <itemPath>../src/usb_irp_ledger.c</itemPath>

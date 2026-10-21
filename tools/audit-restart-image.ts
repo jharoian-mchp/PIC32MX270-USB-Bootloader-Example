@@ -94,12 +94,25 @@ try{
     const xc32=process.env.XC32_ROOT??"/workspace/ChrisK/tools/xc32/v6.00";
     const nm=Bun.spawnSync([`${xc32}/bin/xc32-nm`,elfPath],{stdout:"pipe",stderr:"pipe"});check(nm.exitCode===0,"nm failed");
     const symbols=nm.stdout.toString();
+    // Retained evidence must not silently become ordinary BSS under LTO.
+    const journal=symbols.match(/^([0-9a-fA-F]+)\s+[Bb]\s+restart_journal$/m);
+    const begin=symbols.match(/^([0-9a-fA-F]+)\s+[Bb]\s+_persist_begin$/m);
+    const end=symbols.match(/^([0-9a-fA-F]+)\s+[Bb]\s+_persist_end$/m);
+    check(journal!==null&&begin!==null&&end!==null,"retained journal/persist symbols missing");
+    const ja=parseInt(journal[1],16),pb=parseInt(begin[1],16),pe=parseInt(end[1],16);
+    check(ja>=pb&&ja+96<=pe&&pb>=0xA0000000&&pe<=0xA0010000,"journal outside retained SRAM range");
+    let journalNobits=false;
+    for(let i=0;i<shcount;i++){
+        const s=shoff+i*shsize,a=elf.readUInt32LE(s+12),n=elf.readUInt32LE(s+20);
+        if(ja>=a&&ja+96<=a+n&&elf.readUInt32LE(s+4)===8)journalNobits=true;
+    }
+    check(journalNobits,"journal must occupy retained NOBITS section, not loadable initialized data");
     check(/^bfc00480\s+\w\s+__DbgExecReturn$/m.test(symbols),"expected XC32 debug-return stub location missing");
     for(const name of ["USB_RestartOwnerRequest","USB_RestartOwnerAck"])
         check(new RegExp(`^[0-9a-fA-F]+\\s+[Tt]\\s+${name}$`,"m").test(symbols),`required defined code symbol ${name} missing`);
     check(!/\b(?:UPDATE_(?:Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)\w*|NVM_(?:RowWrite|PageErase|WordWrite)|run_Application)\b/.test(symbols),"linked update/NVM write/handoff entrypoint");
     const hash=(bytes:Uint8Array)=>new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
-    const result={elf:elfPath,hex:hexPath,elf_sha256:hash(elf),hex_sha256:hash(readFileSync(hexPath)),hex_bytes:memory.size,segments,config,
+    const result={elf:elfPath,hex:hexPath,elf_sha256:hash(elf),hex_sha256:hash(readFileSync(hexPath)),hex_bytes:memory.size,segments,config,retained_journal:{address:`0x${ja.toString(16).toUpperCase()}`,bytes:96,nobits:true},
         review_scope:"ELF load spans/HEX equality/config equality/symbol exclusion; LTO can inline code, so symbols alone do not prove arbitrary instruction safety.",
         hardware_qualified:false,board_delivery_approved:false};
     writeFileSync(elfPath.replace(/\.elf$/,"-audit.json"),JSON.stringify(result,null,2)+"\n");

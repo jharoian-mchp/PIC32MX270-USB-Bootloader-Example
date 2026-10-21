@@ -15,17 +15,21 @@ import pic32_hid as host
 
 PAUSE = 0x66
 STATUS = 0x67
+PREVIOUS = 0x68
 BODY = struct.Struct("<IIIB")
+PREVIOUS_BODY = struct.Struct("<IIIBBBBB")
+PHASES = ("READY", "ACK_WAIT", "DRAIN", "OFF_WAIT", "RETIRE", "INIT", "CONFIG_WAIT", "DONE", "FAILED")
+FAULTS = ("NONE", "TIMEOUT", "ACK", "FENCE", "CANCEL", "POWER_OFF", "OFF_IDLE", "DRAIN", "RETIRE", "INIT", "EXTERNAL")
 
 
 def payload(opcode, request_id, generation=None):
     if type(request_id) is not int or not 1 <= request_id <= 0xFFFFFFFF:
         raise host.HostError("request ID must be 1..0xFFFFFFFF")
-    if opcode == STATUS and generation is None:
+    if opcode in (STATUS, PREVIOUS) and generation is None:
         return host.REQUEST_HEADER.pack(opcode, 1, request_id)
     if opcode == PAUSE and type(generation) is int and 1 <= generation <= 0xFFFFFFFF:
         return host.REQUEST_HEADER.pack(opcode, 1, request_id) + struct.pack("<I", generation)
-    raise host.HostError("diagnostic transport permits only STATUS and generation-bound PAUSE")
+    raise host.HostError("diagnostic transport permits only STATUS/PREVIOUS and generation-bound PAUSE")
 
 
 def exchange(device, request, timeout=2.0, clock=time.monotonic):
@@ -64,6 +68,18 @@ def exchange(device, request, timeout=2.0, clock=time.monotonic):
                 if any(data[used:]):
                     raise host.HostError("non-padding after diagnostic frame")
                 body = host.parse_response(response, op, request_id)
+                if op == PREVIOUS:
+                    if len(body) != PREVIOUS_BODY.size:
+                        raise host.HostError("invalid previous-record response length")
+                    ticket, generation, time_ms, state, phase, fault, evidence, valid = PREVIOUS_BODY.unpack(body)
+                    if state > 8 or phase > 8 or fault >= len(FAULTS) or valid not in (0, 1) or (valid and (not ticket or not generation)):
+                        raise host.HostError("invalid retained diagnostic record")
+                    if clock() >= deadline:
+                        raise host.HostError("deadline exceeded decoding retained record")
+                    return {"valid": bool(valid), "ticket": ticket, "generation": generation,
+                            "time_ms": time_ms, "state": PHASES[state], "phase": PHASES[phase],
+                            "fault": FAULTS[fault], "evidence_bits": evidence,
+                            "warning": "Retained SRAM evidence only; not reset-safe identity or restart permission."}
                 if len(body) != BODY.size:
                     raise host.HostError("invalid diagnostic response length")
                 ticket, generation, cycles, state = BODY.unpack(body)
@@ -89,11 +105,11 @@ def open_device(module, path):
     return device
 
 
-def status(module, path_hex=None, timeout=2.0):
+def status(module, path_hex=None, timeout=2.0, opcode=STATUS):
     selected = host.select_device(host.candidates(module), path_hex)
     device = open_device(module, selected["path"])
     try:
-        return exchange(device, payload(STATUS, secrets.randbelow(0xFFFFFFFF) + 1), timeout)
+        return exchange(device, payload(opcode, secrets.randbelow(0xFFFFFFFF) + 1), timeout)
     finally:
         device.close()
 
@@ -169,7 +185,7 @@ def restart(module, request_id, path_hex=None, timeout=2.0, reconnect_timeout=15
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("status", "restart"))
+    parser.add_argument("command", choices=("status", "previous", "restart"))
     parser.add_argument("--path-hex")
     parser.add_argument("--timeout", type=float, default=2)
     parser.add_argument("--reconnect-timeout", type=float, default=15)
@@ -180,7 +196,7 @@ def main():
         if args.command == "restart" and (not args.confirm_usb_disconnect or args.request_id is None):
             raise host.HostError("restart requires --request-id and --confirm-usb-disconnect")
         module = host.hid_module()
-        result = status(module, args.path_hex, args.timeout) if args.command == "status" else restart(
+        result = status(module, args.path_hex, args.timeout, PREVIOUS if args.command == "previous" else STATUS) if args.command != "restart" else restart(
             module, args.request_id, args.path_hex, args.timeout, args.reconnect_timeout)
         print(json.dumps(result, indent=2, sort_keys=True))
     except (host.HostError, OSError) as exc:

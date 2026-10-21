@@ -27,7 +27,8 @@ class Device:
             state = (1, 2, 1, 7) if not self.module.wrong else (1, 1, 0, 0)
         else:
             state = (0, 1, 0, 0)
-        response = host.RESPONSE_HEADER.pack(op | 0x80, version, 0, 0, request_id) + diag.BODY.pack(*state)
+        body = diag.PREVIOUS_BODY.pack(1, 1, 10020, 8, 2, 1, 4, 1) if op == diag.PREVIOUS else diag.BODY.pack(*state)
+        response = host.RESPONSE_HEADER.pack(op | 0x80, version, 0, 0, request_id) + body
         self.response = host.encode_frame(response).ljust(64, b"\0")
         return 65
     def read(self, size, timeout):
@@ -103,6 +104,15 @@ class RestartDiagnostic(unittest.TestCase):
             with self.assertRaisesRegex(host.HostError, "deadline exceeded"):
                 diag.exchange(Slow(module), diag.payload(diag.STATUS, 1), 1, clock)
             self.assertEqual(module.sent, [diag.STATUS])
+
+    def test_previous_record_is_read_only_evidence(self):
+        module = Module()
+        device = Device(module)
+        result = diag.exchange(device, diag.payload(diag.PREVIOUS, 1))
+        self.assertTrue(result["valid"])
+        self.assertEqual((result["phase"], result["fault"]), ("DRAIN", "TIMEOUT"))
+        self.assertEqual(module.pauses, 0)
+        self.assertEqual(module.sent, [diag.PREVIOUS])
 
     def test_allowlist_envelope_and_deadline(self):
         for opcode in (2, 3, 5, 0x62, 0x63, 0x64, 0x70):

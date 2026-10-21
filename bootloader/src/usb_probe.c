@@ -35,6 +35,14 @@ static bool DiagnosticReply(const uint8_t *p,size_t n,uint8_t *out,size_t *lengt
         if(status==2U)return false;
         if(status==0U)pause_completion_ticket=ticket;
     }
+    else if(p[0]==0x68U&&n==6U)
+    {
+        USB_RESTART_RECORD r={0};bool valid=USB_RestartOwnerPrevious(&r);
+        out[0]=0xE8;out[1]=1;out[2]=0;out[3]=0;Put32(out+4,Get32(p+2));
+        Put32(out+8,r.ticket);Put32(out+12,r.generation);Put32(out+16,r.time_ms);
+        out[20]=(uint8_t)r.state;out[21]=(uint8_t)r.phase;out[22]=(uint8_t)r.fault;out[23]=r.evidence;
+        out[24]=valid?1U:0U;*length=25;return true;
+    }
     else if(p[0]!=0x67U||n!=6U)return false;
     USB_RestartOwnerStatus(&ticket,&generation);
     out[0]=(uint8_t)(p[0]|0x80U);out[1]=1;out[2]=0;out[3]=0;
