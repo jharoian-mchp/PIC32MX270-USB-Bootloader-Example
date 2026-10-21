@@ -1,6 +1,6 @@
 # Callback-mask diagnostic — initial read-only checks
 
-Only programming the supplied callback-mask diagnostic and the initial `list`, `probe`, `status` and `previous` checks are authorised by the user's 2026-10-21 05:03 approval. **Do not run `restart`/PAUSE, resend ID100, use a higher PAUSE ID or perform fault tests.** Stop and report after these initial checks even if all pass.
+Programming and the four initial read-only checks passed under the user's 2026-10-21 05:03 approval. At 05:28 the user separately approved **one PAUSE on the currently running callback-mask image**, as bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions describe the completed initial scope.
 
 The previous `bae3050` image failed at DRIVER_READY/irq_enabled512 and was recovered with powered SW1/MCLR. This replacement defers callback registration's interrupt enables until admitted attachment, preserving the readiness guard. It has passed source tests and local artifact review; actual USB-only restart and later readiness predicates are still hardware-unqualified. Uploads, NVM writes, application handoff and protection changes remain disabled.
 
@@ -28,6 +28,23 @@ The existing log names `C:\Users\c14029\Downloads\usb-callback-mask-a57fef3\usb-
 Successful programming/verification of the named image and the intended program range are now tool-reported. The log does not contain an independent file hash, VDD waveform or detailed erase bounds; approximate12% usage is not the linked-image reservation audit. The later successful HID queries establish firmware running at query time, not restart qualification.
 
 At 05:20 the user clarified: `Forgot to reattach PICKit5 prior to programming attempt`. The first attempt therefore lacked the programmer connection to the target, explaining its no-VDD report without establishing a board power fault. This recollection does not establish SRAM retention or explain PREVIOUS valid:false. Both attempts and the clarification are recorded; no retry permission follows from the successful second result. At 05:23 the user confirmed the current external supply is active and PICkit5 is disconnected from the board, without requesting any change or retest. Programming evidence, the four initial read-only results and current power/programmer state are now collected. No PAUSE is authorised; any single restart trial needs separate approval.
+
+## One callback-mask restart trial authorised — 2026-10-21 05:28
+
+The user explicitly approved one PAUSE on the currently running `usb-callback-mask-a57fef3` image, after successful IPE verification, initial STATUS ticket0/generation1/cycles0/state0 and confirmation of active external power/PICkit5 disconnected. This does not renew any older image's spent trial.
+
+Proceed only with those conditions still unchanged and exactly one matching board connected. Keep PICkit5 disconnected from the board. Do not press SW1/MCLR, change power/jumpers, unplug USB or reconnect PICkit5 during the command. Using the matching package directory and existing `$PY`:
+
+```powershell
+& $PY .\usb_restart_diag.py restart --request-id 100 --confirm-usb-disconnect --timeout 2 --reconnect-timeout 15
+& $PY .\pic32_hid.py list
+```
+
+**Run the restart command once only, then stop regardless of outcome.** The host reads live STATUS to bind PAUSE to the current generation and sends it once. ID100 applies to this fresh callback-mask boot; it grants no authority on older images. A timeout/lost response means an uncertain outcome, never permission to resend or increase the ID. The permission is spent when this one command is run, even if it fails.
+
+Send the restart and post-list outputs. If exactly one expected interface is present, also send matching `usb_restart_diag.py status --timeout 2` and `pic32_hid.py probe --timeout 2`. If the interface is absent, ambiguous or a query fails, capture the output and stop. Successful qualification for this cycle requires the host's verified removal/reconnect and live ticket1/generation2/completed_cycles1/state7; HID return alone does not establish it.
+
+**No reset, power-cycle, unplug, reprogramming or recovery before reporting.** If USB stays absent, preserve the failed state. A later powered SW1/MCLR recovery/PREVIOUS capture needs a separate decision after reviewing the output. PREVIOUS is boot-captured historical evidence, so reading it in the current boot cannot reveal the new trial's retained journal. No uploads, NVM/protection changes, destructive faults or additional cycles are authorised. Trial results are pending; no restart success is presumed.
 
 ## Package and images
 
