@@ -87,7 +87,8 @@ tools/
 docs/
   usb-host-probe.md    Active read-only capabilities endpoint and Python hardware test
   host-compatibility.md Vendor host packet findings and recommended manifest extension
-  usb-restart-phase-evidence.md Source-tested retained SRAM phase/reason journal; not board-delivered
+  usb-instrumented-initial-check.md New instrumented package; programming/read-only checks only
+  usb-restart-phase-evidence.md Retained SRAM journal/startup audit; no repeat PAUSE
   usb-restart-board-test.md Initial experimental USB-only image/status/pause/recovery procedure
   usb-restart-host-audit.md Single-send host verifier/linked ELF-HEX audit and final review fixes
   usb-pause-diagnostic.md Opt-in USB-only pause/status and completed-send authority
@@ -313,3 +314,5 @@ The application project is present. A separate `bootloader/` directory is the ne
 - **2026-10-20:** Added firstrestartfailurephase/reason and evidence-only two-slotretainedSRAMCRC/commit journal; optinPREVIOUS68 reports previousbootcapturedrecord, neverfeedsresumepermission. Drain/offidleblockerbits andchangedstatecache added. LTOinitialpersistentattribute landedBSS; explicit.persistsection/used fixeslinkedNOBITS96bytes audited. TwentyC+21Python/ASan/UBSan/enabledXC32/imageauditpass, instrumentedtext31057/data88/bss1908 same32KB/defaultunchanged/XML42sources. Actualfailedphase/retentionhardwareunverified; broaderownerreviewtimedout. No replacementpackage orPAUSEapproved, nextinstrumentedreview/retentionaudit beforegatedevidencecollection. docs/usb-restart-phase-evidence.md.
 
 - **2026-10-21:** Instrumentedownerreview fixed pre-port stalejournal evidence and request/writeIRQrace: version2checkpoint committedBEFOREportcalls, mainrequest IRQserialised. PrivateownerTU regression reads committedjournal insideFence/PowerOff/Rebuild. Linkedstartup.dinit clear/copy audit excludesjournal SRAM; malformed sectiontable/decoy.dinit findingsfixed with type/runtimeaddr/load/HEX checks andnegativecases. Twenty-oneC+21Python/sanitizers/XC32/LTOauditpass text31341/data88/bss1936; defaultunchanged, PREVIOUS68now26bytes/checkpoint, oldschema rejected. Boardfailurephase stillunknown/MCLRretentionuntested; no newpackage/PAUSEapproved. Next remainingauditreview and gated diagnosticdelivery decision, docs/usb-restart-phase-evidence.md.
+
+- **2026-10-21:** Bounded final owner/journal/PREVIOUS review found no concrete must-fix for initial read-only checks. Tests/sanitizers/enabledXC32/LTOaudit/negativecases rerun pass; HEXsha c69c3f3a2a8ad152be0f83e3a4e09475d9e0af20b4ac0ac10816d9f595dfdaac, text31341/data88/bss1936 same32KB/defaultunchanged. Separate instrumented package with recovery/checksums/matchinghostscripts supplied under docs/usb-instrumented-initial-check.md for programming+list/probe/status/previous ONLY. Procedure review added recoveryhashverification. NoPAUSE/restart/fault/NVM/protectionchange authorised; oldfailedphasecannotbereconstructed, newRAMretentionhardwareuntested. Awaitinitialoutputs before evidencecollectioncycle.

@@ -1,6 +1,6 @@
 # Restart phase and reset-retained diagnostic evidence
 
-The failed board PAUSE100 removed USB and did not reconnect; SW1/MCLR restored startup. Its stopped phase is still **unknown**. This source stage adds first-failure phase/reason and a two-slot retained-SRAM journal before another explicitly authorised board evaluation. **No new package or repeat PAUSE is delivered/authorised here.** NVM writes, protection changes and update commands remain disabled.
+The failed board PAUSE100 removed USB and did not reconnect; SW1/MCLR restored startup. Its stopped phase is still **unknown**. This source stage adds first-failure phase/reason and a two-slot retained-SRAM journal before another explicitly authorised board evaluation. A separate [initial read-only instrumented package](usb-instrumented-initial-check.md) is now delivered for programming and list/probe/STATUS/PREVIOUS checks only. **No repeat PAUSE is authorised.** NVM writes, protection changes and update commands remain disabled.
 
 ## Failure fields
 
@@ -38,7 +38,7 @@ The bits describe the last sampled wait, not necessarily an atomic hardware snap
 
 Only the opt-in diagnostic gains opcode68/version1/nonzero request ID, exact6-byte query. It causes no pause, clear or write. The response is now 26 payload bytes: existing8-byte response envelope, then ticket:u32/generation:u32/time_ms:u32/state:u8/phase:u8/fault:u8/evidence:u8/valid:u8/checkpoint:u8. CRC/framing/report padding are unchanged. Host `usb_restart_diag.py previous` accepts this new read-only opcode and prints named phases/reasons plus a retained-SRAM warning.
 
-The query reports only the prior validated snapshot captured at initialization; current operation cannot replace that snapshot. Existing status/tickets are not resumed from it. The currently delivered `2c91a8e` firmware has no68 handler, so **do not run this command against the board yet**; no instrumented board package has been delivered in this step.
+The query reports only the prior validated snapshot captured at initialization; current operation cannot replace that snapshot. Existing status/tickets are not resumed from it. The currently delivered `2c91a8e` firmware has no68 handler, so **do not run this command against the board yet**; use only the new instrumented package and its [limited initial procedure](usb-instrumented-initial-check.md). Do not use the old package's host scripts for the new26-byte response.
 
 ## Verification and limits
 
@@ -48,4 +48,4 @@ The query reports only the prior validated snapshot captured at initialization; 
 
 Journal source review found no concrete slot-format bug and required read/write serialization, now documented/enforced at capture. Instrumented-owner review found stale pre-port evidence and a request acceptance/journal race; pre-call checkpoints and the request critical section fix both, confirmed in a bounded follow-up. A private test-TU view asserts committed journal checkpoints inside mock FENCE/POWER_OFF/REBUILD calls. Audit review identified malformed section-name and decoy `.dinit` cases; type/index/runtime-address/load/HEX validation and negative regressions now reject them. Broader driver failure investigation and owner integration review attempts timed out; a narrow description review found no obvious resume-authority defect while noting boot-scoped identity/SRAM limits. No actual board stopped-phase or journal-retention evidence is claimed.
 
-The identified owner/journal review fixes and retained-startup audit now pass. Next complete the remaining diagnostic audit review and packaging decision before preparing a separate explicitly gated image. A controlled single PAUSE and MCLR/previous read could collect evidence, but it is **not authorised now**. Keep the current board in its recovered read-only state; no repeat PAUSE or higher request ID on the old image.
+The identified owner/journal review fixes, retained-startup audit and bounded initial read-only delivery review now pass. The [initial package](usb-instrumented-initial-check.md) may be programmed for the four read-only checks; send results before any new restart request. A controlled single PAUSE and MCLR/previous read could collect evidence, but it is **not authorised now**. Keep the current board in its recovered read-only state; no repeat PAUSE or higher request ID on the old image.

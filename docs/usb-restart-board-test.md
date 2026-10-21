@@ -32,7 +32,7 @@ The user sent the authorised PAUSE ID100. The host returned `removal/reconnect n
 
 After the requested SW1/MCLR recovery, the user supplied successful list/probe/STATUS again: the expected HID interface, unchanged capabilities and ticket0/generation1/completed_cycles0/state0. Startup recovery passes for this run. These reset counters do **not** establish that the failed USB-only rebuild completed; the volatile stopped-phase evidence has been lost.
 
-Do not repeat PAUSE on the current image. The [retained phase/failure instrumentation](usb-restart-phase-evidence.md) now exists in source/tests, but is not delivered to the board. Instrumented-owner review/retention audit still precede another explicitly authorised evaluation. No new firmware, protection setting or hardware fault test is requested by this recovery result.
+Do not repeat PAUSE on the current image. The [retained phase/failure instrumentation](usb-restart-phase-evidence.md) now has a separately reviewed [initial read-only instrumented package](usb-instrumented-initial-check.md). Its programming/list/probe/STATUS/PREVIOUS checks are authorised; PAUSE is still suspended. This old procedure does not authorise another PAUSE or supply matching new host scripts. No new firmware, protection setting or hardware fault test is requested by this recovery result.
 
 ## Delivered images and recovery
 
