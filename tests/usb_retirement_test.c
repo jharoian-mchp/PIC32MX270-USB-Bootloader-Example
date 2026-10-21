@@ -35,7 +35,9 @@ typedef struct {void (*eventHandlerSet)(uintptr_t,uintptr_t,void (*)(void));} IN
 #define USB_DEVICE_TASK_STATE_RUNNING 1
 #define USB_DEVICE_STATE_DETACHED 0
 #define _U1CON_USBEN_MASK 1U
-uint32_t U1CON;
+static uint32_t con_value;static unsigned con_reads;
+static uint32_t ReadCon(void){assert(!irq);++con_reads;return con_value;}
+#define U1CON ReadCon()
 typedef unsigned INT_SOURCE;
 static bool irq_source_enabled;
 static bool EVIC_SourceIsEnabled(INT_SOURCE source){(void)source;return irq_source_enabled;}
@@ -55,6 +57,7 @@ static void PLIB_USB_Disable(uintptr_t id){(void)id;assert(!irq);U1PWRC=8;powero
 static void DRV_USBFS_Deinitialize(unsigned index)
 {assert(index==0&&U1PWRC==0);deinit++;gDrvUSBGroup[0].gDrvUSBObj.inUse=false;}
 #include "hooks.inc"
+#include "nvm-usb-gate.inc"
 typedef uintptr_t DRV_HANDLE;
 typedef void (*DRV_USB_EVENT_CALLBACK)(void);
 typedef unsigned USB_INTERRUPTS;
@@ -111,6 +114,12 @@ int main(void)
     USB_RetirementPowerObserver(PowerObserve);USB_RetirementPowerReset();
     irq=false;USB_RetirementPowerEnableSample(false);USB_RetirementPowerReadySample(9);irq=true;
     assert(!count_reads&&!copies); /* ordinary startup adds no sample */
+    /* The actual flash USB exclusion gate remains power0 AND busy0. */
+    for(unsigned power=0;power<4;power++) {
+        U1PWRC=((power&1U)?1U:0U)|((power&2U)?8U:0U);
+        assert(UPDATE_NvmPortUsbActive()==(power!=0U));
+        assert(USB_RetirementOffIdle()==(power==0U));
+    }
     U1PWRC=1;assert(!USB_RetirementBlocked());
     /* Ordinary registration still enables both interrupt layers; invalid and
      * non-device calls do not. Default-off source is also checked by the overlay. */
@@ -175,23 +184,67 @@ int main(void)
     assert(driver->pEventCallBack==F_USB_DEVICE_EventHandler&&driver->hClientArg==(uintptr_t)&usbDeviceInstance[0]);
     irq=true;AssertAttachBlocked();
     assert(USB_RetirementBindHid(Callback,123));gUSBDeviceHidCommonDataObj.isMutexHidIrpInitialized=true;
-    U1PWRC=9;U1CON=0;count=14;assert(!USB_RetirementReopen(2));
+    /* The first READY sample still sees powered BUSY; USBEN now rejects next. */
+    U1PWRC=9;con_value=1;count=14;assert(!USB_RetirementReopen(2));
     assert(captured.meta==487&&captured.ready_delta==20&&count_reads==3&&copies==3&&commits==2);
-    assert(((observed_detail>>8)&65535U)==1024U);
-    U1PWRC=1;U1CON=1;assert(!USB_RetirementReopen(2));
-    assert(count_reads==3&&captured.ready_delta==20); /* one-shot stays first rejected sample */
+    assert(((observed_detail>>8)&65535U)==2048U&&(observed_detail>>24)==7U);
+    U1PWRC=1;con_value=1;assert(!USB_RetirementReopen(2));
+    assert(count_reads==3&&captured.ready_delta==20); /* first one-shot sample remains powered BUSY */
     assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==2048U);
     AssertAttachBlocked();
-    U1CON=0;U1PWRC=9;assert(!USB_RetirementReopen(2));
-    assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==1024U&&(observed_detail>>24)==3U);
+    /* Power-off (idle or busy) must reject before ordinary USB-register reads. */
+    for(unsigned power=0;power<=8;power+=8) {
+        U1PWRC=power;unsigned before=con_reads;assert(!USB_RetirementReopen(2));
+        assert(con_reads==before&&((observed_detail>>8)&65535U)==16384U&&(observed_detail>>24)==(power?2U:0U));
+        AssertAttachBlocked();
+    }
+    /* Powered BUSY does not bypass USBEN, queue, BDT or IRQ prerequisites. */
+    U1PWRC=9;con_value=0;driver->endpointTable[0].irpQueue=(void*)1;
+    assert(!USB_RetirementReopen(2)&&((observed_detail>>8)&65535U)==4096U);driver->endpointTable[0].irpQueue=NULL;
+    bdt[0].byte[0]=USBFS_UOWN;assert(!USB_RetirementReopen(2)&&((observed_detail>>8)&65535U)==8192U);bdt[0].byte[0]=0;
+    driver->pEventCallBack=NULL;unsigned before_con=con_reads;
+    assert(!USB_RetirementReopen(2)&&((observed_detail>>8)&65535U)==16U&&con_reads==before_con);driver->pEventCallBack=Callback;
+    irq=false;assert(USB_RetirementDriverReplacementReady());irq=true;
+    assert((observed_detail>>24)==3U&&((observed_detail>>8)&65535U)==0U&&USB_RetirementBlocked());
+    /* Every earlier driver check still short-circuits before U1CON, even busy+powered. */
+    for(unsigned check=0;check<9;check++) {
+        DRV_USBFS_OBJ saved=*driver;unsigned reads=con_reads;U1PWRC=9;
+        switch(check) {
+            case 0:driver->inUse=false;break;
+            case 1:driver->isOpened=false;break;
+            case 2:driver->status=0;break;
+            case 3:driver->pEventCallBack=NULL;break;
+            case 4:driver->isAttached=true;break;
+            case 5:driver->inInterruptContext=true;break;
+            case 6:driver->endpointTable=NULL;break;
+            case 7:driver->pBDT=NULL;break;
+            case 8:irq_source_enabled=true;break;
+        }
+        assert(!USB_RetirementReopen(2)&&con_reads==reads);
+        assert(((observed_detail>>8)&65535U)==(2U<<check)&&(observed_detail>>24)==0U);
+        *driver=saved;irq_source_enabled=false;AssertAttachBlocked();
+    }
+    /* Both powered busy values are accepted by the final driver predicate,
+     * but neither alone thaws the full stack. */
+    for(unsigned power=1;power<=9;power+=8) {
+        U1PWRC=power;con_value=0;irq=false;assert(USB_RetirementDriverReplacementReady());irq=true;
+        assert(USB_RetirementBlocked()&&((observed_detail>>8)&65535U)==0U&&(observed_detail>>24)==(power==9?3U:1U));
+    }
+    usbDeviceInstance[0].irpEp0Rx.status=3;assert(!USB_RetirementReopen(2));
+    assert((observed_detail&255U)==USB_REBUILD_DETAIL_DEVICE_READY&&((observed_detail>>8)&65535U)==256U);
+    usbDeviceInstance[0].irpEp0Rx.status=0;
+    gUsbDeviceHidInstance[0].currentRxQueueSize=1;assert(!USB_RetirementReopen(2));
+    assert((observed_detail&255U)==USB_REBUILD_DETAIL_HID_READY&&((observed_detail>>8)&65535U)==32U);
+    gUsbDeviceHidInstance[0].currentRxQueueSize=0;
     U1PWRC=1;irq_source_enabled=true;assert(!USB_RetirementReopen(2));
     assert(((observed_detail>>8)&65535U)==512U&&(observed_detail>>24)==0U);
     irq_source_enabled=false;
     assert(!USB_RetirementReopen(3));assert((observed_detail&255U)==USB_REBUILD_DETAIL_REOPEN&&((observed_detail>>8)&65535U)==2U);
-    assert(USB_RetirementReopen(2)&&!USB_RetirementBlocked());
+    U1PWRC=9;assert(USB_RetirementReopen(2)&&!USB_RetirementBlocked());
     assert((observed_detail&255U)==USB_REBUILD_DETAIL_DRIVER_READY&&((observed_detail>>8)&65535U)==0U);
     assert(!irq_source_enabled&&!session_enabled); /* Reopen does not unmask or attach. */
     assert(count_reads==3&&captured.meta==487&&copies==3);
+    assert((observed_detail>>24)==3U); /* successful powered BUSY remains retained evidence */
     irq=false;DRV_USBFS_DEVICE_Attach((uintptr_t)driver);assert(!irq);irq=true;
     assert(irq_source_enabled&&session_enabled&&attaches==1&&driver->isAttached&&source_enables==saved_source_enables+1);
     assert(USB_RetirementCallbacksIdle());

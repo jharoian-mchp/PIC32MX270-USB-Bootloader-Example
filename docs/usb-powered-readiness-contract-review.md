@@ -52,6 +52,10 @@ A vendor/device-specific answer or equivalent authoritative source would permit 
 
 If clarification supports a phase-specific powered rule, implement it as an explicit source-only safety-contract change with tests for powered-off rejection, BUSY combinations, IRQ/software/USBEN/queue/BDT failures and intact NVM/off-idle gates. Preserve first-rejection evidence, quarantine, generation continuity and trusted ownership. Candidate review, initial programming scope and any later trial remain separate gates. An arbitrary delay or diagnostic guard bypass is not selected here.
 
+## Subsequent user-directed source decision — 21:16
+
+The user directed following the Harmony USB template while retaining the concern. The [experimental powered-readiness implementation](usb-harmony-powered-readiness.md) requires USBPWR1 and makes BUSY evidence-only during powered reconstruction, retaining all other guards and the hard power-off/NVM gates. This is an explicit decision change under the user's direction, not a device-specific manufacturer clarification. The concerns and prepared question above remain open; no hardware trial or new package is authorised.
+
 ## Verification and review limits
 
 - Compared local initializer, mode/power/busy templates, preparation/readiness/NVM checks and historical introduction of the powered BUSY0 rule.

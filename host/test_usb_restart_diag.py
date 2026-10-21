@@ -276,6 +276,12 @@ class RestartDiagnostic(unittest.TestCase):
         detail = 11 | (1024 << 8) | (3 << 24)
         parsed = diag.decode_rebuild_detail(detail)
         self.assertEqual((parsed["step"], parsed["first_rejected"], parsed["observation_bits"]), ("DRIVER_READY", "usb_busy", 3))
+        # Keep old BUSY rejection decoding for historical schema-4 evidence.
+        new_detail = diag.decode_rebuild_detail(11 | (16384 << 8) | (2 << 24))
+        self.assertEqual((new_detail["first_rejected"], new_detail["observation_bits"]), ("usb_power_off", 2))
+        observed_busy = diag.decode_rebuild_detail(11 | (3 << 24))
+        self.assertIsNone(observed_busy["first_rejected"])
+        self.assertEqual(observed_busy["observation_bits"], 3)
         for stage in (0, 5, 12):
             self.assertIsNone(diag.decode_rebuild_detail(stage)["first_rejected"])
         for invalid in (13, 0xF8000000, 11 | (3 << 8), 9 | (1024 << 8),

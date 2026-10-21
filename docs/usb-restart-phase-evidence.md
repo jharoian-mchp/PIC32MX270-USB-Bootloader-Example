@@ -72,6 +72,10 @@ Driver observations are bit0=`USBPWR`, bit1=`USBBUSY`, bit2=`USBEN`. `U1PWRC` is
 
 The observer writes only the IRQ-serialized SRAM journal. Reopen retains its original ordered HID/device/driver short-circuit checks. No detail field changes acceptance, failure, thaw, NVM ownership or resume authority.
 
+## Experimental powered rule — source change after 21:16 direction
+
+The [Harmony-compatible powered rule](usb-harmony-powered-readiness.md) now checks USBPWR1, then USBEN0 and empty/unowned queues/BDT. BUSY remains observation evidence in that phase. DRIVER_READY bit14/mask16384 is `usb_power_off`; bit10/mask1024 remains decodable for historical failures but is no longer emitted for powered BUSY. Earlier software/IRQ checks, retirement/off-idle and USB-off NVM gates are unchanged. The device-specific concern remains unqualified; no new image/trial is approved.
+
 ## Read-only PREVIOUS query
 
 Only the opt-in diagnostic gains opcode68/version1/nonzero request ID, exact6-byte query. It causes no pause, clear or write. The current source response is 30 payload bytes: existing8-byte response envelope, then ticket:u32/generation:u32/time_ms:u32/state:u8/phase:u8/fault:u8/evidence:u8/valid:u8/checkpoint:u8/detail:u32. All multibyte fields are little-endian. The schema-2 package has a 26-byte response. CRC/framing/report padding are unchanged; the fixed header bounds the expanded framed reply within one 64-byte report. Host `usb_restart_diag.py previous` decodes named phases/reasons and rebuild detail, rejects reserved/unknown stages and invalid first-rejection masks, and retains the SRAM warning.

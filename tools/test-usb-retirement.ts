@@ -25,6 +25,12 @@ try {
     const finish=drv.indexOf("#endif",drv.indexOf("USB_RetirementPowerEnableSample(true);",begin))+6;
     if(begin<0||finish<begin)throw Error("power sites missing");
     writeFileSync(dir+"/power-enable.inc",drv.slice(begin,finish));
+    // Test the production NVM exclusion predicate, not a hand-written duplicate.
+    const nvm=readFileSync("bootloader/src/update_nvm_port.h","utf8");
+    const nvmStart=nvm.indexOf("static inline bool UPDATE_NvmPortUsbActive(void)");
+    const nvmEnd=nvm.indexOf("\n}",nvmStart)+2;
+    if(nvmStart<0||nvmEnd<nvmStart)throw Error("NVM USB gate missing");
+    writeFileSync(dir+"/nvm-usb-gate.inc",nvm.slice(nvmStart,nvmEnd));
     const cc=(process.env.HOST_CC??"cc").trim().split(/\s+/);
     const args=[...cc,"-std=c11","-O2","-Wall","-Wextra","-Werror","-DUSB_RETIREMENT_HOOKS=1","-DUSB_RESTART_DIAGNOSTIC=1","-Itests/retirement_mocks","-Ibootloader/src","-I"+dir,"bootloader/src/usb_retirement.c","bootloader/src/usb_irp_ledger.c","tests/usb_retirement_test.c","-o",dir+"/test"];
     const compile=Bun.spawnSync(args,{stdout:"inherit",stderr:"inherit"});if(compile.exitCode!==0)throw Error("compilefailed");

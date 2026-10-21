@@ -10,6 +10,8 @@ The schema4 diagnostic adds `usb_restart_diag.py power-previous`, a read-only qu
 
 The temporary48KB build reports application origin `0x1D00C000`. Only `pic32_hid.py probe --power-debug` accepts that layout; normal `probe` still requires `0x1D008000`, and offline planning is unchanged. This option does not relocate an application or enable uploading. Older firmware has no `power-previous` handler. Use matching scripts only under a separately approved package/procedure; no new hardware commands are requested here. See [implementation and layout limits](../docs/usb-power-observation-implementation.md).
 
+The experimental Harmony-powered source rule adds DRIVER_READY `usb_power_off` (mask16384), retaining legacy `usb_busy` (mask1024) decoding for historical records. Powered BUSY can be evidence on a successful readiness check; it never means USB-off NVM permission. The [concern and source change](../docs/usb-harmony-powered-readiness.md) are documented; no new board command is requested by this host change.
+
 ## Windows setup and offline check
 
 From the repository root:

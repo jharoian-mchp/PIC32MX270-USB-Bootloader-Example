@@ -678,15 +678,17 @@ bool USB_RetirementDriverReplacementReady(void)
         USB_RetirementPowerReadySample(power);
 #endif
         observation=((power&_U1PWRC_USBPWR_MASK)!=0U?1U:0U)|((power&_U1PWRC_USBBUSY_MASK)!=0U?2U:0U);
-        if((power&_U1PWRC_USBBUSY_MASK)!=0U)rejected=1024U;
+        /* Powered construction follows Harmony's enable/configure sequence.
+         * BUSY remains evidence here, not a powered readiness requirement.
+         * Device-specific BUSY semantics remain unqualified; see
+         * docs/usb-harmony-powered-readiness.md. Off-idle/NVM gates are unchanged.
+         * Reject power-off BEFORE U1CON/BDT access, especially off+busy. */
+        if((power&_U1PWRC_USBPWR_MASK)==0U)rejected=16384U;
+        else if((U1CON&_U1CON_USBEN_MASK)!=0U){rejected=2048U;observation|=4U;}
         else
         {
-            if((U1CON&_U1CON_USBEN_MASK)!=0U){rejected=2048U;observation|=4U;}
-            else
-            {
-                for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL){rejected=4096U;break;}
-                if(rejected==0U)for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)if((d->pBDT[e].byte[0]&USBFS_UOWN)!=0U){rejected=8192U;break;}
-            }
+            for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*2U;e++)if(d->endpointTable[e].irpQueue!=NULL){rejected=4096U;break;}
+            if(rejected==0U)for(unsigned e=0;e<DRV_USBFS_ENDPOINTS_NUMBER*4U;e++)if((d->pBDT[e].byte[0]&USBFS_UOWN)!=0U){rejected=8192U;break;}
         }
     }
     USB_RetirementDetail(USB_REBUILD_DETAIL_DRIVER_READY,rejected,observation);return rejected==0U;

@@ -30,7 +30,7 @@ READINESS = {
     10: ("not_preparing", "not_ready", "task_not_running", "client_not_open", "callback_missing", "descriptor_missing",
          "interface_missing", "not_detached", "ep0_rx_pending", "ep0_tx_pending"),
     11: ("not_preparing", "not_in_use", "not_open", "not_ready", "callback_missing", "attached", "in_isr",
-         "endpoint_table_missing", "bdt_missing", "irq_enabled", "usb_busy", "usb_enable", "queue_pending", "bdt_owned"),
+         "endpoint_table_missing", "bdt_missing", "irq_enabled", "usb_busy", "usb_enable", "queue_pending", "bdt_owned", "usb_power_off"),
 }
 
 
