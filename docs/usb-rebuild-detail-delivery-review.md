@@ -31,6 +31,10 @@ These hashes identify local review artifacts, not a delivered package. The recov
 
 [Rebuild stages, first-rejection masks and ordered observations](usb-restart-phase-evidence.md#rebuild-sub-step-and-first-rejection) define the evidence format. Unchecked later predicates and unsampled registers are not passes. Retention is observed only for the reported powered MCLR recovery of the older image; power loss, programming and broader reset behaviour are unqualified.
 
+## Subsequent limited approval — 04:01
+
+After this review, the user approved preparing the matching package for programming and initial list/probe/STATUS/PREVIOUS only. The [initial-check procedure](usb-rebuild-detail-initial-check.md) defines that later scope. No PAUSE, fault tests, uploads or protection changes are authorised. The no-delivery statements above describe the review's earlier state.
+
 ## Requirements before a replacement delivery
 
 A future package requires separate approval to prepare and deliver it. It must contain matching schema-3 firmware and 30-byte PREVIOUS scripts in a new directory, the known recovery HEX, exact artifact audit JSON, source/build identification, manifest and checksums. Re-audit the actual files and verify archive contents and extracted host scripts before attaching anything.

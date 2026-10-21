@@ -2,7 +2,7 @@
 
 The delivered 18384b2 package passed its initial checks, then its single authorised PAUSE100 failed at INIT/REBUILD. Powered SW1/MCLR recovery restored HID and recovered the retained record. **The trial is spent: leave the board recovered; no repeat PAUSE, higher request ID, reset or reprogramming is authorised.** Uploads, NVM writes, application handoff, protection changes and fault tests remain disabled.
 
-The dated instructions below record the completed delivery/trial and do not grant a new programming or recovery action. Current [source-only rebuild diagnostics](usb-restart-phase-evidence.md#rebuild-sub-step-and-first-rejection) use schema 3 and a 30-byte PREVIOUS reply; this package uses schema 2 and 26 bytes. Keep using its matching package-local scripts for read-only queries. No replacement package has been delivered or authorised.
+The dated instructions below record the completed delivery/trial and do not grant a new programming or recovery action. Current [source-only rebuild diagnostics](usb-restart-phase-evidence.md#rebuild-sub-step-and-first-rejection) use schema 3 and a 30-byte PREVIOUS reply; this package uses schema 2 and 26 bytes. Keep using its matching package-local scripts while running that image. The later 04:01 approval permits the separate [schema-3 replacement package and initial-check procedure](usb-rebuild-detail-initial-check.md), including its bounded programming/startup only. It does not renew this spent PAUSE trial.
 
 ## Initial checks passed; one instrumented trial authorised — 2026-10-21
 
