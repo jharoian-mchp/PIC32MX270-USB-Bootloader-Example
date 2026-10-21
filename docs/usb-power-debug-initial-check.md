@@ -106,6 +106,10 @@ If programming, enumeration or a query fails, capture the exact output and stop 
 
 ## Offline verification scope
 
+Verified archive: 78734 bytes, SHA-256 `ab75b8043c3dd33fbe7dbe756591e8f0f279d361b020b40cd2f498460cd3600f`. All nine ZIP entries passed CRC, staged/extracted byte equality, all eight checksum entries and manifest file hashes/layout/scope. The actual copied ELF/HEX passed the48KB/128-byte startup audit. Extracted host CLI plus27 methods passed with no skips, including a mocked C dispatcher fixture; debug/normal capability rejection and empty/valid power snapshots passed offline. No board was accessed.
+
+Packaged `START-HERE.md` is procedure commit `41fdc0575b611a0262ee8c0a5199346d4278ebcb`; this later verification note changes no permission. The procedure review requested immediate `$LASTEXITCODE` checks because Windows PowerShell does not automatically stop after a failed Python invocation. These checks were added and confirmed closed in the bounded follow-up. PowerShell itself was not available locally; the procedure was statically checked and reviewed.
+
 Source tests/sanitizers, enabled XC32 compilation, the separate48KB link and ELF/HEX/configuration/128-byte retained-startup audit passed. Negative audits reject corrupt bytes, unsafe loads, undefined symbols, journal-initialization overlap and expanded-image acceptance under normal32KB rules. The normal recovery hash is unchanged. Bounded source reviews found no concrete must-fix within completed scopes; no review established target timing or hardware restart.
 
 Actual copied artifacts, archive entries/checksums and extracted host scripts are verified before attachment. This package's programming approval does not establish a working USB-only restart or permit any additional cycle. The normal production/application layout must remain32KB when debugging is complete.
