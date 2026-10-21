@@ -1,6 +1,6 @@
 # Temporary 48 KB power-observation diagnostic — initial checks
 
-The user approved this temporary 48 KB layout at 2026-10-21 18:42 and confirmed that no application code or data in `0x1D008000..0x1D00C000` needs preserving. Only programming the supplied diagnostic, one initial startup and **list/probe/STATUS/PREVIOUS/power-previous** are authorised. **No `restart`/PAUSE, higher request ID, retry or fault test.** Stop and report even if all checks pass.
+Programming and five initial read-only checks passed under the user's 2026-10-21 18:42 overlap-aware approval. At 20:26 the user separately authorised **one PAUSE on the currently running power-debug image**, as bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions describe the completed scope.
 
 The previous callback-mask trial failed at DRIVER_READY/usb_busy1024 with USBPWR and USBBUSY sampled set. This image adds three one-shot observations; it adds no wait or readiness correction. USB-only restart and BUSY semantics remain hardware-unqualified. Uploads, NVM writes, application handoff and protection changes are disabled.
 
@@ -19,6 +19,32 @@ The user supplied the existing IPE log for `usb-power-debug-2de2f84\usb-power-de
 Programming/verification, initial link, debug-layout reporting and both retained query decoders pass. No validated prior record or reached sample is available. This does not establish why older SRAM evidence is absent, retention under this image, power-enable timing or successful USB-only restart. No rebuild observation has been produced by these initial checks.
 
 Initial-only evidence collection is complete. Keep external power/settings unchanged and PICkit5 disconnected. **No PAUSE, higher ID, reset/programming retry or fault test is authorised.** A single evidence-producing trial requires a separate decision; no new command is granted by these results.
+
+## One power-debug evidence trial authorised — 2026-10-21 20:26
+
+The user explicitly authorised one PAUSE on the currently running `usb-power-debug-2de2f84` image after IPE verification and the five initial checks. The last live STATUS was ticket0/generation1/cycles0/state0 and both previous-record queries were invalid. Older images' spent trials are not renewed.
+
+Proceed only with PICkit5 disconnected from the board, the existing independent external supply active, settings unchanged and exactly one matching board connected. Do not press SW1/MCLR, change power/jumpers, unplug USB or reconnect PICkit5 while the command runs. From the matching package directory, with the existing `$PY`:
+
+```powershell
+& $PY .\usb_restart_diag.py restart --request-id 100 --confirm-usb-disconnect --timeout 2 --reconnect-timeout 15
+& $PY .\pic32_hid.py list
+```
+
+Run the restart command **once only**. The host reads live STATUS and binds its single PAUSE transmission to that generation. ID100 applies to this fresh power-debug boot only. A timeout/lost response leaves the outcome uncertain; it never authorises a resend or higher ID. Still collect post-list after a restart error, then stop. Permission is spent when this one restart command is run, regardless of outcome.
+
+Send both outputs. If exactly one expected interface returns, also collect live STATUS and the explicit debug capabilities probe once:
+
+```powershell
+& $PY .\usb_restart_diag.py status --timeout 2
+if ($LASTEXITCODE -ne 0) { throw 'STATUS failed; stop and report' }
+& $PY .\pic32_hid.py probe --power-debug --timeout 2
+if ($LASTEXITCODE -ne 0) { throw 'Debug probe failed; stop and report' }
+```
+
+A successful cycle requires verified removal/reconnect plus live ticket1/generation2/completed_cycles1/state7. HID return alone is insufficient. If HID is absent/ambiguous or a query fails, report that output and preserve the state.
+
+**No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and PREVIOUS/power-previous capture needs a separate decision after the result. Both retained queries are boot snapshots: in the current boot they cannot expose this new trial's journal. This trial grants no uploads, NVM/protection changes, electrical faults or additional cycle. Results are pending; no restart success is assumed.
 
 ## Package and temporary layout
 
