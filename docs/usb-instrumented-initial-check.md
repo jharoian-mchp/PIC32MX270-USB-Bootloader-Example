@@ -2,6 +2,21 @@
 
 This package installs retained-SRAM phase/checkpoint reporting for a future USB restart investigation. **Only programming and initial `list`, `probe`, `status` and `previous` checks are authorised here. Do not run `restart`/PAUSE.** The failed PAUSE on the old `2c91a8e` image remains unresolved. Uploads, application handoff and protection changes remain disabled.
 
+## Initial checks passed; one instrumented trial authorised — 2026-10-21
+
+The user supplied successful instrumented `list`, capabilities `probe` and STATUS (ticket0/generation1/completed_cycles0/state0). PREVIOUS returned valid:false with zero/default fields, as expected when no validated prior record exists. This establishes the initial host link and PREVIOUS response parsing, not MCLR retention or successful restart.
+
+This dated confirmation supersedes the initial-only restriction below for **one** evidence-collection PAUSE on the currently running instrumented image:
+
+```powershell
+& $PY .\usb_restart_diag.py restart --request-id 100 --confirm-usb-disconnect --timeout 2 --reconnect-timeout 15
+& $PY .\pic32_hid.py list
+```
+
+Keep PICkit5 disconnected from the board and do not change power, USB cable, SW1 or MCLR while the command runs. Send restart output and list, plus STATUS/probe if the interface is present. Stop after this one request regardless of outcome; no resend/higher-ID retry or second cycle. **Do not reset/power-cycle/reprogram before reporting.** If USB remains absent, a subsequent controlled MCLR recovery (without power loss or reprogramming) and PREVIOUS query can attempt to read the retained failure checkpoint; that recovery sequence will be confirmed after observing the result. PREVIOUS is a boot-captured snapshot and is not updated by the current operation until a new startup captures it.
+
+The failed old image is not authorised for another PAUSE. No uploads, NVM/protection changes, destructive electrical faults or production qualification are authorised by this diagnostic trial.
+
 ## Images
 
 Use these prebuilt files from this package; do not use a normal Clean/Build output or mix scripts/HEX files from older packages.
