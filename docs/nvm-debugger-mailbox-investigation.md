@@ -93,7 +93,7 @@ The review also confirmed the documented halt/stopped-Count limitation. Neither 
 
 Verification passes: reference-section and relative-link checks, DFP DEBUG/ICESEL encoding checks, saved project-setting checks and `git diff --check`. `make isolated-nvm-check` repassed all three isolated mock suites and strict XC32 compile-only checks for the unchanged owner/target sources. Canonical/recovery HEX hashes match the recorded values; firmware sources, Makefile, project settings and configuration are unchanged. No linked image was produced.
 
-The offline investigation is complete; the method and exact disposable page remain unapproved and unverified on the host/board.
+The offline investigation is complete; the method and exact disposable page remain unapproved and unverified on the host/board. The subsequent [RAM-only rehearsal design](nvm-debugger-rehearsal-design.md) specifies a separate challenge mailbox and explicit debug-profile proposal without NVM owner/backend, page parameter, main or image. It is design-only and requires independent source/host/image approvals before execution.
 
 ## Source references and retrieval limits
 
