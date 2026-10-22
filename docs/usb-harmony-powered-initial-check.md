@@ -10,6 +10,14 @@ The reported program range is `0x1D000000..0x1D008FFF`, plus configuration memor
 
 Programming/verification is now tool-confirmed. The five initial read-only outputs are still pending; no initial enumeration, retention or restart qualification is inferred. Follow the already approved programmer disconnect and one-time startup below only if not yet completed; do not repeat an already completed startup. No PAUSE or programming/reset retry is authorised.
 
+## Initial outputs and script-directory mismatch — 2026-10-22 03:28
+
+The user returned one expected HID interface, correct debug capabilities (origin1D00C000/protocol1/max510/end1D03FC00/row128/erase1024), STATUS0/1/0/0 and both retained replies valid:false/default identity/detail/null samples. These values establish a responding initial link, not USB-only restart or retention qualification.
+
+The PowerShell prompt shows `usb-power-debug-2de2f84`, the older extraction, rather than `usb-harmony-powered-f1d9e3c`. Comparison of the delivered archives confirms `pic32_hid.py` and requirements are byte-identical. `usb_restart_diag.py` differs only by adding DRIVER_READY `usb_power_off` for mask16384; the reported default replies are compatible with both versions. New-package script provenance is therefore not complete.
+
+Keep the board running unchanged. Verify the new extraction's inventory/checksums if not already done, then collect only STATUS/PREVIOUS/power-previous from that directory with its matching script. No repeated IPE programming, SW1/MCLR startup, list or capabilities probe is needed. This is limited read-only provenance verification; no PAUSE, reset, reprogramming or fault test is authorised.
+
 ## Experimental decision and concern
 
 This image requires USBPWR1 for powered rebuilding and treats USBBUSY as evidence rather than a powered reopening blocker, following the user's Harmony-template direction. IRQ, software, USBEN, queue/BDT and full-stack readiness checks remain; retirement/preparation and NVM still require USBPWR0/BUSY0 with their ownership gates. No BUSY delay or software clear was added.
