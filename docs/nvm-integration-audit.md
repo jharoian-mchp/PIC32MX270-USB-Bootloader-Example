@@ -50,6 +50,10 @@ The original family errata `docs/pdf/PIC32MX1XX-2XX-28-36-44-pin-Family-Silicon-
 
 This audit changes no configuration bits. Protection settings can affect future erase/program operations and recovery; they need an explicit reviewed plan and hardware evidence.
 
+## Subsequent USB-only evidence and isolated-test readiness
+
+The canonical32KB diagnostic completed one controlled USB-only cycle on2026-10-22, separately from the earlier48KB cycle. This supplies no flash-launch, hardware protection or whole-operation USB-off ownership qualification. The [isolated-test readiness review](nvm-qualification-readiness.md) identifies a scratch-page-only caller and final linked-image/startup audit as prerequisites; no NVM command or protection change is authorised.
+
 ## Remaining gates
 
 | Gate | Current evidence | Required next evidence |

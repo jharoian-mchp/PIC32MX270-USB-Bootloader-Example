@@ -1,6 +1,6 @@
 # Gated NVM and protection hardware test plan
 
-**Do not run flash tests or change protection bits yet.** This is a proposed qualification sequence, not executable firmware or permission to program. Current hardware-tested firmware is read-only. A1 identity and IDE-displayed protection OFF are recorded; target writes, relocated application and USB restart are untested.
+**Do not run flash tests or change protection bits yet.** This is a proposed qualification sequence, not executable firmware or permission to program. Current hardware-tested firmware is read-only. One controlled48KB USB-only cycle and one controlled canonical32KB cycle on distinct images passed on2026-10-22; repeated/fault/integrated-write qualification is not established. A1 identity and IDE-displayed protection OFF are recorded; target writes and relocated application remain untested. The [current isolated-test readiness review](nvm-qualification-readiness.md) records the missing caller, scratch-page approval, final-image audit and whole-operation ownership requirements.
 
 ## Preserve recovery first
 
@@ -37,7 +37,7 @@ Test one deliberate pause and repeated pauses under host control; verify:
 - Host reconnect is unambiguous on Windows and verified with epoch/token/ticket identity; uncertain/lost replies do not silently retry a mutation.
 - Unplug/replug, MCLR and power cycle before/during/after the pause stop or recover according to the state machine. Record limitations in observing a brief cable disturbance.
 
-**No NVM write is included.** Failure blocks later connected flash tests. Measure reconnect latency to decide whether operation-per-enumeration is usable.
+**No NVM write is included.** Failure blocks later connected flash tests. Measure reconnect latency to decide whether operation-per-enumeration is usable. The single completed cycles do not authorise repeating this broad proposed matrix. A cold USB-off isolated NVM image can be designed separately without USB binding; connected writes still require the combined lifecycle and recovery qualification.
 
 ## Phase C — isolated target erase/row/readback, USB off
 
