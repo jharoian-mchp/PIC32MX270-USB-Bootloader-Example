@@ -8,7 +8,17 @@ The earlier 48 KB Harmony-powered image completed one controlled USB-only cycle.
 
 The user supplied successful PowerShell checks of the expected source/profile manifest, eight-file checksum inventory, uniqueness/set equality, exact extracted-file inventory and all listed hashes. The printed diagnostic and recovery HEX hashes match the independently specified table below.
 
-The downloaded ZIP hash comparison against the separately supplied delivery value was not included. Internal consistency and verified HEX hashes do not establish that this external archive check occurred. Confirm the existing check, or hash the retained downloaded ZIP without any board action. No repeated extraction, programming, startup or PAUSE is needed for this verification. Programming/IPE and the five initial read-only results have not yet been reported.
+The downloaded ZIP hash comparison against the separately supplied delivery value was not included. Internal consistency and verified HEX hashes do not establish that this external archive check occurred. Confirm the existing check, or hash the retained downloaded ZIP without any board action. No repeated extraction, programming, startup or PAUSE is needed for this verification. Programming/IPE and the five initial read-only results were unreported at the04:55 cutoff; the subsequently supplied results follow.
+
+## IPE and initial operation — received 2026-10-22 04:58 and following report
+
+The user supplied the existing IPE log for `usb-canonical32-09da506\usb-canonical32.hex`: successful HEX loading, target voltage detected, PIC32MX270F256D/revision0xA1/DeviceId0x660a053 and DFP1.7.380. `Programming/Verify complete` and `Programming complete` occurred at local `2026-10-21 21:56:29 -0700` (`2026-10-22 04:56:29Z`). Reported program memory was `0x1D000000..0x1D007FFF`, plus configuration and boot config memory. Hold In Reset remains enabled. This confirms the named file's programming/verification and intended program range; detailed erase bounds are not established by the log.
+
+The subsequent matching-directory outputs show Python3.14.8/hidapi0.15.0, one expected VID04D8/PID003C/interface0/vendor usageFF00:1 HID, and plain-probe capabilities protocol1/max510/origin1D008000/end1D03FC00/row128/erase1024. STATUS is ticket0/generation1/completed_cycles0/state0. PREVIOUS is valid:false with zero/default fields; power-previous is valid:false with zero identity/time/metadata, null samples and null deltas.
+
+Programming and all five initial response checks pass. No validated previous record or new rebuild observation is available. These results do not qualify USB-only restart, retention or the A1 powered-BUSY decision. Nominal24MHz Count is decoder-profile information, not a measured clock.
+
+The external downloaded-ZIP hash comparison remains unreported; confirm it or hash the retained archive without another board action. Keep the board running with external power/settings unchanged and PICkit5 disconnected. No repeat programming/startup, PAUSE or fault test is authorised. A later trial needs separate approval after the remaining file-verification question is resolved.
 
 ## Package and identity
 
