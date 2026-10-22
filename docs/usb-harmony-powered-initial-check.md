@@ -1,6 +1,6 @@
 # Harmony-powered 48 KB diagnostic — initial checks only
 
-The user's 2026-10-22 03:13 approval covers preparing/programming this temporary 48 KB image and the five initial read-only checks, with the same no-preservation overlap scope as before. **No `restart`/PAUSE, higher PAUSE ID, retry or fault test is authorised.** Stop and report even if every initial check passes.
+Programming and initial response checks are complete under the user's 2026-10-22 03:13 approval. At03:46 the user separately authorised **one PAUSE on the currently running Harmony-powered image**, bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions are historical.
 
 ## IPE programming evidence — received 2026-10-22 03:24
 
@@ -29,6 +29,32 @@ The user returned STATUS/PREVIOUS/power-previous from `usb-harmony-powered-f1d9e
 The initial response checks are complete, combined with the earlier expected HID/capabilities replies from the byte-identical list/probe script and IPE verification of the named Harmony-powered image. The prompts establish matching directory use; no separate user checksum output is included. Neither initial operation nor invalid retained evidence proves hardware restart, SRAM retention or the powered-BUSY rule safe. The nominal24MHz field is decoder profile information, not a measured clock.
 
 Keep the board running with power/settings unchanged and PICkit5 disconnected. No repeated startup, reset, reprogramming, PAUSE or fault test is authorised. Any single evidence-producing trial needs a separate explicit decision after these initial results.
+
+## One Harmony-powered trial authorised — 2026-10-22 03:46
+
+The user explicitly authorised one current-image PAUSE after IPE verification and matching-script initial replies. Last STATUS was ticket0/generation1/cycles0/state0 and both prior-record queries invalid. This scope applies only to `usb-harmony-powered-f1d9e3c`, not any older image or spent trial.
+
+Proceed only with PICkit5 disconnected from the board, existing independent external power active, settings unchanged and exactly one matching board connected. Do not press SW1/MCLR, change power/jumpers, unplug USB or reconnect PICkit5 while the command runs. From the matching new package directory, with existing `$PY`:
+
+```powershell
+& $PY .\usb_restart_diag.py restart --request-id 100 --confirm-usb-disconnect --timeout 2 --reconnect-timeout 15
+& $PY .\pic32_hid.py list
+```
+
+Run `restart` once only, and collect post-list even if it reports an error. The host binds its single PAUSE send to live generation; ID100 is for this fresh Harmony-powered boot. An error/timeout can leave the outcome unknown and never permits automatic resend or a higher ID. Permission is spent when this one command runs, regardless of outcome.
+
+Send both outputs. If exactly one expected interface is present, also run live STATUS and explicit debug probe once, with fail-fast checks:
+
+```powershell
+& $PY .\usb_restart_diag.py status --timeout 2
+if ($LASTEXITCODE -ne 0) { throw 'STATUS failed; stop and report' }
+& $PY .\pic32_hid.py probe --power-debug --timeout 2
+if ($LASTEXITCODE -ne 0) { throw 'Debug probe failed; stop and report' }
+```
+
+A successful cycle requires verified removal/reconnect and live ticket1/generation2/completed_cycles1/state7. HID return alone is insufficient. If the interface is absent/ambiguous or a query fails, capture the output and stop; preserve any failed state.
+
+**No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and both retained queries would need a separate decision after reviewing the result. The current boot's prior snapshots cannot expose this new trial's journal. No uploads, NVM/protection changes, electrical faults or additional cycles are authorised. The A1 concern remains open and results are pending.
 
 ## Experimental decision and concern
 
