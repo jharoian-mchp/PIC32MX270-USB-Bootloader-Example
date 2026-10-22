@@ -56,6 +56,6 @@ A delegated read-only size exploration timed out and supplied no completed recom
 
 ## Board and delivery boundary
 
-The [first controlled Harmony-powered cycle](usb-harmony-powered-first-cycle.md) passed on the older 48 KB build. It does not qualify this newly compiled32KB image, whose instruction/data layout and initialization timing changed. The PIC32MX270 A1 powered-BUSY concern remains open; the Harmony-powered readiness decision and USB-off retirement/NVM gates remain exactly as before.
+At the restoration cutoff only the [older48KB first cycle](usb-harmony-powered-first-cycle.md) had passed. The later [canonical32KB first cycle](usb-canonical32-first-cycle.md) passed one separately authorised removal/reconnect/STATUS/probe trial at05:27. This narrower result does not establish repeated-cycle or production qualification. The PIC32MX270 A1 powered-BUSY concern remains open; the Harmony-powered readiness decision and USB-off retirement/NVM gates remain exactly as before.
 
 Keep the existing board running/read-only with PICkit5 disconnected and external power/settings unchanged. The single-trial permission is spent. No replacement package, second PAUSE, higher ID, reset, reprogramming, uploads, NVM/protection changes or fault tests are authorised. The subsequent [canonical-image candidate review](usb-canonical32-candidate-review.md) passes its bounded offline checks and defines initial-only package requirements. It grants no package or board permission; explicit delivery/programming scope is still required before any new hardware evaluation.

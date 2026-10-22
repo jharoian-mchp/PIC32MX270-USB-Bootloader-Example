@@ -1,6 +1,6 @@
 # Canonical 32 KB diagnostics — initial checks only
 
-Package verification, programming and five initial checks are complete. At2026-10-22 05:22 the user separately authorised **one PAUSE on the currently running canonical32KB image**, bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions describe the completed scope.
+The single authorised canonical32KB PAUSE100 **passed at2026-10-22 05:27**: removal and same-path reconnect verified, independent STATUS1/2/1/7 confirmed, and HID/plain capabilities correct. [First-cycle evidence and limits](usb-canonical32-first-cycle.md) record this controlled success. **Permission is spent: no second PAUSE, higher ID, reset or reprogramming.** Keep the reconnected image running/read-only; earlier instructions below are historical.
 
 The earlier 48 KB Harmony-powered image completed one controlled USB-only cycle. That result does not qualify this newly compiled 32 KB image. Data-section coalescing changes SRAM placement and startup timing; runtime source, diagnostics and safety predicates are unchanged. **The PIC32MX270 A1 powered-BUSY concern remains open:** powered readiness requires USBPWR1 and records BUSY as evidence, not a blocker. USBEN/IRQ/software/queue/BDT checks remain, and retirement/NVM retain USBPWR0/BUSY0 and their ownership gates. Uploads, NVM writes, protection changes and application handoff remain disabled.
 
@@ -51,6 +51,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Probe failed; stop and report' }
 Success requires verified removal/reconnect plus live ticket1/generation2/completed_cycles1/state7. HID returning alone does not establish success. If absent/ambiguous or a query fails, capture output and preserve the state.
 
 **No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and both retained queries would need a separate decision after reviewing the outcome. Prior snapshots in the current boot do not expose this trial's journal. No upload/NVM/protection changes, electrical faults or additional cycles are authorised. Result pending.
+
+## Single-cycle result — 2026-10-22 05:27
+
+The matching package restart output reports beforeticket0/generation1/cycles0/state0 and afterticket1/generation2/cycles1/state7, `removed_observed=true`, `pause_response_uncertainty=null` and the same path. Post-list finds the expected interface, separate STATUS confirms1/2/1/7, and plain probe returns the original application origin1D008000 with unchanged capability fields.
+
+This passes one controlled USB-only cycle on the canonical image without a requested MCU reset or recovery. Repeated cycles, boot authentication, actual successful-cycle register values and the A1 powered-BUSY concern remain unqualified. The initial prior snapshots are historical and do not expose this successful current-runtime journal; no reset to retrieve it is requested.
+
+See [complete canonical first-cycle evidence](usb-canonical32-first-cycle.md). No further PAUSE, reset, reprogramming, fault tests, NVM/protection change or upload is authorised.
 
 ## Package and identity
 
