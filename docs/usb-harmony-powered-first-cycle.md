@@ -35,4 +35,4 @@ The artifact audit flags remain false in the delivered package: those records de
 
 The single-trial permission is spent. Keep the now-reconnected board running/read-only with external power/settings unchanged and PICkit5 disconnected. No second PAUSE, higher ID, reset, reprogramming, uploads, NVM/protection changes or fault test is authorised.
 
-Next source-only work can reduce the enabled diagnostic back into the normal32KB reservation and review the resulting image. The temporary layout and this cycle's success do not qualify a future smaller image; any replacement programming or trial still needs its own verified package and explicit approval.
+The subsequent [source-only32KB restoration](usb-restart-32kb-restoration.md) passes compile/link and artifact checks through a build-only data-section change. This cycle's success does not qualify that smaller image; any replacement programming or trial still needs its own verified package and explicit approval.

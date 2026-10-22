@@ -42,7 +42,7 @@ Use `make power-debug-image-audit` for source/build verification. It builds the 
 | Journal | Inactive |128-byte retained NOBITS at `0xA0000000` |
 | Host capabilities probe | Normal `probe` | Explicit `probe --power-debug` |
 
-The inspected debug map uses32833 bytes of the49152-byte program region. The canonical `btl.ld` still reserves32768 bytes. `make restart-image-audit`/`bootloader-restart-check` remain strict normal-reservation targets and cannot link this enabled schema4 implementation yet. Shrinking back into32KB remains a follow-up; do not present those failed targets as passing.
+At the implementation-stage cutoff the inspected debug map used32833 bytes of49152 and the enabled canonical32KB link failed. The subsequent [32KB restoration](usb-restart-32kb-restoration.md) adds an opt-in data-section build flag with runtime sources unchanged; canonical `make restart-image-audit`/`bootloader-restart-check` now pass. The historical debug target remains separate and unchanged.
 
 The debug profile changes both internal APP_START/APP_JUMP constants and reported capabilities consistently. Application handoff/update/NVM-write entrypoints remain excluded. The normal Python offline planner still uses origin1D008000; `--power-debug` affects only the read-only capabilities probe. Normal probing rejects the expanded layout, and debug probing rejects a normal image.
 

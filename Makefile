@@ -41,8 +41,11 @@ power-debug-image-audit: bootloader bootloader-power-debug
 	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts build/power-debug/bootloader.elf --power-debug
 
 # Compile/link evidence only, NOT a hardware-delivery or update-enabled image.
+# Coalesce opt-in data sections to reduce XC32 .dinit/alignment overhead. Keep
+# function GC and LTO; audit retained placement and excluded symbols after link.
+# Normal recovery and the historical 48KB debug target retain their own flags.
 bootloader-restart-check:
-	$(MAKE) bootloader BTL_DIR=build/restart-check BTL_WARNINGS="-Wall -Wextra -Os -flto -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Wl,--undefined=USB_RestartOwnerRequest,--undefined=USB_RestartOwnerAck"
+	$(MAKE) bootloader BTL_DIR=build/restart-check BTL_WARNINGS="-Wall -Wextra -Os -flto -fno-data-sections -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -Wl,--undefined=USB_RestartOwnerRequest,--undefined=USB_RestartOwnerAck"
 	@"$(XC32_ROOT)/bin/xc32-nm" build/restart-check/bootloader.elf > build/restart-check/symbols.txt
 	@grep -q 'USB_RestartOwnerRequest' build/restart-check/symbols.txt
 	@grep -q 'USB_RestartOwnerAck' build/restart-check/symbols.txt
