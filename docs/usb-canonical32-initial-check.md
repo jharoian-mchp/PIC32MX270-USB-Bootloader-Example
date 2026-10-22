@@ -18,7 +18,13 @@ The subsequent matching-directory outputs show Python3.14.8/hidapi0.15.0, one ex
 
 Programming and all five initial response checks pass. No validated previous record or new rebuild observation is available. These results do not qualify USB-only restart, retention or the A1 powered-BUSY decision. Nominal24MHz Count is decoder-profile information, not a measured clock.
 
-The external downloaded-ZIP hash comparison remains unreported; confirm it or hash the retained archive without another board action. Keep the board running with external power/settings unchanged and PICkit5 disconnected. No repeat programming/startup, PAUSE or fault test is authorised. A later trial needs separate approval after the remaining file-verification question is resolved.
+The external downloaded-ZIP comparison was unreported at this result cutoff; the later confirmation follows. Keep the board running with external power/settings unchanged and PICkit5 disconnected. No repeat programming/startup, PAUSE or fault test is authorised.
+
+## External archive hash confirmed — 2026-10-22 05:18
+
+The user supplied `Get-FileHash ..\usb-canonical32-09da506.zip -Algorithm SHA256`, returning `54f065eded469b7a287f4254a18d6b1f7047366af9c730ced1a8b76fecb08dd3`, exactly matching the independently published delivery hash. This confirms the retained downloaded archive now; it does not establish that the comparison occurred before extraction/programming.
+
+The external archive check, extracted-file/HEX verification, IPE result and five initial responses are now collected. No repeated extraction, programming, startup or query is requested. USB-only restart on this canonical image and the A1 concern remain unqualified. Any single PAUSE trial requires separate explicit approval; this hash result grants none.
 
 ## Package and identity
 
