@@ -1,6 +1,6 @@
 # Canonical 32 KB diagnostics — initial checks only
 
-The user's 2026-10-22 04:44 approval covers this package, programming the supplied 32 KB diagnostic, one initial startup and **list/probe/STATUS/PREVIOUS/power-previous only**. No `restart`/PAUSE, higher ID, retry or fault test is authorised. Stop and report even if all checks pass.
+Package verification, programming and five initial checks are complete. At2026-10-22 05:22 the user separately authorised **one PAUSE on the currently running canonical32KB image**, bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions describe the completed scope.
 
 The earlier 48 KB Harmony-powered image completed one controlled USB-only cycle. That result does not qualify this newly compiled 32 KB image. Data-section coalescing changes SRAM placement and startup timing; runtime source, diagnostics and safety predicates are unchanged. **The PIC32MX270 A1 powered-BUSY concern remains open:** powered readiness requires USBPWR1 and records BUSY as evidence, not a blocker. USBEN/IRQ/software/queue/BDT checks remain, and retirement/NVM retain USBPWR0/BUSY0 and their ownership gates. Uploads, NVM writes, protection changes and application handoff remain disabled.
 
@@ -25,6 +25,32 @@ The external downloaded-ZIP comparison was unreported at this result cutoff; the
 The user supplied `Get-FileHash ..\usb-canonical32-09da506.zip -Algorithm SHA256`, returning `54f065eded469b7a287f4254a18d6b1f7047366af9c730ced1a8b76fecb08dd3`, exactly matching the independently published delivery hash. This confirms the retained downloaded archive now; it does not establish that the comparison occurred before extraction/programming.
 
 The external archive check, extracted-file/HEX verification, IPE result and five initial responses are now collected. No repeated extraction, programming, startup or query is requested. USB-only restart on this canonical image and the A1 concern remain unqualified. Any single PAUSE trial requires separate explicit approval; this hash result grants none.
+
+## One canonical32KB trial authorised — 2026-10-22 05:22
+
+The user explicitly approved one current-image PAUSE after external archive/file checks, IPE verification and matching initial responses. Last live STATUS was ticket0/generation1/cycles0/state0 and both prior queries invalid. This scope is only for `usb-canonical32-09da506`, not older images or spent trials. The A1 powered-BUSY concern remains open.
+
+Proceed only with PICkit5 disconnected from the board, the existing independent external supply active, settings unchanged and exactly one matching board connected. Do not touch SW1/MCLR, power, jumpers or cables while the command runs. From the matching canonical directory, using existing `$PY`:
+
+```powershell
+& $PY .\usb_restart_diag.py restart --request-id 100 --confirm-usb-disconnect --timeout 2 --reconnect-timeout 15
+& $PY .\pic32_hid.py list
+```
+
+Run `restart` once only, then collect post-list even if restart returns an error. The host reads live STATUS and binds its single PAUSE transmission to that generation; ID100 applies to this fresh canonical boot. Timeout/error means uncertainty, never permission to resend or increase the ID. The single permission is spent when the command runs, regardless of outcome.
+
+Send both outputs. If exactly one expected HID interface is present, also run STATUS and **plain** capabilities probe once:
+
+```powershell
+& $PY .\usb_restart_diag.py status --timeout 2
+if ($LASTEXITCODE -ne 0) { throw 'STATUS failed; stop and report' }
+& $PY .\pic32_hid.py probe --timeout 2
+if ($LASTEXITCODE -ne 0) { throw 'Probe failed; stop and report' }
+```
+
+Success requires verified removal/reconnect plus live ticket1/generation2/completed_cycles1/state7. HID returning alone does not establish success. If absent/ambiguous or a query fails, capture output and preserve the state.
+
+**No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and both retained queries would need a separate decision after reviewing the outcome. Prior snapshots in the current boot do not expose this trial's journal. No upload/NVM/protection changes, electrical faults or additional cycles are authorised. Result pending.
 
 ## Package and identity
 
