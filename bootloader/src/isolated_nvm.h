@@ -8,6 +8,8 @@
  * Public C storage is inspectable, NOT a debugger write/authorization API. */
 #define ISOLATED_NVM_TOKEN UINT32_C(0x4E564D31)
 #define ISOLATED_NVM_COUNT_HZ UINT32_C(24000000)
+/* Reserved terminal sequence; payload is stale and must not be accepted. */
+#define ISOLATED_NVM_SNAPSHOT_EXHAUSTED (UINT32_MAX-1U)
 typedef enum { ISOLATED_READY, ISOLATED_ARMED, ISOLATED_RUNNING,
     ISOLATED_PASS_SETTLED, ISOLATED_FAIL_NO_LAUNCH,
     ISOLATED_FAIL_SETTLED, ISOLATED_FAIL_UNSETTLED } ISOLATED_NVM_STATE;
@@ -21,7 +23,8 @@ typedef enum { ISOLATED_FAULT_NONE, ISOLATED_FAULT_TOKEN, ISOLATED_FAULT_GESTURE
     ISOLATED_FAULT_READBACK, ISOLATED_FAULT_SNAPSHOT } ISOLATED_NVM_FAULT;
 /* All report fields are aligned words. token is the only operator-owned word,
  * written only while READY; report is copied using the ordered snapshot API.
- * Sequence is even/stable, odd/update in progress; never wraps. */
+ * Sequence is even/stable, odd/update in progress; never wraps. Zero is
+ * unpublished, SNAPSHOT_EXHAUSTED signals unusable stale payload. */
 typedef struct {
     uint32_t version,state,phase,fault,page,count_hz,arm_attempts;
     uint32_t erase_attempts,row_attempts,anchor,elapsed_ticks,unsafe_bits;
@@ -46,6 +49,8 @@ typedef struct {
     bool (*initialize)(void *context,UPDATE_FLASH_BACKEND *backend);
 } ISOLATED_NVM_PORT;
 typedef struct {
+    /* Flash's millisecond timeout is rounded up from operation_ticks; the
+     * outer Count budget remains authoritative through all verification. */
     uint32_t page,count_hz,debounce_ticks,arm_window_ticks,operation_ticks;
 } ISOLATED_NVM_CONFIG;
 typedef struct {
@@ -60,7 +65,9 @@ typedef struct {
     bool fresh_press,backend_ready,failed,unsettled,snapshot_exhausted,budget_active,erase_verified;
 } ISOLATED_NVM;
 /* Software init publishes READY and clears token. No port.initialize or flash
- * access. Target lifecycle must prevent reinitializing this object in a boot. */
+ * access. Owner/mailbox/config/port spans must not overlap; invalid inputs
+ * are rejected without changing them. Target lifecycle must prevent
+ * reinitializing this object in a boot. */
 bool ISOLATED_NvmInit(ISOLATED_NVM *owner,ISOLATED_NVM_MAILBOX *mailbox,
     const ISOLATED_NVM_CONFIG *config,const ISOLATED_NVM_PORT *port);
 /* Single serialized main owner, interrupts already masked, no concurrent API.
@@ -68,6 +75,8 @@ bool ISOLATED_NvmInit(ISOLATED_NVM *owner,ISOLATED_NVM_MAILBOX *mailbox,
  * are not preemptible. Count stalls/multiple wraps can defeat elapsed checks. */
 void ISOLATED_NvmTasks(ISOLATED_NVM *owner,bool sw1_pressed);
 /* Read-only RAM snapshot; no peripheral access. Matching even sequences are
- * consistency only, NOT authentication. Target/debugger ordering must be tested. */
+ * consistency only, NOT authentication. Unpublished, odd or exhausted
+ * sequences and outputs overlapping mailbox are rejected without writing output.
+ * Target/debugger ordering must be tested. */
 bool ISOLATED_NvmSnapshot(const ISOLATED_NVM_MAILBOX *mailbox,ISOLATED_NVM_REPORT *report);
 #endif

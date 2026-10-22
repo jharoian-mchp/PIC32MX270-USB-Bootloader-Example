@@ -4,6 +4,14 @@
 #include <limits.h>
 #include <string.h>
 _Static_assert(UPDATE_ROW_SIZE==128U&&UPDATE_ERASE_SIZE==1024U,"isolated target geometry");
+/* Reserve the final even word as a detectable exhaustion marker, not a
+ * published snapshot. Pointer differences avoid end-address overflow. */
+#define SNAPSHOT_EXHAUSTED ISOLATED_NVM_SNAPSHOT_EXHAUSTED
+static bool Overlap(const void *a,size_t an,const void *b,size_t bn)
+{
+    uintptr_t x=(uintptr_t)a,y=(uintptr_t)b;
+    return x>=y?x-y<bn:y-x<an;
+}
 static void Order(void)
 {
 #if defined(__XC32)
@@ -15,10 +23,16 @@ static void Order(void)
 static bool Publish(ISOLATED_NVM *o)
 {
     uint32_t sequence=o->publication_sequence;
-    if(o->mailbox->sequence!=sequence||(sequence&1U)!=0U||sequence>UINT32_MAX-2U) {
+    bool consistent=o->mailbox->sequence==sequence&&(sequence&1U)==0U;
+    if(!consistent||sequence>=SNAPSHOT_EXHAUSTED-2U) {
         o->snapshot_exhausted=o->failed=true;
         if(o->report.fault==ISOLATED_FAULT_NONE)o->report.fault=ISOLATED_FAULT_SNAPSHOT;
         o->unsettled=o->report.erase_attempts!=0U||o->report.row_attempts!=0U;
+        if(consistent) {
+            /* Keep the old payload but make its staleness detectable. */
+            Order();o->mailbox->sequence=SNAPSHOT_EXHAUSTED;
+            o->publication_sequence=SNAPSHOT_EXHAUSTED;
+        }
         return false;
     }
     o->mailbox->sequence=sequence+1U;Order();
@@ -32,8 +46,10 @@ static bool Publish(ISOLATED_NVM *o)
 }
 bool ISOLATED_NvmSnapshot(const ISOLATED_NVM_MAILBOX *m,ISOLATED_NVM_REPORT *r)
 {
-    if(m==NULL||r==NULL)return false;
-    uint32_t a=m->sequence;if((a&1U)!=0U)return false;Order();
+    if(m==NULL||r==NULL||Overlap(m,sizeof(*m),r,sizeof(*r)))return false;
+    uint32_t a=m->sequence;
+    if(a==0U||a==SNAPSHOT_EXHAUSTED||(a&1U)!=0U)return false;
+    Order();
     ISOLATED_NVM_REPORT copy;
 #define COPY(name) copy.name=m->report.name
     COPY(version);COPY(state);COPY(phase);COPY(fault);COPY(page);COPY(count_hz);
@@ -121,7 +137,10 @@ bool ISOLATED_NvmInit(ISOLATED_NVM *o,ISOLATED_NVM_MAILBOX *m,
        c->page<UPDATE_APP_PHYSICAL_START||c->page>UPDATE_IMAGE_META_ADDRESS-1024U||c->page%1024U||
        c->count_hz!=ISOLATED_NVM_COUNT_HZ||c->debounce_ticks==0U||
        c->arm_window_ticks<=c->debounce_ticks||c->arm_window_ticks>INT32_MAX||
-       c->operation_ticks==0U||c->operation_ticks>INT32_MAX)return false;
+       c->operation_ticks==0U||c->operation_ticks>INT32_MAX||
+       Overlap(o,sizeof(*o),m,sizeof(*m))||Overlap(o,sizeof(*o),c,sizeof(*c))||
+       Overlap(o,sizeof(*o),p,sizeof(*p))||Overlap(m,sizeof(*m),c,sizeof(*c))||
+       Overlap(m,sizeof(*m),p,sizeof(*p))||Overlap(c,sizeof(*c),p,sizeof(*p)))return false;
     *o=(ISOLATED_NVM){.port=*p,.config=*c,.mailbox=m,.initialized=true};
     o->report=(ISOLATED_NVM_REPORT){.version=1,.state=ISOLATED_READY,.page=c->page,.count_hz=c->count_hz};
     m->token=0;m->sequence=0;
@@ -151,7 +170,11 @@ static void Run(ISOLATED_NVM *o)
         if(!Guard(o))return;
         if(!o->backend_ready){Fail(o,ISOLATED_FAULT_BACKEND);return;}
         UPDATE_FLASH_BACKEND wrapped={o,Busy,Error,Erase,Write,Read};
-        if(!UPDATE_FlashInit(&o->flash,&wrapped,o->config.page,o->config.page+1024U,1000U))
+        /* Round up to milliseconds so the generic Flash timeout cannot
+         * precede the authoritative Count budget. Its since value stays zero. */
+        uint32_t per_ms=o->config.count_hz/1000U;
+        uint32_t timeout_ms=(o->config.operation_ticks+per_ms-1U)/per_ms;
+        if(!UPDATE_FlashInit(&o->flash,&wrapped,o->config.page,o->config.page+1024U,timeout_ms))
             {Fail(o,ISOLATED_FAULT_BACKEND);return;}
         (void)Phase(o,ISOLATED_PHASE_ERASE);return;
     }
@@ -174,7 +197,9 @@ static void Run(ISOLATED_NVM *o)
         if(!Guard(o))return;
         o->report.verify_offset=o->flash.verify_offset;
         if(status==UPDATE_FLASH_BUSY||status==UPDATE_FLASH_VERIFY){(void)Publish(o);return;}
-        if(status!=UPDATE_FLASH_OK){Fail(o,ISOLATED_FAULT_READBACK);return;}
+        if(status!=UPDATE_FLASH_OK) {
+            Fail(o,status==UPDATE_FLASH_TIMEOUT?ISOLATED_FAULT_TIMEOUT:ISOLATED_FAULT_READBACK);return;
+        }
         if(erase) {
             o->erase_verified=true;
             bool ok=UPDATE_FlashReset(&o->flash);if(!Guard(o))return;

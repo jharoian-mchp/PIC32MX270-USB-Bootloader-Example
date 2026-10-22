@@ -90,9 +90,40 @@ static void To(ISOLATED_NVM *o,MOCK *m,ISOLATED_NVM_PHASE phase)
 {for(unsigned i=0;i<100&&o->report.phase!=(unsigned)phase&&!o->failed;i++)Step(o,m,false,1);assert(o->report.phase==(unsigned)phase&&!o->failed);}
 static void Finish(ISOLATED_NVM *o,MOCK *m)
 {for(unsigned i=0;i<100&&!o->failed&&o->report.state!=ISOLATED_PASS_SETTLED;i++)Step(o,m,false,1);}
+static void Aliases(void)
+{
+    ISOLATED_NVM o;ISOLATED_NVM_MAILBOX mb;
+    ISOLATED_NVM_CONFIG c={0x1D008000,24000000,10,200,1000};
+    ISOLATED_NVM_PORT p={NULL,Tick,Unsafe,InitBackend};
+    memset(&o,0x5A,sizeof(o));memset(&mb,0xA5,sizeof(mb));
+    o.config=c;o.port=p;
+    ISOLATED_NVM before=o;ISOLATED_NVM_MAILBOX before_mb=mb;
+    assert(!ISOLATED_NvmInit(&o,(ISOLATED_NVM_MAILBOX *)(void *)&o,&c,&p));
+    assert(!memcmp(&o,&before,sizeof(o))&&!memcmp(&mb,&before_mb,sizeof(mb)));
+    assert(!ISOLATED_NvmInit(&o,&mb,&o.config,&p));
+    assert(!ISOLATED_NvmInit(&o,&mb,&c,&o.port));
+    assert(!memcmp(&o,&before,sizeof(o))&&!memcmp(&mb,&before_mb,sizeof(mb)));
+    /* Real overlap with valid inputs; no unsupported misaligned pointers. */
+    union {max_align_t alignment;unsigned char bytes[128];} storage;
+    memset(&storage,0x55,sizeof(storage));
+    ISOLATED_NVM_MAILBOX *m=(void *)storage.bytes;
+    ISOLATED_NVM_CONFIG *in_c=(void *)(storage.bytes+8);*in_c=c;
+    unsigned char saved[128];memcpy(saved,storage.bytes,128);
+    assert(!ISOLATED_NvmInit(&o,m,in_c,&p));assert(!memcmp(saved,storage.bytes,128));
+    ISOLATED_NVM_PORT *in_p=(void *)(storage.bytes+8);*in_p=p;
+    memcpy(saved,storage.bytes,128);
+    assert(!ISOLATED_NvmInit(&o,m,&c,in_p));assert(!memcmp(saved,storage.bytes,128));
+    memset(&storage,0x55,sizeof(storage));in_c=(void *)storage.bytes;*in_c=c;
+    in_p=(void *)(storage.bytes+16);*in_p=p;in_p->context=(void *)(uintptr_t)1000;
+    /* context's low word is the valid operation_ticks; inputs overlap. */
+    assert(in_c->operation_ticks==1000);memcpy(saved,storage.bytes,128);
+    assert(!ISOLATED_NvmInit(&o,&mb,in_c,in_p));assert(!memcmp(saved,storage.bytes,128));
+    assert(!Overlap((void *)(uintptr_t)(UINTPTR_MAX-16U),8,(void *)(uintptr_t)8,8));
+}
 int main(void)
 {
     ISOLATED_NVM o;ISOLATED_NVM_MAILBOX mb;MOCK m;ISOLATED_NVM_REPORT r;
+    Aliases();
     Init(&o,&mb,&m);Arm(&o,&m);Finish(&o,&m);
     assert(o.report.state==ISOLATED_PASS_SETTLED&&m.inits==1&&m.erases==1&&m.writes==1&&m.reads==17);
     for(unsigned i=0;i<1024;i++)assert(m.memory[i]==(i<128?(uint8_t)(i^0xA5):255));
@@ -152,7 +183,33 @@ int main(void)
     m.memory[896]=0;Finish(&o,&m);assert(o.failed&&o.report.state!=ISOLATED_PASS_SETTLED); /* untouched rows are also verified */
     /* Counter wrap is modular, not mistaken for a deadline reset. */
     Init(&o,&mb,&m);Arm(&o,&m);To(&o,&m,ISOLATED_PHASE_ERASE);m.now=UINT32_MAX-20;Step(&o,&m,false,0);Finish(&o,&m);assert(o.report.state==ISOLATED_PASS_SETTLED);
-    /* Odd or exhausted snapshots cannot authorize a launch; stable report preserved. */
+    /* Budgets longer than one second must not time out at Flash's old limit. */
+    Init(&o,&mb,&m);o.config.operation_ticks=48000000U;Arm(&o,&m);
+    To(&o,&m,ISOLATED_PHASE_ERASE);m.auto_complete=false;Step(&o,&m,false,1);
+    assert(o.flash.timeout_ms==2000U&&m.busy);Step(&o,&m,false,24000000U);
+    assert(!o.failed&&o.flash.status==UPDATE_FLASH_BUSY&&!m.reads&&!m.writes);
+    m.busy=false;m.auto_complete=true;Finish(&o,&m);assert(o.report.state==ISOLATED_PASS_SETTLED);
+    Init(&o,&mb,&m);o.config.operation_ticks=24001U;Arm(&o,&m);
+    To(&o,&m,ISOLATED_PHASE_ERASE);Step(&o,&m,false,1);assert(o.flash.timeout_ms==2U);
+    Init(&o,&mb,&m);o.config.operation_ticks=INT32_MAX;Arm(&o,&m);
+    To(&o,&m,ISOLATED_PHASE_ERASE);Step(&o,&m,false,1);assert(o.flash.timeout_ms==89479U);
+    Init(&o,&mb,&m);Arm(&o,&m);To(&o,&m,ISOLATED_PHASE_ERASE_VERIFY);
+    o.flash.timeout_ms=0;m.busy=true;Step(&o,&m,false,1);
+    assert(o.failed&&o.report.fault==ISOLATED_FAULT_TIMEOUT); /* generic timeout keeps its fault class */
+    /* Coherent-but-stale payload cannot be accepted on exhaustion. */
+    Init(&o,&mb,&m);Reserve(&o,&m);mb.sequence=o.publication_sequence=SNAPSHOT_EXHAUSTED-2U;
+    ISOLATED_NVM_REPORT stale=mb.report;assert(!Phase(&o,ISOLATED_PHASE_INIT));
+    assert(o.failed&&mb.sequence==SNAPSHOT_EXHAUSTED&&!m.inits&&!m.erases);
+    assert(!memcmp(&stale,(const void *)&mb.report,sizeof(stale)));
+    memset(&r,0xA5,sizeof(r));ISOLATED_NVM_REPORT untouched=r;
+    assert(!ISOLATED_NvmSnapshot(&mb,&r)&&!memcmp(&r,&untouched,sizeof(r)));
+    /* Output aliases, including partial overlap, must not mutate the mailbox. */
+    Init(&o,&mb,&m);ISOLATED_NVM_MAILBOX saved_mb=mb;
+    assert(!ISOLATED_NvmSnapshot(&mb,(ISOLATED_NVM_REPORT *)(void *)&mb.report));
+    assert(!ISOLATED_NvmSnapshot(&mb,(ISOLATED_NVM_REPORT *)(void *)&mb));
+    assert(!memcmp(&mb,&saved_mb,sizeof(mb)));
+    mb.sequence=0;assert(!ISOLATED_NvmSnapshot(&mb,&r));
+    /* Odd or exhausted snapshots cannot authorize a launch. */
     Init(&o,&mb,&m);Reserve(&o,&m);mb.sequence=o.publication_sequence=UINT32_MAX-1;Step(&o,&m,true,1);Step(&o,&m,true,10);Step(&o,&m,false,1);Step(&o,&m,false,10);
     assert(o.failed&&o.snapshot_exhausted&&!m.inits&&!m.erases&&mb.sequence==UINT32_MAX-1);
     mb.sequence=3;assert(!ISOLATED_NvmSnapshot(&mb,&r));
