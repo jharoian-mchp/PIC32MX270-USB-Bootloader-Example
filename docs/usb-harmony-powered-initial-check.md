@@ -120,6 +120,10 @@ If any step fails or scope differs, capture the output and stop before another a
 
 ## Verification limits
 
+Verified archive:79133 bytes, SHA-256 `3e507dcd4079488ca05ca715a69096a6968ac2a0c4320816a4638a84258323ae`. Nine ZIP entries passed CRC, exact inventory, staged/extracted equality, all eight checksum entries and manifest file hashes/profile/scope. Actual copied ELF/HEX passed the48KB/128-byte retained-startup audit. Extracted host CLI and27 methods passed with no skips, including a mocked C dispatcher fixture. Debug-profile and old/new rejection decoding plus empty/historical retained-query fixtures passed offline; no board was accessed.
+
+Packaged `START-HERE.md` is procedure commit `30aaf5ba36c491e7f8c22f2a6d3b575986709e7f`; this verification note changes no authority. The procedure review requested checksum coverage of the exact extraction inventory. Duplicate/missing/extra entries and files are now checked before programming, and the bounded follow-up confirmed that finding closed. PowerShell was unavailable locally; its checks were statically reviewed.
+
 Source tests, sanitizers, enabled XC32 compilation and48KB/128-byte retained-startup image audits pass. The normal recovery hash is unchanged. Negative regressions reject unsafe load spans, corruption, undefined symbols, journal-initialization overlap and expanded-image acceptance under normal32KB rules. Bounded completed reviews found no concrete must-fix in supplied scopes; no review establishes the unresolved device-level safety or target restart behavior.
 
 Actual copied artifacts, archive entries/checksums and extracted host scripts are verified before attachment. The A1 concern stays open, and this package's approval is limited to initial operation. Normal production/application layout remains32KB after debugging.
