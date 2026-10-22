@@ -88,7 +88,9 @@ The owner mailbox protocol is unchanged: operator token only while READY, target
 
 ## Debugger workflow is a separate unresolved gate
 
-The current firmware fuse profile has DEBUG OFF. Do not assume IPE programming mode can perform the required ordered RAM token write/snapshot read while permitting free-running execution. A later procedure must establish whether the approved MPLAB/PICkit workflow can do so, or whether a separately reviewed debug-image profile is required.
+The current firmware fuse profile has DEBUG OFF. The [offline MPLAB X/PICkit 5 investigation](nvm-debugger-mailbox-investigation.md) distinguishes IDE debugging, IDE Run and IPE: IPE's observed Hold In Reset state does not establish the IDE's actual state. MPLAB X also documents Hold In Reset for Run Main Project, while both saved projects inherit their debug-startup/reset choices from unspecified IDE system settings. A halted SRAM edit and settled-only readout are a candidate method; live PIC32MX270 mailbox access and the actual host workflow are unverified.
+
+A debug profile/executive will need explicit review. Current exact DEBUG-OFF preflight rejects a DEBUG-ON configuration; no policy was relaxed by the investigation. Establish a no-launch method rehearsal, resumed Count/IRQ/bus evidence and pre-token-consumption/settled-only rendezvous before any destructive image. No debugger halt is permitted during NVM ownership, and failure/timeout labels alone cannot authorise result halting. A later procedure must verify these properties under separately approved settings/image/board permissions.
 
 If debug configuration/runtime support is necessary, inspect every resulting config/boot/debug-monitor record and document each intentional difference. Do not silently toggle DEBUG, JTAGEN, ICESEL, power settings or Hold In Reset. Keep PWP/BWP/CP unchanged. A debug executive can use extra memory or affect Count, execution and bus timing; that belongs in the exact final image/operating-method review.
 
