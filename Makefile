@@ -22,7 +22,7 @@ BTL_LD ?= bootloader/src/config/default/btl.ld
 BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check nvm-codegen-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
+.PHONY: toolchain-check nvm-codegen-check isolated-nvm-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
 
 restart-image-audit: bootloader bootloader-restart-check
 	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts
@@ -35,7 +35,7 @@ bootloader-power-debug:
 	@grep -q 'LENGTH = 49152' build/power-debug/btl-debug.ld
 	$(MAKE) bootloader BTL_DIR=build/power-debug BTL_LD=build/power-debug/btl-debug.ld BTL_WARNINGS='-Wall -Wextra -Os -flto -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -DUSB_RESTART_DEBUG_LAYOUT=1 -include bootloader/src/usb_restart_debug_layout.h -Wl,--undefined=USB_RestartOwnerRequest,--undefined=USB_RestartOwnerAck'
 	@$(XC32_ROOT)/bin/xc32-nm build/power-debug/bootloader.elf >build/power-debug/symbols.txt
-	@! grep -Eq 'UPDATE_(Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)|NVM_(RowWrite|PageErase|WordWrite)|run_Application' build/power-debug/symbols.txt
+	@! grep -Eq 'UPDATE_(Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)|NVM_(RowWrite|PageErase|WordWrite)|ISOLATED_Nvm|run_Application' build/power-debug/symbols.txt
 
 power-debug-image-audit: bootloader bootloader-power-debug
 	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts build/power-debug/bootloader.elf --power-debug
@@ -49,7 +49,7 @@ bootloader-restart-check:
 	@"$(XC32_ROOT)/bin/xc32-nm" build/restart-check/bootloader.elf > build/restart-check/symbols.txt
 	@grep -q 'USB_RestartOwnerRequest' build/restart-check/symbols.txt
 	@grep -q 'USB_RestartOwnerAck' build/restart-check/symbols.txt
-	@! grep -Eq 'UPDATE_(Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)|NVM_(RowWrite|PageErase)' build/restart-check/symbols.txt
+	@! grep -Eq 'UPDATE_(Session|Dispatch|LinkDispatch|Lifecycle|Flash|Nvm)|NVM_(RowWrite|PageErase)|ISOLATED_Nvm' build/restart-check/symbols.txt
 	@echo "PASS: single USB owner links within unchanged linker reservation; no hardware delivery/host restart command."
 
 
@@ -67,6 +67,12 @@ usb-retirement-check:
 # Reproduces selected generated restart ownership gaps; not target approval.
 usb-restart-audit:
 	HOST_CC="$(HOST_CC)" bun tools/audit-usb-restart.ts
+
+# Compile-only inactive isolated owner; no linked test image or page selection.
+isolated-nvm-check:
+	@mkdir -p build/isolated-nvm
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -std=c11 -Os -Wall -Wextra -Werror -Ibootloader/src -c bootloader/src/isolated_nvm.c -o build/isolated-nvm/owner-xc32.o
+	HOST_CC="$(HOST_CC)" bun tools/test-isolated-nvm.ts
 
 nvm-codegen-check:
 	XC32_ROOT="$(XC32_ROOT)" PIC32MX_DFP_ROOT="$(PIC32MX_DFP_ROOT)" bun tools/check-nvm-codegen.ts
@@ -88,6 +94,7 @@ application:
 
 test:
 	@mkdir -p build/tests
+	HOST_CC="$(HOST_CC)" bun tools/test-isolated-nvm.ts
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_wire.c tests/usb_debug_layout_test.c -o build/tests/usb_normal_layout_test
 	./build/tests/usb_normal_layout_test
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DUSB_RETIREMENT_HOOKS=1 -DUSB_RESTART_DIAGNOSTIC=1 -DUSB_RESTART_DEBUG_LAYOUT=1 -Ibootloader/src -include bootloader/src/usb_restart_debug_layout.h bootloader/src/update_wire.c tests/usb_debug_layout_test.c -o build/tests/usb_debug_layout_test
