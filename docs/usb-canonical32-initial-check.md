@@ -122,6 +122,10 @@ On any failure, unexpected range or preservation need, capture the output and st
 
 ## Verification limits
 
+Verified archive:77633 bytes, SHA-256 `54f065eded469b7a287f4254a18d6b1f7047366af9c730ced1a8b76fecb08dd3`, published separately in the delivery chat before extraction. Nine entries passed ZIP CRC, exact inventory, staged/extracted equality, all eight file checksums and manifest hashes/profile/scope. The copied canonical ELF/HEX passed its artifact audit; all four startup destinations were disjoint. Extracted host CLI and27 methods passed with no skips, including the mocked C dispatcher fixture, canonical/debug-profile rejection and empty/historical retained reply fixtures. No board was accessed.
+
+Packaged `START-HERE.md` is procedure commit `70c33435bf2f8da8a7f7f8846d125387ed18d35e`; this later verification note changes no permission. A bounded procedure review identified that internal checksums need an independent trust anchor. The external ZIP hash check before extraction was added and the follow-up confirmed that finding closed. PowerShell was not available locally; its fail-fast and inventory checks were statically reviewed.
+
 Canonical32KB link, strict tests/sanitizers, enabled XC32 compilation, retained128-byte startup exclusion, configuration/HEX/symbol checks and negative artifact tests passed. The four actual startup destinations were separately checked for mutual overlap. The generic audit does not enforce every pairwise initialization overlap. Actual copied artifacts, archive inventory/checksums and extracted host tests are verified before attachment.
 
 The runtime source is unchanged, but compiled placement, startup records and timing differ. Neither offline tests nor the previous48KB hardware success qualifies this new image. The A1 concern remains documented, and this permission is limited to initial operation.
