@@ -57,7 +57,7 @@ One broad delegate attempt returned empty; a completed bounded source/test revie
 
 ## Remaining gates
 
-A future rehearsal main/configuration translation unit, explicit default-unbuilt source list, final debug linker/auditor and non-resuming exception/debug runtime path still need separate implementation and review. The real debugger-installed executive/configuration/Boot Flash/RAM reservations and actual MPLAB Xv6.35/PICkit5 settings/erase scope require evidence. IPE's reported Hold In Reset setting does not establish IDE state.
+The subsequent [standalone startup/image-audit design](nvm-debugger-standalone-design.md) specifies the dedicated main/configuration/source list, phase-specific CRT allowlist, memory/initialization rules and separate pinned-policy auditor evidence. No startup/linker/auditor implementation or final link is supplied. The resolved runtime, non-resuming application exception paths and installed executive need later independent verification. The real debugger-installed executive/configuration/Boot Flash/RAM reservations and actual MPLAB Xv6.35/PICkit5 settings/erase scope require evidence. IPE's reported Hold In Reset setting does not establish IDE state.
 
 No linked image, installation approval, programmer connection, live SRAM edit/readout or host trial is supplied. Even installing a RAM-only application can erase/program Flash; Debug mode programs configuration/Boot Flash and selected memory ranges do not bound Erase. Obtain exact image/profile/install/recovery permissions before that step.
 
