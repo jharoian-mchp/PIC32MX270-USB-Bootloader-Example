@@ -37,6 +37,10 @@ The Harmony-powered decision still requires USBPWR1 and records BUSY rather than
 
 The [PIC32MX270 A1 powered-BUSY concern](usb-harmony-powered-readiness.md) remains open. A smaller link and a previous successful cycle do not establish a manufacturer clarification or universal safe interpretation of BUSY. The proposed package must retain this concern explicitly.
 
+## Subsequent initial-only approval — 04:44
+
+The user approved preparing/programming the canonical32KB image and five initial read-only outputs only. The [initial-check procedure](usb-canonical32-initial-check.md) defines that later scope. No PAUSE is authorised. Earlier no-package statements describe this review's cutoff.
+
 ## Requirements for a separately approved initial-only package
 
 Obtain explicit approval before preparing/delivering or programming a replacement. Use a new directory and exact candidate/recovery hashes, source/procedure identification, manifest, all-file checksums, copied-artifact audit and extracted host verification. The manifest must identify **32KB/origin1D008000**, not the older48KB layout. Do not use older HEX or procedure files merely because the schema is compatible.
