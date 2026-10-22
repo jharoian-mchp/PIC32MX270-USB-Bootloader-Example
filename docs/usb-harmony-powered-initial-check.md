@@ -2,6 +2,14 @@
 
 The user's 2026-10-22 03:13 approval covers preparing/programming this temporary 48 KB image and the five initial read-only checks, with the same no-preservation overlap scope as before. **No `restart`/PAUSE, higher PAUSE ID, retry or fault test is authorised.** Stop and report even if every initial check passes.
 
+## IPE programming evidence — received 2026-10-22 03:24
+
+The user supplied the existing IPE log naming `usb-harmony-powered-f1d9e3c\usb-harmony-powered.hex`. It reports target voltage detected, PIC32MX270F256D/revision0xA1/DeviceId0x660a053, DFP1.7.380 and successful HEX loading. `Programming/Verify complete` and `Programming complete` occurred at local `2026-10-21 20:24:26 -0700` (`2026-10-22 03:24:26Z`).
+
+The reported program range is `0x1D000000..0x1D008FFF`, plus configuration memory and boot config memory. This36KB reported extent is within the approved48KB reservation; it does not change application origin1D00C000 or establish detailed erase bounds. The log does not include an independent HEX hash. Hold In Reset is explicitly enabled; no setting change or reconnection test is requested.
+
+Programming/verification is now tool-confirmed. The five initial read-only outputs are still pending; no initial enumeration, retention or restart qualification is inferred. Follow the already approved programmer disconnect and one-time startup below only if not yet completed; do not repeat an already completed startup. No PAUSE or programming/reset retry is authorised.
+
 ## Experimental decision and concern
 
 This image requires USBPWR1 for powered rebuilding and treats USBBUSY as evidence rather than a powered reopening blocker, following the user's Harmony-template direction. IRQ, software, USBEN, queue/BDT and full-stack readiness checks remain; retirement/preparation and NVM still require USBPWR0/BUSY0 with their ownership gates. No BUSY delay or software clear was added.
