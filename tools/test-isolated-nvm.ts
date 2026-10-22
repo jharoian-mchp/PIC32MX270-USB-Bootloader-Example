@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /** SCRIPT_JDOC
- * {"summary":"Test inactive isolated NVM owner with exact-source snapshot interleavings and mock flash","keywords":["nvm","isolated","arming","snapshot","timeout"],"kind":"mixed","weight":"standard","role":"entrypoint"}
+ * {"summary":"Test inactive isolated NVM owner, target preflight and adapter with exact-source snapshot interleavings and mock flash","keywords":["nvm","isolated","arming","snapshot","timeout"],"kind":"mixed","weight":"standard","role":"entrypoint"}
  */
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {resolve} from 'node:path';
@@ -30,4 +30,26 @@ try {
  if(integration.exitCode)throw Error('adapter integration compile failed');
  const actual=Bun.spawnSync([dir+'/adapter-test'],{stdout:'inherit',stderr:'inherit'});
  if(actual.exitCode)throw Error('adapter integration test failed');
+ const target=readFileSync('bootloader/src/isolated_nvm_target.c','utf8');
+ const cuts=[
+  ['#define COPY(n) r.n=m->report.n','#define COPY(n) do { r.n=m->report.n;TargetSnapshotCut(m); } while(0)'],
+  ['#define COPY(n) r.raw.n=m->report.raw.n','#define COPY(n) do { r.raw.n=m->report.raw.n;TargetSnapshotCut(m); } while(0)'],
+  ['t->mailbox->sequence=seq+1U;Order();','t->mailbox->sequence=seq+1U;Order();TargetPublishCut(t);'],
+  ['#define COPY(n) t->mailbox->report.n=t->report.n','#define COPY(n) do { t->mailbox->report.n=t->report.n;TargetPublishCut(t); } while(0)'],
+  ['#define COPY(n) t->mailbox->report.raw.n=t->report.raw.n','#define COPY(n) do { t->mailbox->report.raw.n=t->report.raw.n;TargetPublishCut(t); } while(0)'],
+ ];
+ let body=target;
+ for(const [from,to] of cuts){if(body.split(from).length!==2)throw Error('target snapshot extraction drift');body=body.replace(from,to);}
+ writeFileSync(dir+'/isolated-target-body.inc',body);
+ const targetTest=Bun.spawnSync([...cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',
+  '-Itests/nvm_mocks','-Ibootloader/src','-I'+dir,'bootloader/src/isolated_nvm.c',
+  'bootloader/src/update_flash.c','bootloader/src/update_nvm.c','tests/isolated_nvm_target_test.c',
+  '-o',dir+'/target-test'],{stdout:'inherit',stderr:'inherit'});
+ if(targetTest.exitCode)throw Error('target integration compile failed');
+ const targetRun=Bun.spawnSync([dir+'/target-test'],{stdout:'inherit',stderr:'inherit'});
+ if(targetRun.exitCode)throw Error('target integration test failed');
+ const targetProduction=Bun.spawnSync([...cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',
+  '-Itests/nvm_mocks','-Ibootloader/src','-c','bootloader/src/isolated_nvm_target.c',
+  '-o',dir+'/target.o'],{stdout:'inherit',stderr:'inherit'});
+ if(targetProduction.exitCode)throw Error('target production TU compile failed');
 } catch(e){console.error(String(e));process.exit(1);}

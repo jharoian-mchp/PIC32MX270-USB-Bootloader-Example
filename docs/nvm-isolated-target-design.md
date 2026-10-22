@@ -1,6 +1,6 @@
-# Isolated NVM target port and startup — design only
+# Isolated NVM target port — inactive implementation and startup requirements
 
-The reviewed [inactive owner](nvm-isolated-owner.md) needs a separate minimal target entrypoint, read-only preflight port and final linked-image audit before it can be used on hardware. This document specifies those requirements. It implements nothing and selects no scratch page. No build/deployment, programmer connection, reset, NVM/protection action or PAUSE is authorised.
+`isolated_nvm_target.c/.h` and `isolated_nvm_target_hw.h` implement a finite register preflight, startup mailbox and lifecycle-aware adapter port for the [inactive owner](nvm-isolated-owner.md). Mock tests and XC32 compile-only checks pass. No main, startup binding, configuration translation unit, scratch-page default or standalone image exists. Hardware use requires the separate entrypoint, debugger workflow and final linked-image audit specified below. No deployment, programmer connection, reset, NVM/protection action or PAUSE is authorised.
 
 The current board remains on the canonical USB diagnostic with one successful controlled cycle and its trial permission spent. The A1 powered-BUSY concern stays open; isolated testing must use the stricter USBPWR0/BUSY0 gate, never the powered-reopen policy.
 
@@ -10,7 +10,7 @@ A future default-unbuilt target should have its own entrypoint and configuration
 
 Its explicit source list should consist of:
 
-- A small isolated main/startup-preflight/port module, not yet written.
+- A small isolated main, not yet written, plus the inactive `isolated_nvm_target.c` preflight/port module.
 - A separately reviewed fuse/configuration translation unit, not the generated initialization TU that also defines and constructs USB.
 - `isolated_nvm.c`, `update_flash.c` and `update_nvm.c`, with the real `update_nvm_port.h` selected before mock include paths.
 - XC32 reset/C-runtime support actually required by the final link; no application handoff or generated peripheral task/ISR sources.
@@ -111,7 +111,31 @@ Required evidence from the actual final compiler/linker output:
 
 The exact final linked startup and operation code must be reviewed again if flags, debug settings or instrumentation change. The compiler probe checks already available are support evidence, not final-image approval. Audit metadata must keep hardware qualification and delivery approval false until separately recorded actual outcomes; passing an audit never grants an erase command.
 
-## Verification and bounded design review
+## Source-only implementation — 2026-10-22
+
+The target module has no active caller. The Makefile explicitly filters it out of diagnostic `BTL_SOURCES`; generated project source lists, configuration and startup are unchanged. `make isolated-nvm-check` compiles the real register interface to an XC32 object only. `make test` and `make test-sanitize` execute host mocks, never target hardware.
+
+The hardware interface reads OSCCON, CP0 Count/Status/Cause/Debug, U1PWRC, DMACON, NVMCON, DEVCFG0–3 and RB2 GPIO status/pulls. DFP field assertions guard selected raw mask assumptions. It writes only ANSELBCLR bit2 and TRISBSET bit2 after the initial inactive/profile check. It does not read ordinary USB registers, write Count/Compare, initialize NVM or enable/disable a bus master. SW1 may be held during GPIO setup; the owner still requires stable release, token reservation and a fresh gesture.
+
+Preflight checks the initial sample, observes at most256 loop samples and takes a fresh final sample before READY. Only pending SLOCK/Count progress may wait within that loop. All other observed violations fail immediately and latch INIT_FAILED. The exact configuration words are `DEVCFG0=7FFFFFE3`, `DEVCFG1=FD74CE5B`, `DEVCFG2=FFF97AFA` and `DEVCFG3=FFFFFFFF`, matching the current non-debug/protection-OFF profile. These checks do not measure clock frequency, VDD or actual device revision.
+
+The startup report uses22 aligned words: version/state/unsafe bits/observation count/first and last Count, followed by16 raw input words. States are1 checking,2 ready and3 failed. The exclusion bits are USB1, DMA2, IRQ4, clock8, Count16, debug32, NVM64, GPIO128 and state/configuration/sequence256. PRE_INIT requires clean WR/errors; INITIALIZED leaves WR/pending/errors to the backend. Initializer rejection, invalid output storage and runtime exclusion violations publish terminal failure. A repeated initializer cannot reset the adapter or launch again.
+
+`ISOLATED_TargetSnapshot()` rejects unpublished, odd, exhausted, changed-during-copy or overlapping output snapshots without changing output. Publications use XC32 `sync` and a private expected sequence. Exhaustion or detected sequence disagreement marks the payload unavailable with `0xFFFFFFFE`, so an earlier READY payload cannot be accepted after that detected failure. Before detection, deliberate debugger mutation can still fabricate apparently coherent evidence; the mailbox is not authentication. A terminal failure permits no new initialization or publication recovery.
+
+The trusted caller must allocate disjoint, fixed-lifetime owner/context/mailboxes/configuration/port storage, establish IRQ exclusion and call preflight once on new/quiescent storage. The API does not enforce arbitrary C pointer validity or prohibit a trusted caller from reinitializing live objects. No final SRAM placement or reset-to-main execution has been verified.
+
+Passing verification after the final mailbox fix:
+
+- `make isolated-nvm-check`: strict XC32v6.00/DFP1.7.380 compile-only checks for the owner and real target interface; three isolated mock suites.
+- `make test` and `make test-sanitize`: full strict/ASan/UBSan suites, including30 Python methods and exact-source target snapshot cuts at all22 words and every odd publication step.
+- Owner → target port → actual NVM adapter mocks: no initialization before valid arming; one erase/row/full-page verification; no-token/held-button/bad-token/expired gesture rejection; terminal pre-init/backend/post-init failures; WR/pending handling; hardware error propagation; timeout settlement without more readback or launch.
+- `make nvm-codegen-check`: eight existing production/debug object modes pass ordered unlock checks. The final target object disassembly contains `sync` and read-only CP0 access. Object checks do not prove final linked startup/operation paths.
+- `bun tools/audit-restart-image.ts` and `bun tools/test-restart-image-audit.ts`: existing canonical diagnostic artifact/negative audits pass without relinking it. All existing HEX hashes match their pre-test values. Canonical/recovery hashes remain `f886f8b008ef7088baa0fbeb051d42fe89b6a2fad416006220554cf674114ad7` and `8e5a8451e43cdb4ee96b80f34ce5e3a5e166ba619ade144468c02a1de056d14c`.
+
+Bounded implementation reviews found privately latched runtime failures leaving the startup report READY, incomplete configuration validation and stale READY readout after a changed-even sequence failure. Terminal report publication, exact configuration words and explicit mailbox invalidation fix those findings. Regression tests pass; a narrow final follow-up confirms the stale-readout fix. A separate GPIO comment assumed SW1 had to be released before setup; the design permits a held input and the mock suite now covers it. These reviews provide bounded source evidence only, with no exhaustive or hardware approval.
+
+## Prior design verification and review
 
 Inspected the actual generated oscillator/configuration, GPIO and whole-system startup, the reviewed owner API, NVM port waits/source/launch code and the current USB-specific image audit. Device DS60001168L OSCCON definitions and CPU FRM Count/debug-control text were checked against original PDF text; DFP1.7.380 defines the referenced oscillator fields. These are source/reference checks, not measured clock or voltage evidence.
 
@@ -119,7 +143,7 @@ Mechanical checks confirm the nominal12MHz/DIV3/MUL24/DIV2 profile gives48MHz SY
 
 A completed independent design review requested lifecycle-specific NVM `unsafe()` handling and explicit non-returning Count-wait limitations. PRE_INIT/INITIALIZED/INIT_FAILED behavior and returning-call-only budget semantics were specified above; a bounded follow-up found those clarifications closed and no new critical contradiction. It also accepted the minimal GPIO ordering clarification. This is a bounded design pass only: actual target port/startup code, debugger visibility, final linked reset/operation paths and all hardware qualifications are still unverified.
 
-No C source, configuration or build target changed in this milestone. Document links and diff checks pass. The current diagnostic and recovery artifacts remain untouched.
+The prior design milestone changed no C source, configuration or build target. The later source-only implementation is described above. The current diagnostic and recovery artifacts remain untouched.
 
 ## Delivery gates and current scope
 
@@ -127,4 +151,4 @@ Before any future image is offered, complete source/port/startup review and mock
 
 The operator must provide/approve relevant current voltage, clock/configuration and target/recovery evidence under a bounded procedure. No protection boundary or direct forbidden-prefix test belongs in the first isolated transaction. Recovery can be destructive and may lose the report; it is not automatically safe merely because a read-only HEX exists.
 
-This document changes no C source, firmware configuration, source list or build target. The next possible milestone is source-only target-port/startup implementation with mocked preflight, still without a linked image or deployment. Keep the board on the canonical diagnostic, running/read-only with PICkit5 disconnected and external power/settings unchanged. No NVM write, programmer reconnection, reset, PAUSE, upload, protection change or fault test is authorised.
+The next gates are an agreed debugger/mailbox operating method, separately approved exact disposable page, dedicated entrypoint/configuration and standalone final-image auditor. None is supplied by the port implementation. Keep the board on the canonical diagnostic, running/read-only with PICkit5 disconnected and external power/settings unchanged. No NVM write, programmer reconnection, reset, PAUSE, upload, protection change or fault test is authorised.

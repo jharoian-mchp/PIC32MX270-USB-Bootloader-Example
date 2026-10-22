@@ -19,7 +19,8 @@ PYTHON ?= python3
 APP_WARNINGS ?= -Wall -Wextra
 BTL_DIR := build/bootloader
 BTL_LD ?= bootloader/src/config/default/btl.ld
-BTL_SOURCES := $(sort $(shell find bootloader/src -name '*.c'))
+# Isolated target preflight/port is compile-only, never a diagnostic input.
+BTL_SOURCES := $(filter-out bootloader/src/isolated_nvm_target.c,$(sort $(shell find bootloader/src -name '*.c')))
 BTL_WARNINGS ?= -Wall -Wextra
 
 .PHONY: toolchain-check nvm-codegen-check isolated-nvm-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
@@ -68,10 +69,11 @@ usb-retirement-check:
 usb-restart-audit:
 	HOST_CC="$(HOST_CC)" bun tools/audit-usb-restart.ts
 
-# Compile-only inactive isolated owner; no linked test image or page selection.
+# Compile-only inactive isolated owner and target; no linked image or page selection.
 isolated-nvm-check:
 	@mkdir -p build/isolated-nvm
 	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -std=c11 -Os -Wall -Wextra -Werror -Ibootloader/src -c bootloader/src/isolated_nvm.c -o build/isolated-nvm/owner-xc32.o
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -std=c11 -Os -Wall -Wextra -Werror -Ibootloader/src -c bootloader/src/isolated_nvm_target.c -o build/isolated-nvm/target-xc32.o
 	HOST_CC="$(HOST_CC)" bun tools/test-isolated-nvm.ts
 
 nvm-codegen-check:
