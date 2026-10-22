@@ -23,7 +23,7 @@ BTL_LD ?= bootloader/src/config/default/btl.ld
 BTL_SOURCES := $(filter-out bootloader/src/isolated_nvm_target.c,$(sort $(shell find bootloader/src -name '*.c')))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: toolchain-check nvm-codegen-check isolated-nvm-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
+.PHONY: debugger-rehearsal-check toolchain-check nvm-codegen-check isolated-nvm-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
 
 restart-image-audit: bootloader bootloader-restart-check
 	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts
@@ -76,6 +76,12 @@ isolated-nvm-check:
 	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -std=c11 -Os -Wall -Wextra -Werror -Ibootloader/src -c bootloader/src/isolated_nvm_target.c -o build/isolated-nvm/target-xc32.o
 	HOST_CC="$(HOST_CC)" bun tools/test-isolated-nvm.ts
 
+# Separate RAM-only library, compile-only real reads; no main/configuration/image.
+debugger-rehearsal-check:
+	@mkdir -p build/debugger-rehearsal
+	"$(XC32_ROOT)/bin/xc32-gcc" -mprocessor=32MX270F256D -mdfp="$(PIC32MX_DFP_ROOT)" -std=c11 -Os -g -Wall -Wextra -Werror -Irehearsal/src -c rehearsal/src/debugger_rehearsal.c -o build/debugger-rehearsal/rehearsal-xc32.o
+	HOST_CC="$(HOST_CC)" XC32_ROOT="$(XC32_ROOT)" bun tools/test-debugger-rehearsal.ts
+
 nvm-codegen-check:
 	XC32_ROOT="$(XC32_ROOT)" PIC32MX_DFP_ROOT="$(PIC32MX_DFP_ROOT)" bun tools/check-nvm-codegen.ts
 
@@ -96,6 +102,7 @@ application:
 
 test:
 	@mkdir -p build/tests
+	HOST_CC="$(HOST_CC)" bun tools/test-debugger-rehearsal.ts
 	HOST_CC="$(HOST_CC)" bun tools/test-isolated-nvm.ts
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_wire.c tests/usb_debug_layout_test.c -o build/tests/usb_normal_layout_test
 	./build/tests/usb_normal_layout_test
