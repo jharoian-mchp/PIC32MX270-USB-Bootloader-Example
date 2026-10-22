@@ -18,6 +18,18 @@ The PowerShell prompt shows `usb-power-debug-2de2f84`, the older extraction, rat
 
 Keep the board running unchanged. Verify the new extraction's inventory/checksums if not already done, then collect only STATUS/PREVIOUS/power-previous from that directory with its matching script. No repeated IPE programming, SW1/MCLR startup, list or capabilities probe is needed. This is limited read-only provenance verification; no PAUSE, reset, reprogramming or fault test is authorised.
 
+## Matching diagnostic replies — 2026-10-22 03:33
+
+The user returned STATUS/PREVIOUS/power-previous from `usb-harmony-powered-f1d9e3c`, closing the earlier diagnostic-script directory gap without repeating programming or startup:
+
+- STATUS: ticket0/generation1/completed_cycles0/state0.
+- PREVIOUS: valid:false, READY/NONE and zero identity/time/evidence/detail defaults.
+- Power-previous: valid:false, zero identity/time/metadata, all three samples null and POST/READY deltas null.
+
+The initial response checks are complete, combined with the earlier expected HID/capabilities replies from the byte-identical list/probe script and IPE verification of the named Harmony-powered image. The prompts establish matching directory use; no separate user checksum output is included. Neither initial operation nor invalid retained evidence proves hardware restart, SRAM retention or the powered-BUSY rule safe. The nominal24MHz field is decoder profile information, not a measured clock.
+
+Keep the board running with power/settings unchanged and PICkit5 disconnected. No repeated startup, reset, reprogramming, PAUSE or fault test is authorised. Any single evidence-producing trial needs a separate explicit decision after these initial results.
+
 ## Experimental decision and concern
 
 This image requires USBPWR1 for powered rebuilding and treats USBBUSY as evidence rather than a powered reopening blocker, following the user's Harmony-template direction. IRQ, software, USBEN, queue/BDT and full-stack readiness checks remain; retirement/preparation and NVM still require USBPWR0/BUSY0 with their ownership gates. No BUSY delay or software clear was added.
