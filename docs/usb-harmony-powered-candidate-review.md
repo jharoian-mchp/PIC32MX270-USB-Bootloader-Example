@@ -45,6 +45,10 @@ The prior board's BUSY failure did not reach USBEN or queue/BDT checks. This can
 
 No HID command was sent to the board. Passing artifact/source tests do not prove hot reconstruction, pending-interrupt timing, electrical behavior or USB-only restart. The [device-specific concern and prepared clarification](usb-powered-readiness-contract-review.md) remain unresolved; no vendor answer was obtained.
 
+## Subsequent initial-only approval — 2026-10-22 03:13
+
+The user approved the 48KB Harmony-powered package/programming and five initial read-only checks with the same no-preservation overlap scope as before. The [initial-check procedure](usb-harmony-powered-initial-check.md) defines that later scope and retains the A1 concern. No PAUSE is authorised. Earlier no-delivery statements describe this review's cutoff.
+
 ## Future initial-only package requirements
 
 A new package needs explicit preparation/delivery and programming approval. It must identify this exact source and HEX, retain the temporary48KB layout warning and unresolved A1 concern, and contain matching scripts, known recovery HEX, actual copied-artifact audit JSON, source/procedure identification, manifest and checksums in a new directory. Verify ZIP entries, extracted bytes and host tests before attachment.
