@@ -1,6 +1,6 @@
 # Harmony-powered 48 KB diagnostic — initial checks only
 
-Programming and initial response checks are complete under the user's 2026-10-22 03:13 approval. At03:46 the user separately authorised **one PAUSE on the currently running Harmony-powered image**, bounded below. No resend, higher-ID retry, second cycle, reset/recovery before reporting or fault test is authorised. Earlier initial-only instructions are historical.
+The single authorised Harmony-powered PAUSE100 **passed at2026-10-22 03:51**: removal observed, same-path reconnect verified, live ticket1/generation2/cycles1/state7 confirmed separately, and HID/debug capabilities available. [First-cycle evidence and limits](usb-harmony-powered-first-cycle.md) record this one controlled success. **The trial is spent: no second PAUSE, higher ID, reset, reprogramming or fault test.** Keep the reconnected board running/read-only; earlier instructions below are historical.
 
 ## IPE programming evidence — received 2026-10-22 03:24
 
@@ -55,6 +55,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Debug probe failed; stop and report' }
 A successful cycle requires verified removal/reconnect and live ticket1/generation2/completed_cycles1/state7. HID return alone is insufficient. If the interface is absent/ambiguous or a query fails, capture the output and stop; preserve any failed state.
 
 **No reset, power-cycle, unplug, reprogramming or recovery before reporting.** A later powered SW1/MCLR recovery and both retained queries would need a separate decision after reviewing the result. The current boot's prior snapshots cannot expose this new trial's journal. No uploads, NVM/protection changes, electrical faults or additional cycles are authorised. The A1 concern remains open and results are pending.
+
+## Single-cycle result — 2026-10-22 03:51
+
+The matching package restart output reports before0/1/0/0 and after1/2/1/7 (ticket/generation/completed_cycles/state), `removed_observed=true`, `pause_response_uncertainty=null` and the same HID path. Post-list found the expected single interface. Separate STATUS confirmed1/2/1/7, and the debug probe returned the expected origin1D00C000 and unchanged layout fields.
+
+This passes the single controlled cycle's declared criteria, without a requested MCU reset or recovery. It does not supply boot authentication, repeated-cycle qualification, successful-cycle register observations or a device-specific A1 BUSY clarification. The initial previous snapshots remain historical, not the current successful journal. No reset to capture that journal is requested.
+
+See [the complete first-cycle evidence](usb-harmony-powered-first-cycle.md). The A1 concern stays open; NVM/protection, uploads, fault tests and a future smaller image remain separately gated. No additional board action is authorised.
 
 ## Experimental decision and concern
 

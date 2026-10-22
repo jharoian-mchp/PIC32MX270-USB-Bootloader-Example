@@ -47,6 +47,10 @@ A broad source review timed out. A completed narrower predicate review found no 
 
 The temporary diagnostic link is text33237/data88/bss2052, with32829 bytes used in its49152-byte program region. Normal default remains26670/80/1568, origin1D008000 and known recovery HEX hash `8e5a8451e43cdb4ee96b80f34ce5e3a5e166ba619ade144468c02a1de056d14c`. The debug origin stays1D00C000. Returning enabled diagnostics to32KB remains a later task. Configuration/protection settings are unchanged.
 
+## Later single-cycle hardware result — 2026-10-22 03:51
+
+The delivered experimental image completed [one authorised controlled USB-only cycle](usb-harmony-powered-first-cycle.md), with verified removal/reconnect and independently confirmed live ticket1/generation2/cycles1/state7 plus HID/debug probe. This is narrower than general hardware qualification: the A1 concern, repeated cycles and later NVM/upload work remain open. No additional cycle or reset is authorised.
+
 ## Board and delivery scope
 
-No replacement archive was created, and the running board still has the prior `2de2f84` power-debug image. Its PAUSE/recovery permissions are spent. Keep PICkit5 disconnected and external power/settings unchanged. No new PAUSE, higher ID, reset, reprogramming, upload, NVM/protection change or fault test is authorised. The subsequent [experimental candidate review](usb-harmony-powered-candidate-review.md) passes its bounded offline checks and defines future initial-only delivery requirements. It grants no package or board permission; a separate programming and later trial decision is still required.
+At this source-stage cutoff no replacement archive had been created and the board still ran `2de2f84`. The later delivered `f1d9e3c` image and its spent single-cycle trial are recorded above. Keep PICkit5 disconnected and external power/settings unchanged. No new PAUSE, higher ID, reset, reprogramming, upload, NVM/protection change or fault test is authorised. The subsequent [experimental candidate review](usb-harmony-powered-candidate-review.md) passes its bounded offline checks and defines future initial-only delivery requirements. It grants no package or board permission; a separate programming and later trial decision is still required.
