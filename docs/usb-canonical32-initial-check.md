@@ -4,6 +4,12 @@ The user's 2026-10-22 04:44 approval covers this package, programming the suppli
 
 The earlier 48 KB Harmony-powered image completed one controlled USB-only cycle. That result does not qualify this newly compiled 32 KB image. Data-section coalescing changes SRAM placement and startup timing; runtime source, diagnostics and safety predicates are unchanged. **The PIC32MX270 A1 powered-BUSY concern remains open:** powered readiness requires USBPWR1 and records BUSY as evidence, not a blocker. USBEN/IRQ/software/queue/BDT checks remain, and retirement/NVM retain USBPWR0/BUSY0 and their ownership gates. Uploads, NVM writes, protection changes and application handoff remain disabled.
 
+## Extracted-file verification — 2026-10-22 04:55
+
+The user supplied successful PowerShell checks of the expected source/profile manifest, eight-file checksum inventory, uniqueness/set equality, exact extracted-file inventory and all listed hashes. The printed diagnostic and recovery HEX hashes match the independently specified table below.
+
+The downloaded ZIP hash comparison against the separately supplied delivery value was not included. Internal consistency and verified HEX hashes do not establish that this external archive check occurred. Confirm the existing check, or hash the retained downloaded ZIP without any board action. No repeated extraction, programming, startup or PAUSE is needed for this verification. Programming/IPE and the five initial read-only results have not yet been reported.
+
 ## Package and identity
 
 Package: `usb-canonical32-09da506.zip`. **Before extraction, compare the downloaded ZIP SHA-256 with the separately supplied hash in the delivery chat message.** This external hash anchors the whole archive, including `SHA256SUMS.txt`, scripts and manifest; internal checksums alone are not authentication. If the independent delivery hash is unavailable or differs, stop and report.
