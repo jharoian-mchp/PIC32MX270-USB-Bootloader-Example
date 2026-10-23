@@ -147,10 +147,14 @@ function parsePolicy(bytes: Uint8Array, manifestHash: string, expectedHash: stri
   return p;
 }
 
-interface Section { i:number; name:string; type:number; flags:number; addr:number; off:number; size:number; link:number; info:number; align:number; entsize:number; }
-interface Sym { name:string; value:number; size:number; bind:number; type:number; shndx:number; }
-interface ElfInfo { buf:Buffer; sections:Section[]; symbols:Sym[]; loads:{off:number; vaddr:number; paddr:number; filesz:number; memsz:number; flags:number}[]; }
-function parseElf(bytes: Uint8Array): ElfInfo {
+export interface Section { i:number; name:string; type:number; flags:number; addr:number; off:number; size:number; link:number; info:number; align:number; entsize:number; }
+export interface Sym { name:string; value:number; size:number; bind:number; type:number; shndx:number; }
+export interface ElfInfo { buf:Buffer; sections:Section[]; symbols:Sym[]; loads:{off:number; vaddr:number; paddr:number; filesz:number; memsz:number; flags:number}[]; }
+export interface NativeGap { start:number; end:number; kind:'zero-file'|'no-file'; }
+export interface NativeFormatOptions { gaps:NativeGap[]; }
+/** Strict existing format unless native options are explicitly supplied by the
+ * separately pinned native reader. It never changes safety/approval status. */
+export function parseElf(bytes: Uint8Array,native?:NativeFormatOptions): ElfInfo {
   check(bytes.length >= 52 && bytes.length <= MAX_FILE, "ELF size/header limit");
   const b=Buffer.from(bytes);
   check(b.subarray(0,7).equals(Buffer.from([0x7f,0x45,0x4c,0x46,1,1,1])), "expected ELF32 little-endian version 1");
@@ -178,7 +182,8 @@ function parseElf(bytes: Uint8Array): ElfInfo {
   for(const s of raw){
     s.name=cstr(b,names.off,names.size,b.readUInt32LE(shoff+s.i*shents),"section name");
     if(s.i!==0)check(s.name.length>0,"non-null section needs a name");
-    if(s.name){check(!used.has(s.name), `duplicate section name ${s.name}`); used.add(s.name);}
+    if(s.name){check(native||!used.has(s.name), `duplicate section name ${s.name}`); used.add(s.name);}
+    if(native&&s.size>0)check(!raw.slice(0,s.i).some(p=>p.name===s.name&&p.addr===s.addr&&p.size>0),"duplicate native section identity");
   }
   const loads:any[]=[];
   for(let i=0;i<phnum;i++){
@@ -196,31 +201,60 @@ function parseElf(bytes: Uint8Array): ElfInfo {
     loads.push({off,vaddr,paddr,filesz,memsz,flags});
   }
   check(loads.length>0, "no PT_LOAD segments");
+  if(native){const fileRanges=loads.filter(p=>p.filesz>0).sort((a,b)=>a.off-b.off);
+    for(let i=1;i<fileRanges.length;i++)check(fileRanges[i].off>=fileRanges[i-1].off+fileRanges[i-1].filesz,"native PT_LOAD file ranges overlap/reuse");}
   check(entry%4===0&&loads.some(p=>(p.flags&1)!==0&&entry>=p.vaddr&&entry<p.vaddr+p.filesz),"ELF entry not mapped executable bytes");
   const loadRanges=loads.map((p:any)=>{const d=domain(p.vaddr,p.memsz,"PT_LOAD");return [d==="ram"?p.vaddr:physical(p.vaddr),d==="ram"?p.vaddr+p.memsz:physical(p.vaddr)+p.memsz,d] as [number,number,string]}).sort((a,b)=>a[0]-b[0]);
   for(let i=1;i<loadRanges.length;i++) check(loadRanges[i][0]>=loadRanges[i-1][1]||loadRanges[i][2]!==loadRanges[i-1][2], "overlapping/aliased PT_LOAD memory ranges");
-  const alloc=raw.filter(s => (s.flags&2)!==0);
+  const empty=raw.filter(s=>(s.flags&2)!==0&&!s.size);
+  if(native)for(const s of empty){
+    const array=(s.type===16&&s.name==='.preinit_array')||(s.type===14&&s.name==='.init_array')||(s.type===15&&s.name==='.fini_array');
+    check((s.type===1||s.type===8||array)&&!(s.flags&~0x10200007),"unsupported empty native section");
+    check((s.addr>=0x9D000000&&s.addr<=0x9D008000)||(s.addr>=RAM_START&&s.addr<=RAM_END),"empty native section address");
+  }
+  const alloc=raw.filter(s => (s.flags&2)!==0&&(!native||s.size>0));
   check(alloc.reduce((n,s)=>n+s.size,0)<=MAX_SECTION,"total allocated size limit");
   // Strict initial subset: every segment byte must be explained by exactly
   // mapped sections. Alignment holes/loader-only padding are unsupported,
   // never accepted by a global file-offset set from another segment.
+  const usedGaps=new Set<NativeGap>();
   for(const ph of loads){
     const mapped=alloc.filter(s=>s.addr>=ph.vaddr&&s.size<=ph.memsz-(s.addr-ph.vaddr)&&
       ((s.type===8&&s.addr>=ph.vaddr+ph.filesz)||
-       (s.type===1&&s.size<=ph.filesz-(s.addr-ph.vaddr)&&s.off===ph.off+s.addr-ph.vaddr)));
+       ((s.type===1||(native&&s.type===0x7000002A))&&s.size<=ph.filesz-(s.addr-ph.vaddr)&&s.off===ph.off+s.addr-ph.vaddr)));
+    check(mapped.length>0,native?"PT_LOAD must own mapped sections, not gaps alone":"PT_LOAD has unexplained memory/file range or mapping");
+    if(ph.filesz)check(mapped.some(s=>s.type!==8),"file segment lacks mapped file section");
     const sorted=[...mapped].sort((a,b)=>a.addr-b.addr);let cursor=ph.vaddr;
-    for(const s of sorted){check(s.addr===cursor,"PT_LOAD has unexplained memory/file range or mapping");cursor+=s.size;}
-    check(cursor===ph.vaddr+ph.memsz,"PT_LOAD has unexplained memory/file range or mapping");
+    const gap=(start:number,end:number)=>{
+      if(start===end)return;
+      check(native,"PT_LOAD has unexplained memory/file range or mapping");
+      const g=native.gaps.filter(g=>g.start===start&&g.end===end);
+      check(g.length===1&&!usedGaps.has(g[0]),"unapproved/ambiguous native segment gap");
+      const cut=ph.vaddr+ph.filesz;
+      check((g[0].kind==='zero-file'&&end<=cut)||(g[0].kind==='no-file'&&start>=cut),"native gap crosses file boundary");
+      if(g[0].kind==='zero-file')check(b.subarray(ph.off+start-ph.vaddr,ph.off+end-ph.vaddr).every(x=>x===0),"nonzero native segment gap bytes");
+      usedGaps.add(g[0]);
+    };
+    for(const s of sorted){check(s.addr>=cursor,"PT_LOAD overlapping mapped sections");gap(cursor,s.addr);cursor=s.addr+s.size;}
+    gap(cursor,ph.vaddr+ph.memsz);
   }
+  if(native)check(usedGaps.size===native.gaps.length,"unused native gap declaration");
   for(const s of alloc){
-    check(s.size>0 && (s.type===1 || s.type===8), `unsupported allocated section ${s.name}`);
+    const abi=native&&s.type===0x7000002A&&s.name==='.MIPS.abiflags';
+    check(s.size>0 && (s.type===1 || s.type===8 || abi), `unsupported allocated section ${s.name}`);
     const d=domain(s.addr,s.size,`allocated section ${s.name}`);
+    const debug=native&&s.type===8&&((s.name==='.dbg_excpt'&&s.addr===0xBFC00480&&s.size===8)||
+      (s.name==='.dbg_code'&&s.addr===0x9FC00490&&s.size===0x760)||(s.name==='.dbg_data'&&s.addr===RAM_START&&s.size===512));
+    if(s.name.startsWith('.dbg'))check(debug,"invalid native debug reservation");
     if(d==="ram") check(s.addr>=RAM_START && s.addr<RAM_END && s.type===8, `SRAM section ${s.name} must be uncached NOBITS`);
-    else check(s.type===1, `Flash section ${s.name} must be file-backed PROGBITS`);
+    else check(s.type===1||abi||debug, `Flash section ${s.name} must be file-backed PROGBITS`);
     check((s.flags&4)===0 || d!=="ram", "executable SRAM section unsupported");
-    check((s.flags&~7)===0&&!(s.flags&1&&s.flags&4),"unsupported allocated section flags");
+    const nativeBss=native&&d==='ram'&&s.type===8&&s.name.startsWith('.bss.');
+    check((s.flags&~(nativeBss?0x200007:7))===0&&!(s.flags&1&&s.flags&4),"unsupported allocated section flags");
     check(!(d==="ram"&&s.type===8&&(s.flags&1)===0),"RAM allocation must be writable");
-    check((d==="ram")||!(s.flags&1),"writable Flash section unsupported");
+    check((d==="ram")||!(s.flags&1)||debug,"writable Flash section unsupported");
+    if(abi)check(s.flags===2&&s.align===8&&s.size===24&&d==='program'&&
+      b.subarray(s.off,s.off+s.size).toString('hex')==='0000200201000003000000000b0000000100000000000000',"unsupported native MIPS ABI profile");
   }
   const ranges=alloc.map(s=>[s.addr,s.addr+s.size,s.name] as [number,number,string]).sort((a,b)=>a[0]-b[0]);
   for(let i=1;i<ranges.length;i++) check(ranges[i][0]>=ranges[i-1][1], `allocated section overlap ${ranges[i-1][2]}/${ranges[i][2]}`);
@@ -228,7 +262,7 @@ function parseElf(bytes: Uint8Array): ElfInfo {
   for(let i=0;i<canonical.length;i++)for(let j=i+1;j<canonical.length&&canonical[j][2]===canonical[i][2];j++)check(canonical[j][0]>=canonical[i][1],`allocated section physical alias overlap ${canonical[i][3]}/${canonical[j][3]}`);
   const symtabs=raw.filter(s=>s.type===2);
   check(symtabs.length===1, "require exactly one bounded SYMTAB");
-  const st=symtabs[0]; check(st.entsize===16 && st.size>=16 && st.size%16===0 && st.size/16<=MAX_TABLE && st.link<raw.length, "invalid ELF32 symbol table layout/count");
+  const st=symtabs[0]; check(st.entsize===16 && st.size>=16 && st.size%16===0 && st.size/16<=(native?4096:MAX_TABLE) && st.link<raw.length, "invalid ELF32 symbol table layout/count");
   const str=raw[st.link]; check(str.type===3 && str.size>0, "symbol string table must be STRTAB");
   const syms:Sym[]=[];
   for(let o=0;o<st.size;o+=16){
@@ -239,7 +273,7 @@ function parseElf(bytes: Uint8Array): ElfInfo {
   }
   return {buf:b,sections:raw,symbols:syms,loads};
 }
-function parseHex(bytes: Uint8Array, policy:any): Map<number,number> {
+export function parseHex(bytes: Uint8Array, policy:any): Map<number,number> {
   check(bytes.length>0 && bytes.length<=MAX_FILE, "HEX size limit");
   const text=Buffer.from(bytes).toString("ascii"); check(Buffer.from(text,"ascii").equals(Buffer.from(bytes)), "HEX must be ASCII");
   const normalized=text.replace(/\r\n/g,"\n"); const lines=(normalized.endsWith("\n")?normalized.slice(0,-1):normalized).split("\n");
@@ -410,7 +444,7 @@ function cliArgs(argv: string[]): Record<string,string> {
   }
   check(Object.keys(out).length===6,"explicit --elf --hex --map --manifest --policy --expected-policy-sha256 are required; no defaults"); return out;
 }
-function readBounded(path:string,limit=MAX_FILE):Buffer {
+export function readBounded(path:string,limit=MAX_FILE):Buffer {
   const fd=openSync(path,"r");try {
     const st=fstatSync(fd);check(st.isFile()&&st.size>0&&st.size<=limit,`file size limit: ${path}`);
     const b=Buffer.alloc(st.size+1);let n=0;

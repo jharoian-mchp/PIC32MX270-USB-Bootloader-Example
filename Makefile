@@ -23,7 +23,7 @@ BTL_LD ?= bootloader/src/config/default/btl.ld
 BTL_SOURCES := $(filter-out bootloader/src/isolated_nvm_target.c,$(sort $(shell find bootloader/src -name '*.c')))
 BTL_WARNINGS ?= -Wall -Wextra
 
-.PHONY: debugger-rehearsal-native-test debugger-rehearsal-source-check debugger-rehearsal-image-test debugger-rehearsal-check toolchain-check nvm-codegen-check isolated-nvm-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
+.PHONY: debugger-rehearsal-native-image-test debugger-rehearsal-native-test debugger-rehearsal-source-check debugger-rehearsal-image-test debugger-rehearsal-check toolchain-check nvm-codegen-check isolated-nvm-check usb-restart-audit usb-retirement-check usb-cancellation-check bootloader-restart-check restart-image-audit application bootloader test test-sanitize update-audit
 
 restart-image-audit: bootloader bootloader-restart-check
 	XC32_ROOT="$(XC32_ROOT)" bun tools/audit-restart-image.ts
@@ -96,6 +96,10 @@ debugger-rehearsal-image-test:
 debugger-rehearsal-native-test:
 	bun tools/test-rehearsal-native-map.ts
 
+# Independent native-shaped fixtures only, no build/link/board tools.
+debugger-rehearsal-native-image-test:
+	bun tools/test-rehearsal-native-image.ts
+
 nvm-codegen-check:
 	XC32_ROOT="$(XC32_ROOT)" PIC32MX_DFP_ROOT="$(PIC32MX_DFP_ROOT)" bun tools/check-nvm-codegen.ts
 
@@ -120,6 +124,7 @@ test:
 	HOST_CC="$(HOST_CC)" bun tools/test-debugger-rehearsal-entry.ts
 	bun tools/test-debugger-rehearsal-image.ts
 	bun tools/test-rehearsal-native-map.ts
+	bun tools/test-rehearsal-native-image.ts
 	HOST_CC="$(HOST_CC)" bun tools/test-isolated-nvm.ts
 	$(HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Ibootloader/src bootloader/src/update_wire.c tests/usb_debug_layout_test.c -o build/tests/usb_normal_layout_test
 	./build/tests/usb_normal_layout_test
