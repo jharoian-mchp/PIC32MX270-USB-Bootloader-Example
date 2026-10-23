@@ -70,7 +70,7 @@ Full host `make test` and `make test-sanitize`, the unchanged original46-case pa
 
 ## Remaining approvals
 
-This native structural subset removes specific format incompatibilities; it does not resolve the full safety gates recorded in the [runtime review](nvm-debugger-artifact-runtime-review.md). Startup/data-init executable semantics, all reachable stores/calls, CRT trap/exception assumptions, source/object/runtime provenance, installed executive, effective IDE settings and erase/recovery behaviour need independent exact-hash evidence.
+This native structural subset removes specific format incompatibilities; it does not resolve the full safety gates recorded in the [runtime review](nvm-debugger-artifact-runtime-review.md). Startup/data-init executable semantics, all reachable stores/calls, CRT trap/exception assumptions, source/object/runtime provenance, installed executive, effective IDE settings and erase/recovery behaviour need independent exact-hash evidence. The subsequent [provenance/application-review contract](nvm-debugger-provenance-acceptance.md) separates current hash matches from missing historical inputs and unsigned reviewer assertions. It defines the required coverage without creating a validator, full review or safety pass.
 
 The parser always leaves `startup_status`, `control_flow_status` and `application_safety_status` unsupported, installed executive unknown and delivery/hardware/NVM approval false. No API or manifest field can set them to a safety/delivery PASS. A native structural result is not an image-install or debugger-token permission.
 
