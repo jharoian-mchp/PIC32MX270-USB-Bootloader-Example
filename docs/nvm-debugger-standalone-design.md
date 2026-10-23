@@ -1,6 +1,6 @@
 # Standalone RAM rehearsal startup and image audit — design only
 
-The [inactive RAM rehearsal](nvm-debugger-rehearsal-implementation.md) needs a dedicated entrypoint/configuration/linker and separate final-image auditor before it can be offered for debugger use. This design defines those boundaries from installed XC32v6.00/DFP1.7.380 startup sources and the existing image parser. No new target source, fuse translation unit, linker, auditor implementation, ELF/HEX, host procedure or board operation is supplied.
+The [inactive RAM rehearsal](nvm-debugger-rehearsal-implementation.md) needs a dedicated entrypoint/configuration/linker and separate final-image auditor before it can be offered for debugger use. This design defines those boundaries from installed XC32v6.00/DFP1.7.380 startup sources and the existing image parser. The later [source/compile-only implementation](nvm-debugger-standalone-implementation.md) supplies the entry/configuration/exception sources and an initial synthetic structural parser. No rehearsal linker, linked target ELF/HEX, final startup/control-flow audit, host procedure or board operation is supplied.
 
 The user requested the next design/review step after `e344919`. The current board remains on canonical diagnostic source `09da506`, running/read-only with PICkit5 disconnected and external power/settings unchanged. All earlier PAUSE/recovery permissions are spent. IPE's observed Hold In Reset setting does not establish MPLAB X's effective setting. No disposable page is needed or selected for a RAM-only rehearsal, and the A1/NVM/protection qualifications stay open.
 
@@ -16,7 +16,7 @@ Proposed user inputs are limited to:
 - Separate reviewed exception/NMI/no-op reset/bootstrap support if required by the selected runtime.
 - An explicit rehearsal linker and the resolved XC32 C-runtime/library members actually required by that link.
 
-Those names describe future files. None is created here. Do not include generated SYS/CLK/GPIO/NVM/USB/DMA initialization, application/diagnostic tasks, monitor/stdio transport, isolated NVM owner/target, Flash/NVM adapter or firmware-update source. C-library `memcpy`/`memset` used by the current object are expected, but their resolved definitions and any helper dependencies must still be inspected.
+The subsequent source milestone implements the named entry/configuration/library and exception support; the dedicated linker/runtime selection is still unimplemented. The original design did not create those sources. Do not include generated SYS/CLK/GPIO/NVM/USB/DMA initialization, application/diagnostic tasks, monitor/stdio transport, isolated NVM owner/target, Flash/NVM adapter or firmware-update source. C-library `memcpy`/`memset` used by the current object are expected, but their resolved definitions and any helper dependencies must still be inspected.
 
 Main begins only after valid C storage/stack. It disables CPU interrupts once immediately, with the toolchain hazard/order sequence and an effective Status.IE check. It never restores IRQ, changes clock/cache/peripheral ownership or reruns this operation after debug return. Statically allocated context/mailbox symbols must be kept inspectable with exact sizes/alignment. The initial disable supplements audited CRT interrupt setup; it cannot excuse a startup hook or constructor enabling a peripheral before main.
 
@@ -161,4 +161,4 @@ Later steps are separately scoped:
 3. Review actual debugger installation/erase/profile/settings/executive evidence and an exact recovery/host procedure; obtain distinct image/install/tool-connection permissions before delivering a no-launch rehearsal.
 4. Record the approved RAM trial's actual ordered edit/snapshot/resume evidence. It still qualifies no NVM page, timing, arming/settlement, protection or uploader.
 
-No programmer GUI/CLI commands, settings changes or page choice are provided. The next possible work is source-only implementation after design review, with a final link and every host action separate.
+No programmer GUI/CLI commands, settings changes or page choice are provided. The [initial implementation](nvm-debugger-standalone-implementation.md) passes source/compile-only checks and synthetic parser tests while leaving safety/delivery unsupported. A dedicated linker/native-map/runtime inventory and separately approved local non-deliverable link are the next gates; every host action stays separate.
