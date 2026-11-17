@@ -1,0 +1,17 @@
+{
+  "approval": "web:chrisk-agent 2026-10-29T00:19:21.095Z",
+  "template": "application/app.X/nbproject",
+  "type": 2,
+  "source_copies": [
+    "main.c",
+    "configuration.c",
+    "debugger_rehearsal.c",
+    "exception_stops.S",
+    "debugger_rehearsal.h",
+    "debugger_rehearsal_hw.h",
+    "rehearsal_entry_hw.h"
+  ],
+  "source_changed": false,
+  "hardware_approved": false,
+  "new_link_approved_once": true
+}

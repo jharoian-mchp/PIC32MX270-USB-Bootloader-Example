@@ -4,7 +4,13 @@ This project will build a USB HID bootloader and a simple application for the **
 
 Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. The initial MCC application is generated; saved components record **CSP v3.26.0**. User-owned LED1 code now builds with XC32 here and passes mocked tests. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blinking. The user also confirmed production operation and blinking after MCLR and power-cycle resets. The exact tested commit is tagged **v0.1.0-led-blink**. A tested **enumeration-only diagnostic build** now adds AN1 sensing and safe mini-B mux setup; the first connected-state ADC/mux and Windows HID enumeration test is confirmed. ADC unplug/replug detection and detach/reattach are now confirmed; host re-enumeration after MCLR and power cycle is now user-confirmed. Firmware-update commands stay inactive.
 
-Last updated: **2026-10-23**. Update this file when project decisions, setup requirements or verified progress change.
+Last updated: **2026-11-17**. Update this file when project decisions, setup requirements or verified progress change.
+
+## Current work — customer H3 demonstration
+
+Experimental USB/NVM qualification is paused. The [pause checkpoint](docs/paused-experimental-work.md) records the passing 5 November RAM rehearsal, preserved evidence, unfinished NVM/application work and last reported board state. Current hardware/session state must be reconfirmed; no board action follows from this change of priority.
+
+The next task is a separate customer-facing Harmony 3 bootloader and demonstration application with reproducible MCC instructions. The original email asks for a preferred H3/MCC workflow and assumes a 32 KB application offset. It names PIC32MX270F512H, whereas the tested board uses PIC32MX270F256D; exact customer device and transport require confirmation. Historical sections below retain their dated findings and are not instructions to resume experimental board operations.
 
 ## Recommended approach
 
@@ -182,6 +188,8 @@ The application project is present. A separate `bootloader/` directory is the ne
 - Keep generator DFP 1.6.369 and build DFP 1.7.380 separate, and preserve the user-owned LED code during MCC regeneration.
 
 ### Progress log
+
+- **2026-11-17:** Paused experimental work for customer support; preserved the source-managed RAM project and November result/evidence. `make test` passes. No NVM write or hardware/session-end action performed. Separate H3 customer demo planning begins; exact email MCU differs from the board and needs confirmation.
 
 - **2026-10-13:** Agreed on USB HID, XC32, standalone MCC and an initial blink application; confirmed the full MCU part number and PIM availability.
 - **2026-10-13:** Cloned the reference repository, converted all 27 PDFs through Docling and verified source hashes and all 650 external image links.

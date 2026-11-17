@@ -1,0 +1,21 @@
+# One approved offline Debug-profile build; never invokes MPLAB or a board tool.
+XC32 := /workspace/ChrisK/tools/xc32/v6.00/bin
+DFP := /workspace/ChrisK/tools/packs/Microchip/PIC32MX_DFP/1.7.380
+OUT := ../../build/rehearsal-managed-20261029
+SOURCES := main.c configuration.c debugger_rehearsal.c exception_stops.S
+OBJECTS := $(addprefix $(OUT)/,$(addsuffix .o,$(SOURCES)))
+FLAGS := -mprocessor=32MX270F256D -mdfp=$(DFP) -Os -g -D__DEBUG -mno-mips16 -mdebugger -fno-common -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Isrc
+.PHONY: approved-once
+approved-once:
+	@test ! -e $(OUT)/attempt.json || { echo 'REFUSED: build allowance already attempted'; exit 1; }
+	@mkdir -p $(OUT)
+	@printf '%s\n' '{"approval":"web:chrisk-agent 2026-10-29T00:19:21.095Z","scope":"one offline build/link only","hardware_approved":false}' > $(OUT)/attempt.json
+	$(MAKE) -f Makefile.offline $(OUT)/rehearsal-managed.elf
+	$(XC32)/xc32-bin2hex $(OUT)/rehearsal-managed.elf
+	$(XC32)/xc32-objdump -d $(OUT)/rehearsal-managed.elf > $(OUT)/disassembly.txt
+	$(XC32)/xc32-readelf -S -l -s $(OUT)/rehearsal-managed.elf > $(OUT)/elf-inventory.txt
+	sha256sum $(OUT)/rehearsal-managed.elf $(OUT)/rehearsal-managed.hex $(OUT)/rehearsal-managed.map > $(OUT)/SHA256SUMS.txt
+$(OUT)/%.o: src/%
+	$(XC32)/xc32-gcc $(FLAGS) -MMD -MF $@.d -c $< -o $@
+$(OUT)/rehearsal-managed.elf: $(OBJECTS)
+	$(XC32)/xc32-gcc $(FLAGS) $(OBJECTS) -Wl,--script=linker/ram_rehearsal.ld,--defsym=_DEBUGGER=1,--defsym=__MPLAB_DEBUG=1,--defsym=_min_stack_size=1024,--defsym=_min_heap_size=512,--gc-sections,-Map=$(OUT)/rehearsal-managed.map -o $@
