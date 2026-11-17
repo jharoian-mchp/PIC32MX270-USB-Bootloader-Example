@@ -118,7 +118,7 @@ data:
       children:
       - children:
         - attributes:
-            value: EC
+            value: HS
           type: User
         type: Values
       type: Combo
