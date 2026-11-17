@@ -37,6 +37,21 @@ Original PDF/text are preserved outside the public repository under `/workspace/
 7. Define the board procedure and obtain explicit approval after reconfirming actual board/session state. Test initial installation, forced entry, upload, visible application execution, update/re-entry and recovery. Interrupt/power-loss tests require separate scope.
 8. Deliver a checked customer archive and concise email answer with setup steps, version pins, memory contract, observed results and limits.
 
+## Pinned tools and content — confirmed 17 November
+
+| Component | Version |
+|---|---|
+| MPLAB X | 6.35 |
+| XC32 | 6.00 |
+| MCC | 5.7.2.3 |
+| H3 bootloader | 3.9.0 |
+| H3 USB | 3.16.0 |
+| H3 core | 3.17.1 |
+| H3 CSP | 3.26.1 |
+| PIC32MX_DFP (selected build pack) | 1.7.380 |
+
+Record the generator DFP independently if MCC reports a different selection; do not infer it from the build pack.
+
 ## Current scope
 
-Branch creation, requirements and planning are complete. Demo implementation, new firmware builds, programming, debugger session end/reset, application upload and NVM writes have not been performed for this task. Last-known experimental hardware state is dated 5 November and must be reconfirmed.
+Branch creation, requirements and workflow review are complete. Next create a fresh standalone source-managed bootloader project under `customer-demo/bootloader/`, then inspect its MCC graph and settings before generation. Existing experimental projects stay unchanged. No customer firmware build, programming, application upload or NVM operation has occurred. On 17 November John reports external power active, PICkit connected and no active debugger session. Reconfirm physical clock/jumper/board settings before hardware tests.
