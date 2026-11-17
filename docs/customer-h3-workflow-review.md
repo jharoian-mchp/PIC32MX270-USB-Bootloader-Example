@@ -48,6 +48,10 @@ Reference source: `docs/docling/README.md`, device/PIM/carrier PDFs and existing
 - Last reported host: MPLAB X6.35, XC326.00, MCC5.7.0, build DFP1.7.380; older generator DFP1.6.369 recorded separately. Upstream release notes list older tested tools (IDE6.30/XC325.00/MCC5.6.4), so version compatibility must be checked rather than assumed.
 - Last board session report is 5 November's RAM readout halt. Current debugger, external-power and PICkit state must be reconfirmed.
 
+### Current host report — 17 November 18:32
+
+John reports MPLAB X6.35, XC326.00 and MCC5.7.2.3, with all packs updated. The board has external power and PICkit connected, with no active debugger session. This supersedes the 5 November active-halt report; intervening reset/programming history is unknown. Screenshot434 shows Content Manager, but does not establish every exact selected bootloader/USB/core/DFP version. Exported content selections or expanded package rows are required before generation. BSP version must not be substituted for core version.
+
 USB HID remains primary. If blocked, use stock H3 UART while retaining the 32 KB offset. UART pin routing, levels and compatible host have not been selected or hardware-tested.
 
 ## Verification performed
