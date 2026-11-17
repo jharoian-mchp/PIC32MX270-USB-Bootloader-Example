@@ -10,7 +10,7 @@ Last updated: **2026-11-17**. Update this file when project decisions, setup req
 
 Experimental USB/NVM qualification is paused. The [pause checkpoint](docs/paused-experimental-work.md) records the passing 5 November RAM rehearsal, preserved evidence, unfinished NVM/application work and last reported board state. Current hardware/session state must be reconfirmed; no board action follows from this change of priority.
 
-The next task is a separate customer-facing Harmony 3 bootloader and demonstration application with reproducible MCC instructions. The original email asks for a preferred H3/MCC workflow and assumes a 32 KB application offset. It names PIC32MX270F512H, whereas the tested board uses PIC32MX270F256D; exact customer device and transport require confirmation. Historical sections below retain their dated findings and are not instructions to resume experimental board operations.
+The active branch is `customer/h3-bootloader-demo`; the [customer plan](docs/customer-h3-demo-plan.md) defines a separate Harmony 3 bootloader and demonstration application with reproducible MCC instructions. The original email asks for a preferred H3/MCC workflow and assumes a 32 KB application offset. It names PIC32MX270F512H, whereas the tested board uses PIC32MX270F256D; exact customer device and transport require confirmation. Historical sections below retain their dated findings and are not instructions to resume experimental board operations.
 
 ## Recommended approach
 
