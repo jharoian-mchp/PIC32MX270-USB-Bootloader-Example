@@ -1,0 +1,21 @@
+import {readFileSync} from 'node:fs';
+import {resolve,dirname} from 'node:path';
+const root=resolve(dirname(new URL(import.meta.url).pathname),'..');
+const read=(p:string)=>readFileSync(resolve(root,p),'utf8');
+const p='customer-demo/application/';
+const ld=read(p+'src/config/default/app_32k.ld');
+function check(ok:boolean,msg:string){if(!ok)throw new Error(msg);}
+check(ld.includes('_RESET_ADDR                    = 0x9D008000;'),'reset');
+check(/_ebase_address\s*=\s*0x9D03F000\);/.test(ld),'ebase');
+check(ld.includes('ORIGIN = 0x9D008490, LENGTH = 0x36B70'),'program bounds');
+check(0x9d008490+0x36b70===0x9d03f000,'program arithmetic');
+check(ld.includes('ORIGIN = 0x9D008000, LENGTH = 0x490'),'startup reservation');
+check(ld.includes('*(.config_*) *(._debug_exception) *(.dbg_excpt)'),'discard');
+check(!/KEEP\s*\(\*\(\.config_/.test(ld),'configuration KEEP');
+const xml=read(p+'app.X/nbproject/configurations.xml');
+check(xml.includes('../src/config/default/app_32k.ld'),'selected linker');
+check(xml.includes('key="no-device-startup-code" value="false"'),'vendor startup');
+check(xml.includes('../src/app_led.c'),'LED source');
+check(read(p+'src/config/default/peripheral/tmr/plib_tmr2.c').includes('PR2 = 7499U'),'timer');
+check(read(p+'src/config/default/peripheral/i2c/master/plib_i2c1_master.c').includes('I2C1BRG = 235'),'I2C');
+console.log('PASS: source-only PIC32MX startup/program/exception bounds, config exclusion, project selection and peripheral checks; no link or executable qualification');

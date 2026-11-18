@@ -1,6 +1,10 @@
 # Generated application builds and user-owned code checks.
 .DEFAULT_GOAL := restart-image-audit
-.PHONY: customer-board-test
+.PHONY: customer-app-test customer-board-test
+customer-app-test:
+	HOST_CC="$(HOST_CC)" bun tools/test-customer-led.ts
+	bun tools/check-customer-app-layout.ts
+
 customer-board-test:
 	HOST_CC="$(HOST_CC)" bun tools/test-customer-board.ts
 
