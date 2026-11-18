@@ -25,7 +25,7 @@ static bool Busy(void *ctx) { (void)ctx; return I2C1_IsBusy(); }
 static bool Error(void *ctx) { (void)ctx; return I2C1_ErrorGet()!=I2C_ERROR_NONE; }
 static bool AdcStart(void *ctx) { (void)ctx; ADC_SamplingStart(); return true; }
 static bool AdcReady(void *ctx) { (void)ctx; return ADC_ResultIsReady(); }
-static uint16_t AdcResult(void *ctx) { (void)ctx; return ADC_ResultGet(); }
+static uint16_t AdcResult(void *ctx) { (void)ctx; return (uint16_t)ADC_ResultGet(ADC_RESULT_BUFFER_0); }
 void BOARD_DEMO_PlatformInitialize(void)
 {
     static const BOARD_DEMO_OPS ops={Now,WriteRead,Write,Busy,Error,AdcStart,AdcReady,AdcResult};
