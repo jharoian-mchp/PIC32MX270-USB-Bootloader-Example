@@ -26,3 +26,14 @@ Original carrier PDF TableA-1 and PIM original PDF map J8pin3 GPIO_18/UART2RX→
 Preserve stock parser/NVM per user's test-first direction. The weak trigger is false: blank app enters UART loader; a valid app runs automatically and SW1re-entry requires a separate board-trigger adaptation or ICSP-controlled test procedure. This is an entry-policy choice, not permission to rewrite the stock UART write path.
 
 Before target testing: validate reproducible binary/hostcommand, current board/session/power, exact erase/install scope, verified header ground/orientation/shared-net isolation and ICSP recovery. Windowsbuild equivalence and optional bootbutton adaptation remain untested. No malformedinput or failure-injection test is included. Known sourceissues remain in customer-uart-review.md; normal target success will qualify only the observed sequence.
+
+## Offline Debug candidate — 18 November 17:37 approval
+
+Built the same12source UART project with O2/g/__DEBUG/PK5 symbols and mdebugger, paired RAM0..1FF and BootFlash490..BEF reservations. Separate output is build/customer-demo/uart-bootloader-debug; productionHEX and stockUARTsource hashes remain unchanged. No installation or debugger connection occurred.
+
+- DebugELF f4ccf6c0eff2530d6a4d49f3093828a5f3ae883687315d4083ad2e79adfc3d0d
+- DebugHEX60e205bac476ab8f5a763b58ff0092e79434bfe5b21886e34d73146007ec44fe
+- text8428/data4/bss2084, below32KB; resetBFC00000, SYS_Initialize9D0000DC, main9D000AE4, UARTtask9D000190, run_Application9D0009A4. Static parser helpers are inlined atO2.
+- inputbufferA0000224/0x404, flashbufferA0000628/0x400, after reservedRAM. BootFlash reservations present; configuration still DEBUGOFF/PGx4 E3, matching source. Actual IDE debugger configuration patch/executive programming must be stated and checked at any future launch; this offline artifact does not establish it.
+
+Saleae observation478 with confirmedD0J8pin3RX/D1J8pin5TX shows expected13byteA6request and userreportsnoMCUresponse. HostCOM41FTDIidentity/venvpyserial3.5 and targetpoweractive/PICkitphysicallydetached confirmed. Cause is unknown; no retry/reset/reprogram authorised by this Debug build.
