@@ -7,7 +7,10 @@ const pack=process.env.PIC32MX_DFP_ROOT??'/workspace/ChrisK/tools/packs/Microchi
 const log:string[]=[];
 function run(args:string[]){log.push(JSON.stringify([cc,...args]));const r=spawnSync(cc,args,{cwd:root,encoding:'utf8'});log.push(r.stdout??'',r.stderr??'');writeFileSync(resolve(root,'build/customer-demo/build.log'),log.join('\n'));if(r.status!==0)throw new Error('XC32 command failed; see build/customer-demo/build.log');}
 mkdirSync(resolve(root,'build/customer-demo'),{recursive:true});
-for(const [name,project,opt,ld] of [['bootloader','bootloader.X','-O2','btl.ld'],['application','app.X','-O1','app_32k.ld']]){
+const projects = process.argv.includes('--uart-only')
+ ? [['uart-bootloader','u-bl.X','-O2','btl.ld']]
+ : [['bootloader','bootloader.X','-O2','btl.ld'],['application','app.X','-O1','app_32k.ld']];
+for(const [name,project,opt,ld] of projects){
  const base=resolve(root,'customer-demo',name),xml=readFileSync(resolve(base,project,'nbproject/configurations.xml'),'utf8');
  const sources=[...new Set([...xml.matchAll(/<itemPath>([^<]+\.c)<\/itemPath>/g)].map(m=>resolve(base,project,m[1])))];
  const out=resolve(root,'build/customer-demo',name);mkdirSync(out,{recursive:true});
