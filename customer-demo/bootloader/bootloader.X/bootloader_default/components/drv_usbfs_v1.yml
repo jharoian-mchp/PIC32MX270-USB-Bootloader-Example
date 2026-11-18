@@ -15,7 +15,18 @@ dependency:
 customDataClassName: com.microchip.utils_mh3.utils.persistence.CustomModuleData
 data:
   attachments: {}
-  elementPosition: {}
+  elementPosition:
+    attributes:
+      id: __ROOTVIEW
+    children:
+    - children:
+      - attributes:
+          id: drv_usbfs_v1
+          x: '186'
+          y: '220'
+        type: ElementPosition
+      type: ElementPositions
+    type: ComponentGraph
   symbols:
     USB_DEVICE_VBUS_SENSE:
       attributes:

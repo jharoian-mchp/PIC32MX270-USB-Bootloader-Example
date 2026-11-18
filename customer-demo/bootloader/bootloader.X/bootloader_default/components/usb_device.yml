@@ -15,7 +15,18 @@ dependency:
 customDataClassName: com.microchip.utils_mh3.utils.persistence.CustomModuleData
 data:
   attachments: {}
-  elementPosition: {}
+  elementPosition:
+    attributes:
+      id: __ROOTVIEW
+    children:
+    - children:
+      - attributes:
+          id: usb_device
+          x: '185'
+          y: '298'
+        type: ElementPosition
+      type: ElementPositions
+    type: ComponentGraph
   symbols:
     CONFIG_USB_DEVICE_ATTRIBUTE_REMOTE_WAKEUP:
       attributes:

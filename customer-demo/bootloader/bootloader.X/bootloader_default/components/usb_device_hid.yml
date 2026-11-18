@@ -15,7 +15,18 @@ dependency:
 customDataClassName: com.microchip.utils_mh3.utils.persistence.CustomModuleData
 data:
   attachments: {}
-  elementPosition: {}
+  elementPosition:
+    attributes:
+      id: __ROOTVIEW
+    children:
+    - children:
+      - attributes:
+          id: usb_device_hid
+          x: '5'
+          y: '37'
+        type: ElementPosition
+      type: ElementPositions
+    type: ComponentGraph
   symbols:
     CONFIG_USB_DEVICE_HID_INSTANCES:
       attributes:

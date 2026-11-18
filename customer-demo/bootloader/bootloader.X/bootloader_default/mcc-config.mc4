@@ -6,9 +6,11 @@ deviceLibrary: {}
 groupModules: []
 modules:
 - HarmonyCore
+- adc
 - core
 - dfp
 - drv_usbfs_v1
+- i2c1
 - nvm
 - usb_device
 - usb_device_hid
@@ -40,7 +42,7 @@ generatedFileHashHistoryMap:
 - file: ..\src\config\default\configuration.h
   hash: 7fa44fe672f84d2ad5c4280b9d64058a7454ecd8c4318a0e7909f922a11224b7
 - file: ..\src\config\default\definitions.h
-  hash: 66f8cb7e1b89bce09d03a72b1784d7b8663804d663767d2ac2d118ba1731eea4
+  hash: 0e645441399135a9f82d164fdbaa2f8e77850b8e9d623ee69de53397b199d221
 - file: ..\src\config\default\device.h
   hash: 4d4341a6f9628cea0bf73f980b639f7cb81089e55a60ad7e434be2a71e477442
 - file: ..\src\config\default\driver\driver.h
@@ -290,29 +292,43 @@ generatedFileHashHistoryMap:
 - file: ..\src\config\default\exceptions.c
   hash: 277b822365dceb7e50cfb0b11c394adb81d0889dbda767550988817fee1cd9cd
 - file: ..\src\config\default\initialization.c
-  hash: 9f4707d452c8350b41a32c18f387d88428a393fa2d23e1d42dcdd19137fa59ca
+  hash: 2c6f42970169ef1a3932f4fa05ce35d58183589dc146606ac8cf9f7e1707dffd
 - file: ..\src\config\default\interrupts.c
-  hash: e8d98b6e748e779b4d3176160433b17db06af1afa682c8175761b984c48abd07
+  hash: 1a3112808734a81f17bb72f5165ce8b70f7aefabf79205474376951a8bb6f62f
 - file: ..\src\config\default\interrupts.h
-  hash: b2ee7761a625f1f97d82bf08f25946e0d250d5206fe5a79d9b669838fd8dc448
+  hash: 6c02d0a1538bd2325d97c0e65b59c4ecf4b2eb8f41a067c98e23e9402001e024
 - file: ..\src\config\default\osal\osal.h
   hash: 1cfe3b61d9693b2369922041eef33fe16b3c1ccd9c85d4ded808b805f90a869c
 - file: ..\src\config\default\osal\osal_definitions.h
   hash: 5f0a2513a093b6d228e2b50646b204923a82047335a47f3d35a2938309ab6f37
 - file: ..\src\config\default\osal\osal_impl_basic.h
   hash: 158c4107f883f6d8c0244b73273361d1ca2ebd57c0934572b11a25c532fd22c5
+- file: ..\src\config\default\peripheral\adc\plib_adc.c
+  hash: 6f793cda7ed2a42a20ea0dde8be68e8a456a8fd7fa6a7d837d320fb2e567662c
+- file: ..\src\config\default\peripheral\adc\plib_adc.h
+  hash: 18878ad02f8bee93f06e541a0bd9d718f15f4606706cadab3811ec3dfa56bf74
 - file: ..\src\config\default\peripheral\clk\plib_clk.c
-  hash: d08dda5d3460ce7530333a860bbb48622362d85bc33a8f39ba20f2c9708dd207
+  hash: 9aff8f36b48b0312737d9b885f114238bf586de1bd21965f95ca4b377cab0a81
 - file: ..\src\config\default\peripheral\clk\plib_clk.h
   hash: 35384f2e13e59b7190bf77f6996baf3ea2377ec42df94979a6f793326def5255
 - file: ..\src\config\default\peripheral\evic\plib_evic.c
-  hash: a707a8e0493a8c4c488e972b52967d22485bb62b7b61566305a72fd067a443fe
+  hash: 26af14d0b642a79c57a6dcd202e72bede3190dded9772a662c961133ad434dc7
 - file: ..\src\config\default\peripheral\evic\plib_evic.h
   hash: 65ddf691b7fbc1fcd57a07a93a4442732effb8c53fc7ceca4464dade923f80f8
 - file: ..\src\config\default\peripheral\gpio\plib_gpio.c
-  hash: 243576e7d23b9124730fbf6fd54c6f438fffdd4e06495593182d110391d29c68
+  hash: cab62f07b4acd355e2cb0e86b874bc1b6efad77d7496727063c4e0f555f8d8a6
 - file: ..\src\config\default\peripheral\gpio\plib_gpio.h
-  hash: b0bf7765274be1444c1bd41e84e29ada87abbbf6ef0f75a956cd950c9a17f049
+  hash: 37c12003505940f61c420a9ad68287ef3822ddfe8cb2b56136e44322ce7a186e
+- file: ..\src\config\default\peripheral\i2c\master\plib_i2c1_master.c
+  hash: d8bb00af8eac19320cb574d12796cf81e9a67e9aca9de84fdaa9e2f0eacb37bb
+- file: ..\src\config\default\peripheral\i2c\master\plib_i2c1_master.h
+  hash: 47664df9ffb27e6fc030f11dbb1f86c428bc65302026de6f25264e0227acca6e
+- file: ..\src\config\default\peripheral\i2c\master\plib_i2c_master_common.h
+  hash: 1888013e2cef69a47c7a44bfef9a4de4b9580af719aa9896ac112551a64c9515
+- file: ..\src\config\default\peripheral\i2c\plib_i2c_smbus_common.c
+  hash: 026121a1d5fae1028604b3031f89253ed36f588d037beb3722351261ce514dd2
+- file: ..\src\config\default\peripheral\i2c\plib_i2c_smbus_common.h
+  hash: 585f8d40c9fcaa072abdf3039cbc4b26ee3fbcb902171dd7e79a682e3973f995
 - file: ..\src\config\default\peripheral\nvm\plib_nvm.c
   hash: 13d0b922804445ae9b047accf99fc27a8ffea2894b73717a3ca6723d2bf4d260
 - file: ..\src\config\default\peripheral\nvm\plib_nvm.h

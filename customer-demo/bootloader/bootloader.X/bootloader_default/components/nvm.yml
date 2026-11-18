@@ -37,7 +37,18 @@ data:
         type: DirectCapability
       type: Attachments
     type: nvm
-  elementPosition: {}
+  elementPosition:
+    attributes:
+      id: __ROOTVIEW
+    children:
+    - children:
+      - attributes:
+          id: nvm
+          x: '5'
+          y: '173'
+        type: ElementPosition
+      type: ElementPositions
+    type: ComponentGraph
   symbols:
     DRV_MEMORY_CONNECTED:
       attributes:

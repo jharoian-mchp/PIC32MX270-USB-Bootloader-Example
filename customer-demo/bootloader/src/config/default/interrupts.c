@@ -68,6 +68,7 @@
 // *****************************************************************************
 // *****************************************************************************
 void USB_1_Handler (void);
+void I2C_1_Handler (void);
 
 
 // *****************************************************************************
@@ -78,6 +79,11 @@ void USB_1_Handler (void);
 void __attribute__((used)) __ISR(_USB_1_VECTOR, ipl1SOFT) USB_1_Handler (void)
 {
     DRV_USBFS_USB_Handler();
+}
+
+void __attribute__((used)) __ISR(_I2C_1_VECTOR, ipl1SOFT) I2C_1_Handler (void)
+{
+    I2C_1_InterruptHandler();
 }
 
 

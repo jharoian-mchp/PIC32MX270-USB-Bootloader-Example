@@ -214,6 +214,9 @@ void SYS_Initialize ( void* data )
     }
 
 
+    I2C1_Initialize();
+    ADC_Initialize();
+
     NVM_Initialize();
 
 

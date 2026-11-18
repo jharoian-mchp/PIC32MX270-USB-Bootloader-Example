@@ -48,6 +48,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "peripheral/i2c/master/plib_i2c1_master.h"
 #include "usb/usb_device_hid.h"
 #include "usb/usb_hid.h"
 #include "peripheral/clk/plib_clk.h"
@@ -56,6 +57,7 @@
 #include "driver/usb/usbfs/drv_usbfs.h"
 #include "usb/usb_chapter_9.h"
 #include "usb/usb_device.h"
+#include "peripheral/adc/plib_adc.h"
 #include "bootloader/bootloader_usb_device_hid.h"
 #include "peripheral/nvm/plib_nvm.h"
 #include "system/int/sys_int.h"

@@ -55,7 +55,18 @@ data:
         type: DirectDependency
       type: Attachments
     type: usb_device_hid_bootloader
-  elementPosition: {}
+  elementPosition:
+    attributes:
+      id: __ROOTVIEW
+    children:
+    - children:
+      - attributes:
+          id: usb_device_hid_bootloader
+          x: '182'
+          y: '117'
+        type: ElementPosition
+      type: ElementPositions
+    type: ComponentGraph
   symbols:
     BTL_APP_JUMP_ADDRESS:
       attributes:
