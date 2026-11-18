@@ -1,4 +1,9 @@
 # Generated application builds and user-owned code checks.
+.DEFAULT_GOAL := restart-image-audit
+.PHONY: customer-board-test
+customer-board-test:
+	HOST_CC="$(HOST_CC)" bun tools/test-customer-board.ts
+
 XC32_ROOT ?= /workspace/ChrisK/tools/xc32/v6.00
 PIC32MX_DFP_ROOT ?= /workspace/ChrisK/tools/packs/Microchip/PIC32MX_DFP/1.7.380
 SMOKE_DIR := build/toolchain-smoke

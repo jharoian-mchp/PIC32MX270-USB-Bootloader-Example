@@ -314,6 +314,8 @@
         </logicalFolder>
       </logicalFolder>
       <itemPath>../src/main.c</itemPath>
+      <itemPath>../src/board_demo.c</itemPath>
+      <itemPath>../src/board_demo_platform.c</itemPath>
       <itemPath>../src/app.c</itemPath>
     </logicalFolder>
   </logicalFolder>

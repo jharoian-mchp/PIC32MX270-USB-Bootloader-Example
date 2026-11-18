@@ -4,13 +4,15 @@ This project will build a USB HID bootloader and a simple application for the **
 
 Use **XC32 v6.00** on the Windows host and in this Linux workspace. Generate firmware on Windows with **standalone MCC v5.7.0** and Harmony 3; use **MPLAB X v6.35 with PICkit 5** for host programming/debugging. The IDE also includes MCC v5.7.0. Linux XC32 and **PIC32MX_DFP 1.7.380** passed an exact-device compiler/linker/HEX smoke test. MCC/Harmony uses generator **DFP 1.6.369**; MPLAB X uses build **DFP 1.7.380**, as confirmed by the user. These versions are recorded independently. The initial MCC application is generated; saved components record **CSP v3.26.0**. User-owned LED1 code now builds with XC32 here and passes mocked tests. The user confirmed a successful Windows PICkit 5 debug build/load and LED1 blinking. The user also confirmed production operation and blinking after MCLR and power-cycle resets. The exact tested commit is tagged **v0.1.0-led-blink**. A tested **enumeration-only diagnostic build** now adds AN1 sensing and safe mini-B mux setup; the first connected-state ADC/mux and Windows HID enumeration test is confirmed. ADC unplug/replug detection and detach/reattach are now confirmed; host re-enumeration after MCLR and power cycle is now user-confirmed. Firmware-update commands stay inactive.
 
-Last updated: **2026-11-17**. Update this file when project decisions, setup requirements or verified progress change.
+Last updated: **2026-11-18**. Update this file when project decisions, setup requirements or verified progress change.
 
 ## Current work — customer H3 demonstration
 
 Experimental USB/NVM qualification is paused. The [pause checkpoint](docs/paused-experimental-work.md) records the passing 5 November RAM rehearsal, preserved evidence, unfinished NVM/application work and last reported board state. Current hardware/session state must be reconfirmed; no board action follows from this change of priority.
 
 The active branch is `customer/h3-bootloader-demo`; the [customer plan](docs/customer-h3-demo-plan.md) defines a separate Harmony 3 bootloader and demonstration application with reproducible MCC instructions. The original email asks for a preferred H3/MCC workflow and assumes a 32 KB application offset. John confirms the demo will use the existing PIC32MX270F256D board and its Docling part/board references for actual hardware tests; the customer uses a larger variant. USB HID is primary, with H3 UART as fallback if USB causes blockers. Both transports retain the fixed 32 KB application offset (`0x1D008000` / `0x9D008000`); linked fit and vector layout must be verified. Historical sections below retain their dated findings and are not instructions to resume experimental board operations.
+
+The [customer board adapter](docs/customer-board-adapter.md) now has source integration and passing host mocks (`make customer-board-test`), preserving the stock H3 task/protocol path. No customer firmware build or hardware update has run; the relocated application and linked-image/host/handoff checks are next.
 
 ## Recommended approach
 

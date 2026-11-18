@@ -38,6 +38,13 @@
 
 #include "bootloader/datastream/datastream.h"
 #include "usb/usb_device_hid.h"
+#include "../../../../board_demo.h"
+
+/* Board adaptation: retain this TU as the sole USB event/attach owner.
+ * The carrier's dedicated VBUS is not cable sense; use qualified AN1. */
+static bool boardPowerDetected;
+static bool boardAttached;
+static void DATASTREAM_BoardAttachTasks(void);
 
 typedef struct
 {
@@ -125,12 +132,14 @@ static void DATASTREAM_USBDeviceEventHandler(USB_DEVICE_EVENT event, void * even
 
         case USB_DEVICE_EVENT_POWER_DETECTED:
             /* VBUS was detected. We can attach the device */
-            USB_DEVICE_Attach (usbHIDData.usbHandle);
+            boardPowerDetected = true;
             break;
 
         case USB_DEVICE_EVENT_POWER_REMOVED:
             /* VBUS is not available */
-            USB_DEVICE_Detach(usbHIDData.usbHandle);
+            boardPowerDetected = false;
+            if (boardAttached) USB_DEVICE_Detach(usbHIDData.usbHandle);
+            boardAttached = false;
             break;
 
         /* These events are not used in this demo */
@@ -142,8 +151,22 @@ static void DATASTREAM_USBDeviceEventHandler(USB_DEVICE_EVENT event, void * even
     }
 }
 
+static void DATASTREAM_BoardAttachTasks(void)
+{
+    bool attach = boardPowerDetected && BOARD_DEMO_CablePresent();
+    if (usbHIDData.usbHandle == USB_DEVICE_HANDLE_INVALID) return;
+    if (attach && !boardAttached) {
+        boardAttached = true;
+        USB_DEVICE_Attach(usbHIDData.usbHandle);
+    } else if (!attach && boardAttached) {
+        boardAttached = false;
+        USB_DEVICE_Detach(usbHIDData.usbHandle);
+    }
+}
+
 void DATASTREAM_Tasks(void)
 {
+    DATASTREAM_BoardAttachTasks();
     if (false == usbHIDData.deviceConfigured)
     {
         return;
@@ -226,6 +249,10 @@ DATASTREAM_HANDLE DATASTREAM_Open(const DRV_IO_INTENT ioIntent)
 
 void DATASTREAM_Close(void)
 {
+    if (boardAttached && !usbHIDData.deviceConfigured)
+        USB_DEVICE_Detach(usbHIDData.usbHandle);
+    boardAttached = false;
+    boardPowerDetected = false;
     if (usbHIDData.deviceConfigured)
     {
         USB_DEVICE_Detach(usbHIDData.usbHandle);
