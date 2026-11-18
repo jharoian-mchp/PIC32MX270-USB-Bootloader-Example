@@ -1,0 +1,66 @@
+configVersion: 1.0.0
+coreVersion: 5.9.2
+spaHostVersion: 1.3.1
+device: PIC32MX270F256D
+deviceLibrary: {}
+groupModules: []
+modules:
+- core
+- core_timer
+- dfp
+- nvm
+- uart2
+- uart_bootloader
+generatedFileHashHistoryMap:
+- file: ..\src\config\default\bootloader\bootloader_common.c
+  hash: 9fe49b3829c221e5beaa95f81a327d6094c45eb0911c1614fa5a7e67f57b0481
+- file: ..\src\config\default\bootloader\bootloader_common.h
+  hash: 50a8c9e74c0df0e49a704ac045f1e456b2249c84fee94f66bac666a2a2109ed8
+- file: ..\src\config\default\bootloader\bootloader_uart.c
+  hash: 1e7b5c8f98e31a92010087d9159ae930a3292bca09466889174932f8b882be43
+- file: ..\src\config\default\bootloader\bootloader_uart.h
+  hash: a7f6aa299fba1dd1794087b06f6dfdf0e8c914a45fd5573e230ac0f69e639d94
+- file: ..\src\config\default\btl.ld
+  hash: a65eaa37d68329a2c08b3b675396119568c9c09e60c0fa15f1f087f155e1961c
+- file: ..\src\config\default\definitions.h
+  hash: 774bfc4537b81d4483c729abfe99cbb528ef62ca26a9fb14df0ac8c172851e2a
+- file: ..\src\config\default\device.h
+  hash: 4d4341a6f9628cea0bf73f980b639f7cb81089e55a60ad7e434be2a71e477442
+- file: ..\src\config\default\exceptions.c
+  hash: df6a7db71f29db985de306abd7b848a24111cef6398ccfb9479449ae4fbc069d
+- file: ..\src\config\default\initialization.c
+  hash: dcfd069dcaab0c3e509bf076e96696eddccd7a6d127b741d8af6a8a010cf1bd6
+- file: ..\src\config\default\interrupts.c
+  hash: 797936386be1072a51a41ed55d38dc4a8ed2bbf29a0a6e89fba8ee6651ac3610
+- file: ..\src\config\default\interrupts.h
+  hash: 2b6f3a9da8b2f61b5ea3f584838ad851b151646b5fda0fb709cc05e65576fd37
+- file: ..\src\config\default\peripheral\clk\plib_clk.c
+  hash: a5e21c6ad851e51ec74c4fffb77541e23b5b1ef43239349d03637d5dd608fe94
+- file: ..\src\config\default\peripheral\clk\plib_clk.h
+  hash: 35384f2e13e59b7190bf77f6996baf3ea2377ec42df94979a6f793326def5255
+- file: ..\src\config\default\peripheral\coretimer\plib_coretimer.c
+  hash: fffd0d46d7d9a9ed96d7946c68d1f0084d5c1d0248ccbabc72b28b1767f902a1
+- file: ..\src\config\default\peripheral\coretimer\plib_coretimer.h
+  hash: 244b3c5457235234571233b9ef8d20a6ba8eba2407de6dcaba48b6bb716570e4
+- file: ..\src\config\default\peripheral\evic\plib_evic.c
+  hash: 1bef337138d168802e01360953bf4ad7cc4c114e86adb0fa3196c9c82e67dea1
+- file: ..\src\config\default\peripheral\evic\plib_evic.h
+  hash: 65ddf691b7fbc1fcd57a07a93a4442732effb8c53fc7ceca4464dade923f80f8
+- file: ..\src\config\default\peripheral\gpio\plib_gpio.c
+  hash: fae4e1b1ef4cd17efb4a56e5c1a52c8e9a929991f03ef97d6ff0eb4ef2c7f105
+- file: ..\src\config\default\peripheral\gpio\plib_gpio.h
+  hash: b0bf7765274be1444c1bd41e84e29ada87abbbf6ef0f75a956cd950c9a17f049
+- file: ..\src\config\default\peripheral\nvm\plib_nvm.c
+  hash: 13d0b922804445ae9b047accf99fc27a8ffea2894b73717a3ca6723d2bf4d260
+- file: ..\src\config\default\peripheral\nvm\plib_nvm.h
+  hash: 006c06e193b1d4f1afef72a0ba7f79d8c4b1d577b23b230282d53c30f70183e4
+- file: ..\src\config\default\peripheral\uart\plib_uart2.c
+  hash: f544e627da4f9e0530226de80b52b935685430f64c79cfc25dbd4a744b91a1e8
+- file: ..\src\config\default\peripheral\uart\plib_uart2.h
+  hash: 008848679149ab33bbebef71c152887e48b76641e3031d4f65075cf504eb4ca5
+- file: ..\src\config\default\peripheral\uart\plib_uart_common.h
+  hash: b87295faadae4157d5880e22970f89094f2b51e1866930040a90ba49c6b29797
+- file: ..\src\config\default\toolchain_specifics.h
+  hash: f6f3282ecb4ad8b5ba3487b7d7b8f6cfa3f977240726af07eaab058caf904381
+- file: ..\src\main.c
+  hash: 3be4605fc861603d4729d6cb0027e5a1e876643b2d81f5c1ba062fcce69db724
