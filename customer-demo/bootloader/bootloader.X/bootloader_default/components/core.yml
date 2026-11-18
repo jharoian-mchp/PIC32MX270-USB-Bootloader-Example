@@ -1309,6 +1309,17 @@ data:
           type: Boolean
         type: Attributes
       type: Setting
+    CONFIG_ICESEL:
+      attributes:
+        id: CONFIG_ICESEL
+        label: In-Circuit Emulator/Debugger Communication Channel Select bits (ICESEL)
+      children:
+      - children:
+        - attributes:
+            value: ICS_PGx4
+          type: User
+        type: Values
+      type: Combo
   userData:
     children:
     - attributes:
