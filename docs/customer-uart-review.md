@@ -28,8 +28,10 @@ Retain the32KB application start physical1D008000/cached9D008000. Binary convers
 
 The PIM Docling mapping lists UART1RX RC6/PIM77, UART1TX RC7/PIM78, UART2RX RC8/PIM49, UART2TX RC4/PIM50. The carrier guide describes a Bluetooth UART1 path on J3RX/TX. Availability, jumper routing and PPS-supported mapping must be verified against original schematic/device sources before choosing a UART. No UART pins or external adapter are selected yet. Use correct MCU logic levels, not raw RS232 signals; electrical wiring requires a separately stated procedure.
 
-## Recommended next scope
+## User-directed stock demonstration — 18 November 15:46
 
-Preserve the HID project and create a separate stock H3 UART customer project. Inspect its generated exact-device source and choose the physical serial route. Add bounded packet-size/command/address-span validation and truthful NVM failure reporting as narrow demo fixes, with offline mocks and matching standard host protocol. Do not import the paused customv2/manifest/USBrestart architecture. Regeneration, source changes, new builds and hardware writes need their respective explicit scope; this review performs none of them.
+John requests a separate H3 UART project and a target test of the stock demo before changing or discarding its write implementation. Preserve the generated stock UART protocol/NVM code for this baseline; do not apply the previously proposed validation/error-handling fixes before that test. Known source concerns above remain recorded, and a successful normal upload will qualify only the tested sequence/image.
+
+Create the separate project, verify its actual device configuration, fixed32KB offset, UART route and standard host input first. Prepare an explicitly bounded normal-input hardware procedure with image/range checks, stated erase/program scope and an ICSP recovery path. No malformed-input, out-of-range, interrupted-write or fault-injection tests are implied. Board wiring, exact installation and write commands will be stated before execution; this direction establishes the stock-test goal without guessing those details. Do not import the paused customv2/manifest/USBrestart architecture.
 
 Research source copies remain outside Git at `/workspace/ChrisK/customer-support/research-uart-20261118/`.
