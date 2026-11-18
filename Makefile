@@ -1,6 +1,11 @@
 # Generated application builds and user-owned code checks.
 .DEFAULT_GOAL := restart-image-audit
-.PHONY: customer-app-test customer-board-test
+.PHONY: customer-demo-build customer-demo-audit customer-app-test customer-board-test
+customer-demo-build:
+	XC32_ROOT="$(XC32_ROOT)" PIC32MX_DFP_ROOT="$(PIC32MX_DFP_ROOT)" bun tools/build-customer-demo.ts
+customer-demo-audit:
+	bun tools/audit-customer-demo.ts
+
 customer-app-test:
 	HOST_CC="$(HOST_CC)" bun tools/test-customer-led.ts
 	bun tools/check-customer-app-layout.ts
