@@ -27,6 +27,16 @@ The additional Continue occurred before the requested halt review; it is recorde
 
 This passes the normal stock UART transfer, host CRC verification and relocated application execution in the tested Debug session. The UART parser/NVM source remains unchanged from generated6c44d8e (sourceSHA b9cef7a74626e65fb371b4753ab9209dc2d873e5eb1a89a3d5a1d1144ff0c0da). Known malformed-input/error-reporting limitations remain in [UART review](customer-uart-review.md); [HID findings](customer-upload-review.md) are separate.
 
-Production installation/handoff without debugger, power-cycle recovery, repeated uploads, bootloader re-entry, interruption/fault/protection qualification and the larger customer variant have not been tested. Stock triggerfalse automatically starts a non-erased application; noSW1re-entry hook was added to the UART baseline.
+The subsequent production installation/upload/handoff passed as recorded below. Power-cycle recovery, re-entry/repeated uploads without reinstalling the loader, interruption/fault/protection qualification and the larger customer variant have not been tested. Stock triggerfalse automatically starts a non-erased application; noSW1re-entry hook was added to the UART baseline.
 
-Last reported board state: application running/LED1blinking, active debugger/PICkit, external supply and FTDI/Saleae retained. No new halt/reset/program/upload/disconnect/session-end action is authorised by this result.
+## Production handoff — 19 November 19:35
+
+John separately approved ending Debug, one production IPE installation with Erase All/preservation off, reset release by PICkit disconnection and one normal application upload/CRC/host reset.
+
+- The production UART HEX hash4e74d3ba9efe69886dbd2ffdb37e34239bf0058d514c4c133d411e564d0ad2a7 matched. IPE reported the expected PIC32MX270F256D/A1, DFP1.7.380, programming1D000000..1D000FFF/configuration/boot configuration and Programming/Verify complete. Hold In Reset was enabled.
+- At19:34 John confirmed PICkit detached, no debug session and COM41 available.
+- At19:35 the same checked host/application command reported version3.7, programming100%, CRCverification success and RebootDone. John confirmed LED1blinking with no intervention.
+
+This passes normal UART application transfer, full-binary CRC and autonomous reset-to-application execution with the stock production UART bootloader and fixed32KB offset. It supersedes the earlier Debug-only limitation for handoff; known input/error/fault limitations remain.
+
+Last reported board state: production application running/LED1blinking, no debugger, PICkit detached, external supply and FTDI/Saleae retained. The approved installation/upload scope is spent. No new reset/power-cycle/program/upload or recovery action is authorised by this result.
